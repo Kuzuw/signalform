@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signalform</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar" id="topbar">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><span>Signalform</span></div>
+    <input class="scene-name" id="sceneName" type="text" aria-label="Scene name" spellcheck="false">
+    <div class="spacer"></div>
+    <select id="aspectSel" title="Canvas format" aria-label="Canvas format">
+      <option value="16:9">16:9</option><option value="9:16">9:16</option><option value="1:1">1:1</option><option value="4:3">4:3</option><option value="21:9">21:9</option>
+    </select>
+    <button class="btn" id="scenesBtn" type="button">Scenes</button>
+    <button class="btn rec" id="recBtn" type="button" title="Record a live take"><i class="dot"></i><span id="recLabel">Record</span></button>
+    <button class="btn live" id="outBtn" type="button" title="Syphon, Spout and NDI output"><i class="dot"></i><span>Live Output</span></button>
+    <button class="icon-btn" id="performBtn" type="button" title="Perform mode (F)"></button>
+  </header>
+
+  <aside class="left" id="left">
+    <section class="sec">
+      <h3>Audio source</h3>
+      <div class="source-wrap">
+        <button class="source-card" id="sourceCard" type="button" aria-haspopup="listbox" aria-expanded="false">
+          <span class="src-ico" id="srcIco"></span>
+          <span class="src-txt"><b id="srcTitle">Demo beat</b><small id="srcSub"></small></span>
+          <span class="src-chev" id="srcChev"></span>
+        </button>
+        <div class="source-menu" id="sourceMenu" role="listbox" hidden></div>
+      </div>
+      <div class="track-card" id="trackCard" hidden>
+        <div class="track-top">
+          <button class="icon-btn" id="playBtn" type="button" title="Play / pause (Space)"></button>
+          <span class="track-name" id="trackName"></span>
+          <button class="icon-btn" id="loopBtn" type="button" title="Loop the track" aria-pressed="false"></button>
+          <button class="icon-btn" id="monitorBtn" type="button" title="Hear the source through your speakers"></button>
+          <button class="icon-btn" id="ejectBtn" type="button" title="Stop this source"></button>
+        </div>
+        <div class="seekbox" id="seekBox">
+          <input type="range" id="trackSeek" min="0" max="1000" value="0" aria-label="Track position">
+          <div class="times"><span class="tnum" id="trackTime">0:00</span><span class="tnum" id="trackDur">0:00</span></div>
+        </div>
+        <button class="btn wide" id="exportBtn" type="button"></button>
+      </div>
+      <div class="levels">
+        <div class="meter"><span>LOW</span><i id="mLow"></i></div>
+        <div class="meter"><span>MID</span><i id="mMid"></i></div>
+        <div class="meter"><span>HIGH</span><i id="mHigh"></i></div>
+        <div class="chips"><span class="chip beat" id="chipBeat">KICK</span><span class="chip build" id="chipBuild">BUILD</span><span class="chip drop" id="chipDrop">DROP</span></div>
+        <label class="gain"><span>Input gain</span><input type="range" id="gainIn" min="0.3" max="3" step="0.05" value="1"></label>
+      </div>
+    </section>
+    <section class="sec mods">
+      <h3>Modules <span class="count" id="modCount"></span></h3>
+      <div class="tiles" id="modList"></div>
+      <p class="note">Click to add, or drag onto the stage. Layer, resize and group them freely.</p>
+    </section>
+  </aside>
+
+  <main class="stage-wrap" id="stageWrap">
+    <div class="stage" id="stage"></div>
+    <div class="empty" id="emptyState" hidden>
+      <p>The stage is empty.</p>
+      <p class="muted">Drag a module here, or open a starter scene from <b>Scenes</b>.</p>
+    </div>
+  </main>
+
+  <aside class="inspector" id="inspector"></aside>
+</div>
+
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<input type="file" id="trackFile" accept="audio/*,video/*" hidden>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

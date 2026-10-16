@@ -1,0 +1,30 @@
+{
+  "name": "signalform",
+  "productName": "Signalform",
+  "version": "1.0.0",
+  "description": "Realtime audio-reactive visual engine. Standalone desktop app for macOS and Windows.",
+  "main": "main/main.js",
+  "author": "Kuzuw",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist:mac": "electron-builder --mac --arm64 --x64",
+    "dist:win": "electron-builder --win --x64",
+    "dist": "electron-builder",
+    "test:ui": "node test/run-app.mjs",
+    "test:render": "node test/run-render.mjs"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kuzuw/signalform.git"
+  },
+  "homepage": "https://github.com/Kuzuw/signalform"
+}

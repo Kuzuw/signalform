@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>body{margin:0;background:#111;display:grid;grid-template-columns:repeat(5,400px);gap:4px;font:12px sans-serif;color:#aaa}
+figure{margin:0}canvas{width:400px;height:225px;display:block;background:#000}</style>
+<script type="module">
+import { MODULES, defaults } from '../renderer/modules/index.js';
+import { AudioEngine } from '../renderer/audio.js';
+const eng = new AudioEngine();
+window.eng = eng;
+const inst = [];
+const VARIANTS = [
+  ['oscillon', { form: 'torus' }], ['oscillon', { form: 'shell' }], ['familiar', { shape: 'text', text: 'SIGNAL' }], ['familiar', { shape: 'orb' }],
+  ['fractal', { mode: '0' }], ['fractal', { mode: '1' }], ['fractal', { mode: '2' }], ['ascii', { source: 'text', text: 'SIGNAL' }],
+  ['ascii', { source: 'spectrum', colorMode: 'frequency' }], ['oscilloscope', { mode: 'yt' }], ['oscilloscope', { mode: 'xy' }], ['oscilloscope', { shape: 'star' }],
+  ['spectre', { mode: 'bands' }], ['spectre', { mode: 'flow' }], ['spectre', { mode: 'ring' }], ['waveform', { mode: 'stacked' }],
+  ['waveform', { mode: 'mirror', palette: 'glacier' }], ['trace', { form: 'loop' }], ['trace', { form: 'spiral' }], ['flowfield', { pattern: 'vortex' }]
+];
+const only = new URLSearchParams(location.search).get('only');
+const list = only ? only.split(',').map((x) => { const [id, k, v] = x.split(':'); return [MODULES.find((m) => m.id === id), k ? { [k]: v } : {}]; }) : location.search.includes('variants') ? VARIANTS.map(([id, o]) => [MODULES.find((m) => m.id === id), o]) : MODULES.map((m) => [m, {}]);
+for (const [m, over] of list) {
+  const fig = document.createElement('figure');
+  const c = document.createElement('canvas'); c.width = 800; c.height = 450;
+  fig.append(c, Object.assign(document.createElement('figcaption'), { textContent: m.name + ' ' + JSON.stringify(over) }));
+  document.body.append(fig);
+  const params = Object.assign(defaults(m), over);
+  try { inst.push({ m, i: m.create(c, params), params, c }); } catch (e) { console.error('create failed', m.id, e); window.errors = (window.errors || []).concat(m.id + ': ' + e.message); }
+}
+window.ready = true;
+window.start = async () => { await eng.useDemo(); };
+let last = performance.now(), t0 = last;
+window.timings = {};
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const F = eng.update(dt, (now - t0) / 1000);
+  for (const x of inst) {
+    const a = performance.now();
+    try { x.i.render(F, { dt, t: (now - t0) / 1000, W: x.c.width, H: x.c.height, S: 2, params: x.params }); }
+    catch (e) { window.errors = (window.errors || []).concat(x.m.id + ': ' + e.message); x.i.render = () => {}; }
+    const ms = performance.now() - a;
+    window.timings[x.m.id] = (window.timings[x.m.id] || ms) * 0.9 + ms * 0.1;
+  }
+  window.counts = window.counts || { kick: 0, snare: 0, hat: 0, drop: 0, buildMax: 0 };
+  for (const o of F.onsets) window.counts[o.band]++;
+  if (F.drop > 0.99) window.counts.drop++;
+  window.counts.buildMax = Math.max(window.counts.buildMax, F.build);
+  window.F = { bass: F.bass, mid: F.mid, high: F.high, kick: F.kick, snare: F.snare, hat: F.hat, build: F.build, drop: F.drop, level: F.level, active: F.active };
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>

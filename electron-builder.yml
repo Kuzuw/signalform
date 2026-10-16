@@ -1,0 +1,49 @@
+appId: app.signalform.desktop
+productName: Signalform
+copyright: Copyright © 2026 Signalform
+directories:
+  output: dist
+  buildResources: build
+files:
+  - main/**/*
+  - renderer/**/*
+  - package.json
+  - "!**/*.map"
+asarUnpack:
+  - "**/*.node"
+  - "**/node_modules/ffmpeg-static/**"
+npmRebuild: true
+afterPack: build/after-pack.js
+
+mac:
+  category: public.app-category.music
+  icon: build/icon.png
+  minimumSystemVersion: "13.0"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: Signalform listens to your audio input to drive the visuals.
+    NSAudioCaptureUsageDescription: Signalform can capture system audio to drive the visuals.
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+
+dmg:
+  title: Signalform ${version}
+  artifactName: Signalform-${version}-${arch}.${ext}
+
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  artifactName: Signalform-Setup-${version}.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: Signalform

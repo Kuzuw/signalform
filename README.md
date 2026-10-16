@@ -66,11 +66,11 @@ npm run dist       # build dist/Signalform-Setup-x.y.z.exe
 
 GitHub Actions (`.github/workflows/build.yml`) builds the installer on a Windows machine:
 
-1. Bump `version` in `package.json`.
-2. Run `git tag v1.0.1 && git push origin v1.0.1`.
-3. About 10 minutes later, a GitHub Release appears with the `.exe`.
+1. Bump `version` in `package.json` (for example to `1.0.1`).
+2. Push to `main`.
+3. About 10 minutes later, the release `v1.0.1` appears with the new `.exe`. The workflow creates the tag itself.
 
-**Run workflow** in the Actions tab builds the installer without making a release. You can then download it from the run's artifacts.
+Pushes that keep the same version rebuild and replace the installer in that version's release. **Run workflow** in the Actions tab does the same on demand.
 
 To sign the installer and remove the SmartScreen warning, add a code-signing certificate as the repository secrets `WIN_CERT_PFX_BASE64` and `WIN_CERT_PASSWORD`.
 

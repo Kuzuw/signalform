@@ -79,13 +79,21 @@ step('groups after Group: ' + JSON.stringify(await page.evaluate(() => window.si
 await page.click('#rowBtn'); await page.waitForTimeout(300);
 // single-widget inspector: background, randomize, presets
 await page.dblclick('.widget >> nth=2', { position: { x: 30, y: 30 } });
+await page.click('#tab-look');
 await page.click('.seg button:has-text("Glass")');
+await page.selectOption('#p_mirror', 'kaleido');
+await page.evaluate(() => { const r = document.getElementById('r_glow'); r.value = 0.8; r.dispatchEvent(new Event('input')); });
+await page.click('#tab-audio');
+await page.selectOption('#p_focus', 'bass');
+await page.click('#tab-look');
 await page.fill('#r_radius', '24').catch(() => {});
 await page.evaluate(() => { const r = document.getElementById('r_radius'); r.value = 24; r.dispatchEvent(new Event('input')); });
+await page.click('#tab-module');
+await page.click('.pal >> nth=3');
 await page.click('#randomize');
 await page.fill('#presetName', 'Wild'); await page.click('#presetSave');
 await page.waitForTimeout(300); step('presets saved: ' + JSON.stringify(Object.fromEntries(Object.entries(await page.evaluate(() => JSON.parse(localStorage.getItem('sf.presets')) || {})).map(([k, v]) => [k, v.map((p) => p.name)]))));
-step('selected bg: ' + JSON.stringify(await page.evaluate(() => { const s = window.signalform.stage; return s.get(s.selected).bg; })));
+step('selected bg + fx: ' + JSON.stringify(await page.evaluate(() => { const s = window.signalform.stage, w = s.get(s.selected); return { bg: w.bg.mode, mirror: w.fx.mirror, glow: w.fx.glow, focus: w.fx.focus }; })));
 await page.waitForTimeout(2500);
 await shot('ui-composition');
 

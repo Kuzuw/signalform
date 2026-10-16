@@ -5,23 +5,35 @@ export default {
   name: 'Flow Field',
   tagline: 'Sound flows through motion fields.',
   params: [
-    { key: 'count', label: 'Particles', type: 'range', min: 500, max: 12000, step: 100, default: 4000 },
+    { key: 'pattern', label: 'Stream pattern', type: 'select', default: 'curl', section: 'Field', options: [['curl', 'Curl noise'], ['vortex', 'Vortex'], ['waves', 'Waves'], ['radial', 'Radial burst'], ['grid', 'Crosshatch']] },
+    { key: 'count', label: 'Particles', type: 'range', min: 500, max: 20000, step: 100, default: 4000 },
     { key: 'speed', label: 'Flow speed', type: 'range', min: 0.1, max: 4, step: 0.05, default: 1 },
     { key: 'scale', label: 'Field scale', type: 'range', min: 0.2, max: 4, step: 0.05, default: 1 },
     { key: 'turb', label: 'Turbulence', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
     { key: 'evolve', label: 'Field evolution', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
     { key: 'burst', label: 'Burst on hits', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'trail', label: 'Trail length', type: 'range', min: 0.5, max: 0.99, step: 0.01, default: 0.9 },
+    { key: 'spawn', label: 'Particles start', type: 'select', default: 'all', options: [['all', 'Everywhere'], ['center', 'From the center'], ['edges', 'From the edges'], ['bottom', 'From the bottom']] },
+    { key: 'life', label: 'Particle life', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
+    { key: 'trail', label: 'Trail length', type: 'range', min: 0.5, max: 0.99, step: 0.01, default: 0.9, section: 'Drawing' },
+    { key: 'shape', label: 'Particle shape', type: 'select', default: 'lines', options: [['lines', 'Streaks'], ['dots', 'Dots'], ['dashes', 'Dashes']] },
+    { key: 'bright', label: 'Brightness', type: 'range', min: 0.1, max: 3, step: 0.05, default: 1 },
     { key: 'width', label: 'Line width', type: 'range', min: 0.5, max: 4, step: 0.1, default: 1 },
-    { key: 'colorMode', label: 'Coloring', type: 'select', default: 'direction', options: [['direction', 'By direction'], ['speed', 'By speed'], ['mono', 'Single color']] },
+    { key: 'colorMode', label: 'Coloring', type: 'select', default: 'direction', section: 'Color', options: [['direction', 'By direction'], ['speed', 'By speed'], ['mono', 'Single color']] },
     { key: 'colorA', label: 'Color A', type: 'color', default: '#ff8a3d' },
-    { key: 'colorB', label: 'Color B', type: 'color', default: '#38c6c0' },
-    { key: 'pattern', label: 'Stream pattern', type: 'select', default: 'curl', options: [['curl', 'Curl noise'], ['vortex', 'Vortex'], ['waves', 'Waves']] }
+    { key: 'colorB', label: 'Color B', type: 'color', default: '#38c6c0' }
   ],
   create(canvas) {
     const ctx = canvas.getContext('2d');
     let X = new Float32Array(0), Y = new Float32Array(0), L = new Float32Array(0), z = 0;
     const GROUPS = 8;
+    let spawnMode = 'all';
+    function place(i, W, H) {
+      const m = spawnMode;
+      if (m === 'center') { const a = Math.random() * TAU, r = Math.random() * Math.min(W, H) * 0.08; X[i] = W / 2 + Math.cos(a) * r; Y[i] = H / 2 + Math.sin(a) * r; }
+      else if (m === 'edges') { const e = (Math.random() * 4) | 0; X[i] = e === 0 ? 1 : e === 1 ? W - 1 : Math.random() * W; Y[i] = e === 2 ? 1 : e === 3 ? H - 1 : Math.random() * H; }
+      else if (m === 'bottom') { X[i] = Math.random() * W; Y[i] = H - 1 - Math.random() * H * 0.05; }
+      else { X[i] = Math.random() * W; Y[i] = Math.random() * H; }
+    }
     function seed(n, W, H) {
       X = new Float32Array(n); Y = new Float32Array(n); L = new Float32Array(n);
       for (let i = 0; i < n; i++) { X[i] = Math.random() * W; Y[i] = Math.random() * H; L[i] = Math.random() * 200; }
@@ -29,6 +41,7 @@ export default {
     return {
       render(F, { dt, W, H, S, params: p }) {
         const n = Math.round(p.count);
+        spawnMode = p.spawn;
         if (X.length !== n) { seed(n, W, H); clear(ctx, W, H); }
         fade(ctx, W, H, p.trail);
         z += dt * 0.15 * p.evolve * (0.6 + F.mid * 1.5);
@@ -47,7 +60,9 @@ export default {
         for (let i = 0; i < n; i++) {
           const x = X[i], y = Y[i];
           let a;
-          if (p.pattern === 'vortex') a = Math.atan2(y - cy, x - cx) + Math.PI / 2 + noise3(x * sc, y * sc, z) * turb;
+          if (p.pattern === 'radial') a = Math.atan2(y - cy, x - cx) + noise3(x * sc, y * sc, z) * turb * 0.6;
+          else if (p.pattern === 'grid') a = (Math.floor(noise3(x * sc * 0.7, y * sc * 0.7, z) * 4 + 4) % 4) * (Math.PI / 2) + Math.PI / 4 + noise3(x * sc * 3, y * sc * 3, z) * turb * 0.2;
+          else if (p.pattern === 'vortex') a = Math.atan2(y - cy, x - cx) + Math.PI / 2 + noise3(x * sc, y * sc, z) * turb;
           else if (p.pattern === 'waves') a = Math.sin(y * sc * 3 + z * 2) * 1.2 + noise3(x * sc * 0.5, y * sc * 0.5, z) * turb;
           else {
             // curl of a scalar noise field: divergence-free, so streams never bunch up
@@ -63,16 +78,18 @@ export default {
           if (p.colorMode === 'direction') g = Math.floor(((a % TAU + TAU) % TAU) / TAU * GROUPS) % GROUPS;
           else if (p.colorMode === 'speed') g = Math.min(GROUPS - 1, Math.floor(Math.hypot(vx, vy) / (step * 1.6 + 0.01) * GROUPS));
           else g = i % GROUPS;
-          paths[g].moveTo(x, y); paths[g].lineTo(nx2, ny2);
+          if (p.shape === 'dots') { const r = p.width * S * 0.9; paths[g].moveTo(nx2 + r, ny2); paths[g].arc(nx2, ny2, r, 0, TAU); }
+          else if (p.shape === 'dashes') { if ((L[i] | 0) % 6 < 3) { paths[g].moveTo(x, y); paths[g].lineTo(nx2, ny2); } }
+          else { paths[g].moveTo(x, y); paths[g].lineTo(nx2, ny2); }
           L[i] -= 1;
-          if (nx2 < 0 || nx2 > W || ny2 < 0 || ny2 > H || L[i] < 0) { X[i] = Math.random() * W; Y[i] = Math.random() * H; L[i] = 60 + Math.random() * 240; }
+          if (nx2 < 0 || nx2 > W || ny2 < 0 || ny2 > H || L[i] < 0) { place(i, W, H); L[i] = (60 + Math.random() * 240) * p.life; }
           else { X[i] = nx2; Y[i] = ny2; }
         }
         for (let g = 0; g < GROUPS; g++) {
           const t = p.colorMode === 'mono' ? 0 : g / (GROUPS - 1);
           const c = p.colorMode === 'direction' ? mixRgb(A, B, 0.5 - 0.5 * Math.cos(t * TAU)) : mixRgb(A, B, t);
-          ctx.strokeStyle = rgba(c, (0.3 + F.level * 0.35) * density);
-          ctx.stroke(paths[g]);
+          const al = Math.min(1, (0.3 + F.level * 0.35) * density * p.bright * (p.shape === 'dots' ? 2.2 : 1));
+          if (p.shape === 'dots') { ctx.fillStyle = rgba(c, al); ctx.fill(paths[g]); } else { ctx.strokeStyle = rgba(c, al); ctx.stroke(paths[g]); }
         }
         ctx.globalCompositeOperation = 'source-over';
       },

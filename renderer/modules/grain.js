@@ -11,6 +11,7 @@ export default {
     { key: 'turb', label: 'Turbulence', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
     { key: 'scale', label: 'Pattern scale', type: 'range', min: 0.3, max: 3, step: 0.05, default: 1 },
     { key: 'persist', label: 'Surface memory', type: 'range', min: 0.5, max: 0.99, step: 0.01, default: 0.9 },
+    { key: 'drift', label: 'Drift', type: 'select', default: 'none', options: [['none', 'Wander'], ['rise', 'Rise'], ['fall', 'Fall like sand'], ['wind', 'Wind'], ['swirl', 'Swirl']] },
     { key: 'shake', label: 'Bass shake', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'scatter', label: 'Scatter on hits', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'colorA', label: 'Shadow color', type: 'color', default: '#3a2a1f' },
@@ -46,7 +47,8 @@ export default {
         const sp = p.flow * 0.6 * (dt * 60);
         const shake = F.bass * p.shake * 1.4;
         const kick = F.kick > 0.5 ? F.kick * p.scatter * 2.2 : 0;
-        const dep = Math.min(4, dt * 60); // same brightness at any frame rate
+        const dep = Math.min(4, dt * 60);
+        const dr = ['none', 'rise', 'fall', 'wind', 'swirl'].indexOf(p.drift); // same brightness at any frame rate
         const cx = bw / 2, cy = bh / 2;
         const wph = F.time * 9;
         // flow directions on a coarse grid, looked up per grain (much cheaper than noise per grain)
@@ -62,6 +64,8 @@ export default {
           const gi = ((y / G) | 0) * gw + ((x / G) | 0);
           VX[i] = VX[i] * 0.86 + GX[gi];
           VY[i] = VY[i] * 0.86 + GY[gi] + Math.sin(x * 0.05 + wph) * shake * 0.25;
+          if (dr === 1) VY[i] -= 0.08 * sp; else if (dr === 2) VY[i] += 0.1 * sp; else if (dr === 3) VX[i] += 0.1 * sp;
+          else if (dr === 4) { const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) + 1; VX[i] += -dy / d * 0.12 * sp; VY[i] += dx / d * 0.12 * sp; }
           if (kick) { const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) + 2; VX[i] += dx / d * kick * (0.5 + Math.random()); VY[i] += dy / d * kick * (0.5 + Math.random()); }
           x += VX[i]; y += VY[i];
           if (x < 0) x += bw; else if (x >= bw) x -= bw;

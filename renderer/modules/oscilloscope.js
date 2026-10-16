@@ -59,10 +59,13 @@ export default {
     { key: 'gain', label: 'Gain', type: 'range', min: 0.1, max: 4, step: 0.05, default: 1 },
     { key: 'channels', label: 'Channels', type: 'select', default: 'both', showIf: { mode: 'yt' }, options: [['mix', 'Mono mix'], ['both', 'Left + right']] },
     { key: 'spin', label: 'Shape rotation', type: 'range', min: -2, max: 2, step: 0.05, default: 0.2, showIf: { mode: 'shape' } },
-    { key: 'persist', label: 'Phosphor persistence', type: 'range', min: 0, max: 0.97, step: 0.01, default: 0.8 },
+    { key: 'echoes', label: 'Echoes', type: 'range', min: 0, max: 8, step: 1, default: 0 },
+    { key: 'echoScale', label: 'Echo size step', type: 'range', min: -0.3, max: 0.3, step: 0.01, default: -0.12, showIf: { echoes: [1, 2, 3, 4, 5, 6, 7, 8] } },
+    { key: 'echoTwist', label: 'Echo twist', type: 'range', min: -90, max: 90, step: 1, default: 12, showIf: { echoes: [1, 2, 3, 4, 5, 6, 7, 8] } },
+    { key: 'persist', label: 'Phosphor persistence', section: 'Phosphor', type: 'range', min: 0, max: 0.97, step: 0.01, default: 0.8 },
     { key: 'width', label: 'Beam width', type: 'range', min: 0.5, max: 5, step: 0.1, default: 1.5 },
     { key: 'glow', label: 'Optical bloom', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'color', label: 'Phosphor color', type: 'color', default: '#8dffb0' },
+    { key: 'color', label: 'Phosphor color', section: 'Color', type: 'color', default: '#8dffb0' },
     { key: 'grid', label: 'Graticule', type: 'toggle', default: false }
   ],
   create(canvas) {
@@ -125,7 +128,12 @@ export default {
         }
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        const bright = 0.6 + F.level * 0.8;
+        const baseBright = 0.6 + F.level * 0.8;
+        const E = Math.round(p.echoes || 0);
+        for (let e = E; e >= 0; e--) {
+        const bright = baseBright * (e ? Math.pow(0.62, e) : 1);
+        ctx.save();
+        if (e) { ctx.translate(cx, cy); ctx.rotate((p.echoTwist * e * Math.PI) / 180); const sc = Math.max(0.05, 1 + p.echoScale * e); ctx.scale(sc, sc); ctx.translate(-cx, -cy); }
         for (const pts of traces) {
           // bloom pass along the whole trace
           if (p.glow > 0) {
@@ -146,6 +154,8 @@ export default {
             ctx.lineWidth = p.width * S * 2.2; ctx.strokeStyle = rgba(col, alphas[b] * 0.35 * bright); ctx.stroke(path);
             ctx.lineWidth = p.width * S; ctx.strokeStyle = rgba(scaleRgb(col, 1.25), alphas[b] * bright); ctx.stroke(path);
           });
+        }
+        ctx.restore();
         }
         if (self.capturing) {
           ctx.globalCompositeOperation = 'source-over';

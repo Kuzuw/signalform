@@ -30,6 +30,8 @@ export default {
     { key: 'swell', label: 'Swelling from sounds', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'buildDrop', label: 'Squeeze on build, open on drop', type: 'toggle', default: true },
     { key: 'points', label: 'Beam samples per frame', type: 'range', min: 4000, max: 80000, step: 1000, default: 20000, section: 'Beam' },
+    { key: 'weave', label: 'Beam weave', type: 'range', min: 3, max: 120, step: 1, default: 37 },
+    { key: 'ratio', label: 'Weave ratio', type: 'range', min: 0.2, max: 1.5, step: 0.001, default: 0.618 },
     { key: 'beam', label: 'Beam speed', type: 'range', min: 0.1, max: 3, step: 0.05, default: 1 },
     { key: 'persist', label: 'Phosphor persistence', type: 'range', min: 0, max: 0.97, step: 0.01, default: 0.82 },
     { key: 'spin', label: 'Rotation', type: 'range', min: -2, max: 2, step: 0.05, default: 0.35 },
@@ -78,7 +80,7 @@ export default {
         const cx = acc.w / 2, cyy = acc.h / 2;
         const fA = FORMS[from], fB = FORMS[to];
         const N = Math.round(p.points);
-        const fu = 37.0, fv = 37.0 * 0.6180339 * 1.003;
+        const fu = p.weave, fv = p.weave * p.ratio * 1.003;
         const step = 0.0009 * p.beam * (0.6 + F.level * 1.4);
         const energy = 0.55 / Math.sqrt(N / 20000) * (acc.w * acc.h) / 230000;
         const sw = p.swell, nb = bumps.length;

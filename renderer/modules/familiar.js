@@ -36,7 +36,8 @@ export default {
     { key: 'gather', label: 'Gathers back', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
     { key: 'sway', label: 'Sway', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'turn', label: 'Turning', type: 'range', min: 0, max: 2, step: 0.05, default: 0.6 },
-    { key: 'dof', label: 'Depth of field', type: 'range', min: 0, max: 2, step: 0.05, default: 1, section: 'Light' },
+    { key: 'grain', label: 'Point size', type: 'range', min: 0.5, max: 4, step: 0.05, default: 1, section: 'Light' },
+    { key: 'dof', label: 'Depth of field', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'shadow', label: 'Self-shadowing', type: 'range', min: 0, max: 1, step: 0.05, default: 0.7 },
     { key: 'color', label: 'Light', type: 'color', default: '#f5f3ff' },
     { key: 'tint', label: 'Shadow tint', type: 'color', default: '#3b3550' },
@@ -128,7 +129,7 @@ export default {
           const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
           const persp = 2.6 / (2.6 + z1);
           const lit = 1 - shadow * (0.5 - 0.5 * HL[i]);
-          const blur = Math.abs(z1) * dof * R * 0.08;
+          const blur = Math.abs(z1) * dof * R * 0.08 + (p.grain - 1) * 0.8;
           acc.splatSoft(cx + x1 * R * persp, cyy - y * R * persp, energy * lit, blur);
         }
         acc.ramp(['#000000', p.tint, p.color, '#ffffff']);

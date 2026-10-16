@@ -33,6 +33,7 @@ export default {
   tagline: 'Lightning on a photographic plate.',
   params: [
     { key: 'react', label: 'Strikes come from', type: 'select', default: 'all', section: 'Strikes', options: [['all', 'Every sound'], ['kick', 'Kicks only'], ['kicksnare', 'Kicks and snares']] },
+    { key: 'origin', label: 'Strikes start from', type: 'select', default: 'top', options: [['top', 'The top'], ['bottom', 'The bottom'], ['sides', 'The sides'], ['center', 'The center'], ['anywhere', 'Anywhere']] },
     { key: 'sens', label: 'Sensitivity', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1 },
     { key: 'length', label: 'Channel length', type: 'range', min: 0.3, max: 1.6, step: 0.05, default: 1 },
     { key: 'branch', label: 'Branching', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
@@ -60,8 +61,12 @@ export default {
       let x0, y0, x1, y1, w, life;
       if (kind === 'kick') {
         // long channel from the top edge, tearing across the plate
-        x0 = W * (0.1 + rnd() * 0.8); y0 = -H * 0.05;
-        const a = Math.PI / 2 + (rnd() - 0.5) * 1.1;
+        let a;
+        if (p.origin === 'bottom') { x0 = W * (0.1 + rnd() * 0.8); y0 = H * 1.05; a = -Math.PI / 2 + (rnd() - 0.5) * 1.1; }
+        else if (p.origin === 'sides') { const left = rnd() < 0.5; x0 = left ? -W * 0.03 : W * 1.03; y0 = H * (0.1 + rnd() * 0.8); a = (left ? 0 : Math.PI) + (rnd() - 0.5) * 1.1; }
+        else if (p.origin === 'center') { x0 = W * 0.5; y0 = H * 0.5; a = rnd() * TAU; }
+        else if (p.origin === 'anywhere') { x0 = W * rnd(); y0 = H * rnd(); a = rnd() * TAU; }
+        else { x0 = W * (0.1 + rnd() * 0.8); y0 = -H * 0.05; a = Math.PI / 2 + (rnd() - 0.5) * 1.1; }
         x1 = x0 + Math.cos(a) * L * (0.55 + 0.35 * s); y1 = y0 + Math.sin(a) * L * (0.55 + 0.35 * s);
         w = 2.4 * s; life = 0.55;
       } else if (kind === 'snare') {

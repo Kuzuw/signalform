@@ -64,6 +64,7 @@
 
   <main class="stage-wrap" id="stageWrap">
     <div class="stage" id="stage"></div>
+    <div class="statusbar" id="statusBar"><span id="sbSize"></span><span id="sbFps"></span><span id="sbWidgets"></span><span id="sbSource"></span></div>
     <div class="empty" id="emptyState" hidden>
       <p>The stage is empty.</p>
       <p class="muted">Drag a module here, or open a starter scene from <b>Scenes</b>.</p>
@@ -73,6 +74,7 @@
   <aside class="inspector" id="inspector"></aside>
 </div>
 
+<div class="ctxmenu" id="ctxMenu" role="menu" hidden></div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <input type="file" id="trackFile" accept="audio/*,video/*" hidden>

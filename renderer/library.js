@@ -10,10 +10,10 @@ export async function load() {
 }
 
 export function presetsFor(mod) { return presets[mod] || []; }
-export async function savePreset(mod, name, params) {
+export async function savePreset(mod, name, params, fx) {
   const list = presets[mod] = presets[mod] || [];
   const i = list.findIndex((p) => p.name.toLowerCase() === name.toLowerCase());
-  const entry = { name, params: JSON.parse(JSON.stringify(params)) };
+  const entry = { name, params: JSON.parse(JSON.stringify(params)), fx: fx ? JSON.parse(JSON.stringify(fx)) : undefined };
   if (i >= 0) list[i] = entry; else list.push(entry);
   await window.sf.store.set('presets', presets);
 }

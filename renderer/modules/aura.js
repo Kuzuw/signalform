@@ -3,6 +3,7 @@ import { hexToVec } from './util.js';
 
 const FRAG = `
 uniform vec3 uColA, uColB;
+uniform float uMotion, uSpread;
 uniform float uSoft, uIntensity, uStreak, uSpikes, uChroma, uBass, uMid, uHigh, uKick, uDrop, uBlobs, uGrain;
 
 // one light source: bloom core + diffraction rings + anamorphic streak + star spikes
@@ -25,7 +26,12 @@ void main() {
     if (i >= N) break;
     float ph = i * 2.399;
     float sp = 0.13 + 0.05 * i;
-    vec2 c = vec2(sin(uT * sp + ph) * 0.42 * (uRes.x / uRes.y) * 0.8, cos(uT * sp * 1.31 + ph * 1.7) * 0.28);
+    vec2 c;
+    if (uMotion < 0.5) c = vec2(sin(uT * sp + ph) * 0.42 * (uRes.x / uRes.y) * 0.8, cos(uT * sp * 1.31 + ph * 1.7) * 0.28);
+    else if (uMotion < 1.5) c = vec2(cos(uT * sp * 0.8 + ph), sin(uT * sp * 0.8 + ph)) * 0.3;
+    else if (uMotion < 2.5) c = vec2((fract(i * 0.618 + uT * sp * 0.05) - 0.5) * 1.6 * (uRes.x / uRes.y), sin(uT * 0.3 + ph) * 0.15);
+    else c = vec2((i - (N - 1.0) * 0.5) * 0.28, 0.0);
+    c *= uSpread;
     c *= 0.55 + 0.6 * uMid;
     float band = spec(0.1 + i / max(N, 1.0) * 0.7);
     float r = uSoft * (0.06 + 0.1 * band + 0.08 * uBass + 0.05 * uKick + 0.06 * uDrop);
@@ -52,6 +58,8 @@ export default {
     { key: 'colorB', label: 'Color B', type: 'color', default: '#5ab8ff' },
     { key: 'soft', label: 'Softness', type: 'range', min: 0.3, max: 3, step: 0.05, default: 1.2 },
     { key: 'intensity', label: 'Intensity', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
+    { key: 'motion', label: 'Motion', type: 'select', default: '0', options: [['0', 'Drifting'], ['1', 'Orbiting'], ['2', 'Passing by'], ['3', 'Still in a row']] },
+    { key: 'spread', label: 'Spread', type: 'range', min: 0.2, max: 2, step: 0.01, default: 1 },
     { key: 'blobs', label: 'Light sources', type: 'range', min: 1, max: 7, step: 1, default: 4 },
     { key: 'streak', label: 'Optical streaks', type: 'range', min: 0, max: 1.5, step: 0.05, default: 0.6 },
     { key: 'spikes', label: 'Diffraction spikes', type: 'select', default: '6', options: [['0', 'None'], ['4', '4 points'], ['6', '6 points'], ['8', '8 points']] },
@@ -71,7 +79,7 @@ export default {
         s.set('uT', time);
         s.set('uColA', hexToVec(p.colorA)); s.set('uColB', hexToVec(p.colorB));
         s.set('uSoft', p.soft); s.set('uIntensity', p.intensity); s.set('uStreak', p.streak);
-        s.set('uSpikes', Number(p.spikes)); s.set('uChroma', p.chroma); s.set('uBlobs', p.blobs); s.set('uGrain', p.grain);
+        s.set('uSpikes', Number(p.spikes)); s.set('uChroma', p.chroma); s.set('uBlobs', p.blobs); s.set('uMotion', Number(p.motion)); s.set('uSpread', p.spread); s.set('uGrain', p.grain);
         s.set('uBass', F.bass); s.set('uMid', F.mid); s.set('uHigh', F.high); s.set('uKick', F.kick); s.set('uDrop', F.drop);
         s.draw();
       },

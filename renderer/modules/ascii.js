@@ -1,5 +1,7 @@
 import { noise3, hexToRgb, mixRgb, rgba, clear, clamp } from './util.js';
 
+const GLYPHS = { classic: ' .:-=+*#%@', blocks: ' ░▒▓█', dots: ' ·•●', binary: ' 01', hex: ' 0123456789ABCDEF', lines: ' -=≡', kana: ' ｰｨｩｪｫｬｭｮｯｱｲｳｴｵｶｷｸｹｺ' };
+
 export default {
   id: 'ascii',
   name: 'ASCII',
@@ -7,15 +9,18 @@ export default {
   params: [
     { key: 'source', label: 'Source', type: 'select', default: 'field', options: [['field', 'Noise field'], ['spectrum', 'Spectrum'], ['wave', 'Waveform'], ['text', 'Your text']] },
     { key: 'text', label: 'Text', type: 'text', default: 'SIGNAL', showIf: { source: 'text' } },
-    { key: 'charset', label: 'Characters (light → dense)', type: 'text', default: ' .:-=+*#%@' },
-    { key: 'cell', label: 'Glyph size', type: 'range', min: 6, max: 32, step: 1, default: 12 },
-    { key: 'density', label: 'Density', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1 },
+    { key: 'glyphs', label: 'Glyph set', type: 'select', default: 'classic', section: 'Glyphs', options: [['classic', 'Classic  .:-=+*#%@'], ['blocks', 'Blocks ░▒▓█'], ['dots', 'Dots ·•●'], ['binary', 'Binary 01'], ['hex', 'Hex 0–F'], ['lines', 'Lines -=≡'], ['kana', 'Katakana'], ['custom', 'My characters']] },
+    { key: 'charset', label: 'Characters (light → dense)', type: 'text', default: ' .:-=+*#%@', showIf: { glyphs: 'custom' } },
+    { key: 'weight', label: 'Weight', type: 'select', default: '600', options: [['300', 'Light'], ['500', 'Regular'], ['600', 'Medium'], ['800', 'Bold']] },
+    { key: 'cell', label: 'Glyph size', type: 'range', min: 6, max: 40, step: 1, default: 12 },
+    { key: 'spacing', label: 'Letter spacing', type: 'range', min: 0.45, max: 1.2, step: 0.01, default: 0.62 },
+    { key: 'density', label: 'Density', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1, section: 'Motion' },
     { key: 'motion', label: 'Glyph motion', type: 'select', default: 'drift', options: [['still', 'Still'], ['drift', 'Drift'], ['rain', 'Rain'], ['jitter', 'Jitter']] },
     { key: 'speed', label: 'Motion speed', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
     { key: 'punch', label: 'Bass punch', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'sparkle', label: 'Hi-hat sparkle', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'bandMap', label: 'Columns follow frequencies', type: 'toggle', default: true },
-    { key: 'colorMode', label: 'Coloring', type: 'select', default: 'gradient', options: [['mono', 'Single color'], ['gradient', 'By intensity'], ['frequency', 'By frequency']] },
+    { key: 'colorMode', label: 'Coloring', type: 'select', default: 'gradient', section: 'Color', options: [['mono', 'Single color'], ['gradient', 'By intensity'], ['frequency', 'By frequency']] },
     { key: 'colorA', label: 'Color A', type: 'color', default: '#cfd6e6' },
     { key: 'colorB', label: 'Color B', type: 'color', default: '#ff7a3d' },
     { key: 'invert', label: 'Invert', type: 'toggle', default: false }
@@ -30,16 +35,17 @@ export default {
 
     function buildAtlas(p, S) {
       const cell = Math.round(p.cell * S);
-      const key = [p.charset, cell, p.colorA, p.colorB, p.colorMode].join('|');
+      const set = GLYPHS[p.glyphs] || p.charset || ' .:-=+*#%@';
+      const key = [set, cell, p.colorA, p.colorB, p.colorMode, p.weight, p.spacing].join('|');
       if (key === atlasKey) return;
       atlasKey = key;
-      ch = cell; cw = Math.max(3, Math.round(cell * 0.62));
-      const chars = [...(p.charset || ' .:-=+*#%@')];
+      ch = cell; cw = Math.max(3, Math.round(cell * p.spacing));
+      const chars = [...set];
       atlas = document.createElement('canvas');
       atlas.width = cw * chars.length; atlas.height = ch * LEVELS;
       const a = atlas.getContext('2d', { willReadFrequently: true });
       a.fillStyle = '#000'; a.fillRect(0, 0, atlas.width, atlas.height);
-      a.font = `600 ${cell}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+      a.font = `${p.weight} ${cell}px ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace`;
       a.textBaseline = 'middle'; a.textAlign = 'center';
       const A = hexToRgb(p.colorA), B = hexToRgb(p.colorB);
       for (let l = 0; l < LEVELS; l++) {
@@ -47,7 +53,7 @@ export default {
         a.fillStyle = rgba(p.colorMode === 'mono' ? A : mixRgb(A, B, t), p.colorMode === 'gradient' ? 0.55 + 0.45 * t : 1);
         chars.forEach((c, i) => a.fillText(c, i * cw + cw / 2, l * ch + ch / 2 + 1));
       }
-      atlas.nChars = chars.length;
+      atlas.nChars = chars.length; atlas.blank = chars[0] === ' ';
       atlasPx = new Uint32Array(a.getImageData(0, 0, atlas.width, atlas.height).data.buffer);
       maskKey = '';
     }
@@ -126,7 +132,7 @@ export default {
             v = clamp(v);
             let ci = Math.floor(v * (n - 1) + 0.5);
             if (p.motion === 'jitter' && Math.random() < 0.04 * sp * (0.3 + F.hit)) ci = Math.min(n - 1, Math.max(0, ci + (Math.random() < 0.5 ? -1 : 1)));
-            if (ci <= 0 && !p.invert && (p.charset || ' ')[0] === ' ') continue;
+            if (ci <= 0 && !p.invert && atlas.blank) continue;
             const lvl = p.colorMode === 'frequency' ? Math.floor((x / cols) * (LEVELS - 1)) : Math.floor(v * (LEVELS - 1));
             // copy the glyph's pixels straight into the frame buffer
             const dx = ox2 + x * cw + ox, dy = oy + y * ch;

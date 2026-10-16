@@ -1,6 +1,8 @@
 import { installShim } from './shim.js';
 import { AudioEngine } from './audio.js';
-import { MODULES, defaults } from './modules/index.js';
+import { MODULES, byId, defaults } from './modules/index.js';
+import { FX_DEFAULTS } from './fx.js';
+import { randomize } from './inspector.js';
 import { Stage } from './stage.js';
 import { Inspector } from './inspector.js';
 import { Recorder, Outputs } from './capture.js';
@@ -113,7 +115,8 @@ window.signalform = app;
   app.stage = new Stage($('stage'), $('stageWrap'), {
     onSelect: () => app.inspector && app.inspector.render(),
     onChange: (structural) => { autosave(); $('emptyState').hidden = app.stage.widgets.length > 0; if (structural && app.inspector) app.inspector.render(); },
-    onDropModule: (id, rect) => addModule(id, rect)
+    onDropModule: (id, rect) => addModule(id, rect),
+    onContext: (x, y) => openContextMenu(x, y)
   });
   app.stage.renderScale = app.settings.renderScale || 1;
   app.inspector = new Inspector($('inspector'), app.stage, {});
@@ -150,7 +153,7 @@ function addModule(id, rect) {
 }
 
 /* ---------------- frame loop ---------------- */
-let lastT = performance.now(), t0 = lastT, meterTick = 0;
+let lastT = performance.now(), t0 = lastT, meterTick = 0, fpsT = lastT, fpsFrames = 0;
 function loop(now) {
   const dt = Math.min(0.1, Math.max(0.001, (now - lastT) / 1000)); lastT = now;
   const t = (now - t0) / 1000;
@@ -159,6 +162,8 @@ function loop(now) {
   app.recorder.frame();
   app.outputs.frame(now);
   if ((meterTick++ & 1) === 0) updateMeters(F);
+  fpsFrames++;
+  if (now - fpsT > 500) { updateStatus(now); fpsT = now; fpsFrames = 0; }
   requestAnimationFrame(loop);
 }
 
@@ -180,6 +185,59 @@ function updateMeters(F) {
     paintRange($('trackSeek'));
   }
 }
+
+// status bar + live layer thumbnails, twice a second
+function updateStatus(now) {
+  const st = app.stage;
+  const fps = Math.round(fpsFrames * 1000 / Math.max(1, now - fpsT));
+  const a = { '16:9': 16 / 9, '9:16': 9 / 16, '1:1': 1, '4:3': 4 / 3, '21:9': 21 / 9 }[st.scene.aspect] || 16 / 9;
+  const W = a >= 1 ? Math.round(1080 * a / 2) * 2 : 1080, H = a >= 1 ? 1080 : Math.round(1080 / a / 2) * 2;
+  $('sbSize').textContent = `${st.scene.aspect} · ${W}×${H}`;
+  $('sbFps').textContent = `${fps} fps`;
+  $('sbFps').classList.toggle('warn', fps < 40);
+  $('sbWidgets').textContent = `${st.widgets.length} widget${st.widgets.length === 1 ? '' : 's'}${st.groups.length ? ` · ${st.groups.length} group${st.groups.length === 1 ? '' : 's'}` : ''}`;
+  $('sbSource').textContent = app.audio.sourceLabel;
+  for (const c of document.querySelectorAll('canvas[data-thumb]')) {
+    const r = st.rt.get(c.dataset.thumb);
+    if (r && r.size[0]) c.getContext('2d').drawImage(r.canvas, 0, 0, c.width, c.height);
+  }
+}
+
+/* ---------------- right-click menu on widgets ---------------- */
+function openContextMenu(x, y) {
+  const st = app.stage, sel = st.selection, ids = sel.map((w) => w.id), one = sel.length === 1 ? sel[0] : null;
+  const g = st.selectedGroup;
+  const menu = $('ctxMenu');
+  const item = (label, fn, opts = {}) => h('button', { type: 'button', role: 'menuitem', class: opts.danger ? 'danger' : '', disabled: opts.disabled, onclick: () => { closeContextMenu(); fn(); } }, h('span', {}, label), opts.key ? h('kbd', {}, opts.key) : '');
+  const sep = () => h('hr');
+  const top = () => { for (const id of ids) { const list = st.widgets, w = st.get(id); list.splice(list.indexOf(w), 1); list.push(w); } st._zOrder(); st.changed(true); };
+  const bottom = () => { for (const id of [...ids].reverse()) { const list = st.widgets, w = st.get(id); list.splice(list.indexOf(w), 1); list.unshift(w); } st._zOrder(); st.changed(true); };
+  menu.innerHTML = '';
+  menu.append(
+    h('div', { class: 'ctx-title' }, one ? one.name : g ? g.name : `${sel.length} widgets`),
+    item('Duplicate', () => st.duplicate(ids), { key: 'Ctrl+D' }),
+    item('Bring to front', top, { key: ']' }),
+    item('Send to back', bottom, { key: '[' }),
+    item('Fill stage', () => st.fillStage(ids)),
+    sep(),
+    sel.length > 1 && !g ? item('Group', () => { const ng = st.groupSelection(); if (ng) toast(`${ng.name} created`); }, { key: 'Ctrl+G' }) : '',
+    g ? item('Ungroup', () => st.ungroup(g.id), { key: 'Ctrl+Shift+G' }) : '',
+    sel.length > 1 ? item('Side by side', () => st.arrangeRow(ids)) : '',
+    item(sel.every((w) => w.locked) ? 'Unlock position' : 'Lock position', () => { const lock = !sel.every((w) => w.locked); for (const w of sel) { w.locked = lock; st.applyStyle(w); } st.changed(true); }),
+    item(sel.every((w) => w.visible) ? 'Hide' : 'Show', () => { const vis = !sel.every((w) => w.visible); for (const w of sel) { w.visible = vis; st.applyStyle(w); } st.changed(true); }),
+    one ? item('Randomize', () => { randomize(byId[one.module], one.params); st.changed(true); toast('Randomized'); }) : '',
+    item('Reset Look and Audio', () => { for (const w of sel) Object.assign(w.fx, FX_DEFAULTS); st.changed(true); }),
+    sep(),
+    item('Record this…', () => { app.settings.record = Object.assign({}, app.settings.record || { height: 1080, fps: 60, audio: true }, { source: g ? g.id : one ? one.id : 'stage' }); D.recordDialog(app); }),
+    item('Delete', () => st.remove(ids), { danger: true, key: 'Del' }));
+  menu.hidden = false;
+  const b = menu.getBoundingClientRect();
+  menu.style.left = Math.min(x, innerWidth - b.width - 8) + 'px';
+  menu.style.top = Math.min(y, innerHeight - b.height - 8) + 'px';
+  setTimeout(() => document.addEventListener('pointerdown', ctxOutside), 0);
+}
+function ctxOutside(e) { if (!e.target.closest('#ctxMenu')) closeContextMenu(); }
+function closeContextMenu() { $('ctxMenu').hidden = true; document.removeEventListener('pointerdown', ctxOutside); }
 
 function paintRange(r) { r.style.setProperty('--p', (((r.value - r.min) / (r.max - r.min)) * 100).toFixed(1) + '%'); }
 
@@ -324,6 +382,7 @@ function wireKeys() {
     if (typing || $('dlg').open) return;
     const mod = e.metaKey || e.ctrlKey;
     const st = app.stage, sel = st.selection, ids = sel.map((w) => w.id);
+    if (e.key === 'Escape' && !$('ctxMenu').hidden) return closeContextMenu();
     if (e.key === 'Escape') {
       const one = st.get(st.selected), r = one && st.rt.get(one.id);
       if (r && r.inst && r.inst.capturing) { r.inst.pointer('cancel'); toast('Drawing cancelled'); return; }

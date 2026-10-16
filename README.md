@@ -13,6 +13,29 @@ A free, open-source, realtime audio-reactive visual engine for Windows. No DAW r
     - Kicks tear long channels, snares throw arcs, hats crackle, and rolls flicker one channel.
     - It holds back through a build and breaks loose on the drop, with a sky flash on big hits.
   - **Familiar:** up to 100,000 points of light that rest as one creature. It breathes in silence, scatters on hits and gathers back. Type a word and the swarm becomes it.
+- **Shape every widget, whatever its module.** Each widget has three tabs:
+  - **Module:** the module's own settings, Randomize, Reset, one-click color palettes (Phosphor, Ember, Ice, Neon, Sunset, Gold, Pastel, Mono) and presets.
+  - **Look:**
+    - hue, saturation, brightness, contrast and invert;
+    - zoom, rotation, spin, offset and flips;
+    - mirror symmetry (left/right, top/bottom, four quadrants, kaleidoscope with 3–16 segments);
+    - glow, trails, pixelate and vignette.
+  - **Audio:** reactivity, which part of the mix to listen to (whole mix, bass and kicks, mids, highs), smoothing, hit strength and motion speed. Each widget can react differently.
+- **Deeper modules:**
+  - **Spectre:** frequency range, response curve, rounded bars with peak caps.
+  - **ASCII:** glyph sets (blocks, dots, binary, hex, katakana or your own), font weight and spacing.
+  - **Flow Field:** radial and crosshatch fields, spawn points, dots or dashes.
+  - **Trace:** up to 12 parallel lines.
+  - **Oscilloscope:** echoes.
+  - **Lissajous:** 3D tilt and tumble.
+  - **Fractal:** pan and color cycling.
+  - **Aura:** motion styles.
+  - **Ferro:** spike sharpness.
+  - **Oscillon:** beam weave.
+  - **Discharge:** strike origin.
+  - **Grain:** drift.
+  - **Familiar:** point size.
+  - **Waveform:** ring rotation and twist.
 - **Free composition.** Each module is a widget you can move, resize, layer, blend, hide, lock or duplicate.
   - **Card backgrounds:** Glass (blurs what's behind), Solid, Dark, Light (visuals print as ink), Clear (floats over the layers below) or any color, with rounded corners.
   - **Selection and groups:** shift-click to select several, then group them (Ctrl+G), align them, or lay them out side by side or in a grid.
@@ -42,7 +65,8 @@ The installer is not code-signed yet. If Windows SmartScreen appears, choose **M
 | Duplicate / delete | Ctrl+D / Delete |
 | Play / pause the track or demo | Space |
 | Perform mode (visuals only) | F, Esc to leave |
-| Reset a slider | Double-click it |
+| Reset a slider | Double-click it. Click the number to type an exact value |
+| Widget menu | Right-click a widget: duplicate, front/back, group, lock, hide, randomize, record it, delete |
 | Export a video of a track | Load a track, then **Export video from this track** |
 | Draw a custom Oscilloscope shape | Oscilloscope → Custom shape → **Draw a shape on the widget** |
 

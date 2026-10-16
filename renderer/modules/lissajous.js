@@ -13,6 +13,8 @@ export default {
     { key: 'spread', label: 'Layer phase spread', type: 'range', min: 0, max: 1, step: 0.01, default: 0.18 },
     { key: 'phaseSpeed', label: 'Phase drift', type: 'range', min: 0, max: 3, step: 0.05, default: 0.6 },
     { key: 'size', label: 'Size', type: 'range', min: 0.2, max: 1.2, step: 0.01, default: 0.8 },
+    { key: 'tilt', label: '3D tilt', type: 'range', min: 0, max: 1.5, step: 0.01, default: 0.35 },
+    { key: 'tumble', label: 'Tumble speed', type: 'range', min: 0, max: 2, step: 0.01, default: 0.3 },
     { key: 'wobble', label: 'Signal interference', type: 'range', min: 0, max: 2, step: 0.05, default: 0.7 },
     { key: 'width', label: 'Line width', type: 'range', min: 0.5, max: 5, step: 0.1, default: 1.4 },
     { key: 'glow', label: 'Glow', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
@@ -22,7 +24,7 @@ export default {
   ],
   create(canvas) {
     const ctx = canvas.getContext('2d');
-    let phase = 0, ra = 1, rb = 2, ratioIdx = 1, hold = 0;
+    let tumbleA = 0, phase = 0, ra = 1, rb = 2, ratioIdx = 1, hold = 0;
     return {
       render(F, { dt, W, H, S, params: p }) {
         fade(ctx, W, H, p.trail);
@@ -31,6 +33,7 @@ export default {
         const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.45 * p.size;
         const A = hexToRgb(p.colorA), B = hexToRgb(p.colorB);
         phase += dt * p.phaseSpeed * (0.4 + F.mid * 1.6);
+        tumbleA += dt * p.tumble * (0.3 + F.mid);
         // pick a ratio: manual, or follow the dominant pitch class and jump on strong hits
         let ta, tb;
         if (p.ratio !== 'auto') [ta, tb] = p.ratio.split(':').map(Number);
@@ -55,8 +58,13 @@ export default {
               for (let i = 0; i <= N; i++) {
                 const u = i / N * TAU;
                 const w = F.wave[(i * 2) % 2048] * wob * 0.22;
-                const x = cx + Math.sin(ra * u + ph) * rr * (1 + w);
-                const y = cy + Math.sin(rb * u) * rr * (1 - w);
+                // a third harmonic gives depth; tilt and tumble rotate the figure in 3D
+                let X = Math.sin(ra * u + ph) * (1 + w), Y = Math.sin(rb * u) * (1 - w), Z = Math.sin((ra + rb) * 0.5 * u + ph * 0.7);
+                const ty = tumbleA, tx = p.tilt;
+                const X1 = X * Math.cos(ty) + Z * Math.sin(ty), Z1 = -X * Math.sin(ty) + Z * Math.cos(ty);
+                const Y1 = Y * Math.cos(tx) - Z1 * Math.sin(tx), Z2 = Y * Math.sin(tx) + Z1 * Math.cos(tx);
+                const pr = 3 / (3 + Z2 * p.tilt);
+                const x = cx + X1 * rr * pr, y = cy + Y1 * rr * pr;
                 if (i) c.lineTo(x, y); else c.moveTo(x, y);
               }
             }, scaleA(col, (0.4 + F.level * 0.4) / Math.sqrt(Math.max(1, p.layers / 3))), p.width * S, p.glow);

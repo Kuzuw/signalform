@@ -3,6 +3,7 @@ import { hexToVec } from './util.js';
 
 const FRAG = `
 uniform vec3 uTint, uGlowCol;
+uniform float uSharp;
 uniform float uDensity, uSpike, uTurb, uSize, uLightA, uDrops, uGloss, uGlow;
 uniform float uBass, uMid, uHigh, uKick, uDrop, uBuild;
 uniform vec4 uDrop0, uDrop1, uDrop2, uDrop3, uDrop4, uDrop5;
@@ -41,7 +42,7 @@ float height(vec2 p, out float mask) {
   vec2 o = hexOffset(rp * uDensity);
   float d = length(o) * 2.0;
   float spikeZone = smoothstep(1.3, 2.6, f);
-  float s = pow(max(0.0, 1.0 - d), 1.8) * uSpike * spikeZone;
+  float s = pow(max(0.0, 1.0 - d), uSharp) * uSpike * spikeZone;
   return dome + s * 0.32;
 }
 
@@ -88,6 +89,7 @@ export default {
     { key: 'magnet', label: 'Magnetic strength', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'density', label: 'Spike density', type: 'range', min: 6, max: 40, step: 1, default: 18 },
     { key: 'size', label: 'Body size', type: 'range', min: 0.08, max: 0.4, step: 0.01, default: 0.27 },
+    { key: 'sharp', label: 'Spike sharpness', type: 'range', min: 0.6, max: 4, step: 0.05, default: 1.8 },
     { key: 'turb', label: 'Turbulence', type: 'range', min: 0, max: 2, step: 0.05, default: 0.8 },
     { key: 'drops', label: 'Orbiting droplets', type: 'range', min: 0, max: 6, step: 1, default: 4 },
     { key: 'tint', label: 'Metal tint', type: 'color', default: '#c9d2e3' },
@@ -113,7 +115,7 @@ export default {
         s.audio(F);
         s.set('uT', time);
         s.set('uTint', hexToVec(p.tint)); s.set('uGlowCol', hexToVec(p.glowColor));
-        s.set('uDensity', p.density); s.set('uSpike', spike); s.set('uTurb', p.turb);
+        s.set('uDensity', p.density); s.set('uSpike', spike); s.set('uTurb', p.turb); s.set('uSharp', p.sharp);
         s.set('uSize', p.size * (1 - squeeze) * (1 + F.kick * 0.06)); s.set('uLightA', p.light + time * 0.05);
         s.set('uDrops', p.drops); s.set('uGloss', p.gloss); s.set('uGlow', p.glow);
         s.set('uBass', F.bass); s.set('uMid', F.mid); s.set('uHigh', F.high); s.set('uKick', F.kick); s.set('uDrop', F.drop); s.set('uBuild', F.build);

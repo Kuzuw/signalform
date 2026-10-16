@@ -3,6 +3,7 @@
 import { byId, defaults } from './modules/index.js';
 import { h, uid, toast } from './ui.js';
 import { hexToRgb } from './modules/util.js';
+import { FX_DEFAULTS, shapeFrame, post, isNeutralLook } from './fx.js';
 
 export const BLENDS = {
   normal: { label: 'Normal', css: 'normal', canvas: 'source-over' },
@@ -113,6 +114,7 @@ export class Stage {
       group: w.group && this.group(w.group) ? w.group : null,
       bg: { mode: ['clear', 'solid', 'glass'].includes(bg.mode) ? bg.mode : 'clear', tone: ['dark', 'light', 'custom'].includes(bg.tone) ? bg.tone : 'dark', color: bg.color || '#1b2030' },
       radius: num(w.radius, 0),
+      fx: Object.assign({}, FX_DEFAULTS, w.fx || {}),
       params: Object.assign(defaults(mod), w.params || {})
     };
   }
@@ -258,8 +260,9 @@ export class Stage {
     const el = h('div', { class: 'widget', 'data-id': w.id },
       card, h('div', { class: 'chrome' }), h('div', { class: 'label' }, w.name),
       ...['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map((d) => h('div', { class: 'h ' + d, 'data-h': d })));
-    const r = { el, card, bgEl, canvas, inst: null, size: [0, 0], failed: false };
-    try { r.inst = mod.create(canvas, w.params); }
+    const src = document.createElement('canvas');
+    const r = { el, card, bgEl, canvas, src, dctx: canvas.getContext('2d'), fxState: {}, inst: null, size: [0, 0], failed: false };
+    try { r.inst = mod.create(src, w.params); }
     catch (e) { console.error(e); r.failed = true; toast(`${mod.name} could not start: ${e.message}`, true); }
     this.rt.set(w.id, r);
     if (!keepOrder) this.scene.widgets.push(w);
@@ -280,6 +283,11 @@ export class Stage {
     const el = r.el;
     const toLocal = (e) => { const b = this.el.getBoundingClientRect(); return [(e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height]; };
     el.addEventListener('dblclick', (e) => { e.stopPropagation(); this.select(w.id); }); // step into a group
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (!this.sel.has(w.id)) { if (w.group) this.selectGroup(w.group); else this.select(w.id); }
+      this.hooks.onContext && this.hooks.onContext(e.clientX, e.clientY);
+    });
     el.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || document.getElementById('app').classList.contains('perform')) return;
       if (r.inst && r.inst.capturing) {
@@ -409,11 +417,17 @@ export class Stage {
       let cw = Math.max(16, Math.round(w.rect.w * this.px.w * S)), ch = Math.max(16, Math.round(w.rect.h * this.px.h * S));
       const cap = 3840 / Math.max(cw, ch); if (cap < 1) { cw = Math.round(cw * cap); ch = Math.round(ch * cap); }
       if (r.size[0] !== cw || r.size[1] !== ch) {
-        r.canvas.width = cw; r.canvas.height = ch; r.size = [cw, ch];
+        r.src.width = r.canvas.width = cw; r.src.height = r.canvas.height = ch; r.size = [cw, ch];
         try { r.inst.resize(cw, ch, S); } catch {}
       }
-      try { r.inst.render(F, { dt, t, W: cw, H: ch, S: Math.max(0.5, cw / Math.max(1, w.rect.w * this.px.w)), params: w.params }); }
-      catch (e) { console.error(e); r.failed = true; toast(`${w.name} stopped: ${e.message}`, true); }
+      const fx = w.fx, st = r.fxState;
+      const mdt = dt * fx.speed;
+      st.t = (st.t ?? t) + mdt;
+      try {
+        r.inst.render(shapeFrame(F, fx, st), { dt: mdt, t: st.t, W: cw, H: ch, S: Math.max(0.5, cw / Math.max(1, w.rect.w * this.px.w)), params: w.params });
+        if (isNeutralLook(fx)) { r.dctx.globalCompositeOperation = 'source-over'; r.dctx.filter = 'none'; r.dctx.globalAlpha = 1; r.dctx.drawImage(r.src, 0, 0); }
+        else post(r.canvas, r.dctx, r.src, fx, st, dt);
+      } catch (e) { console.error(e); r.failed = true; toast(`${w.name} stopped: ${e.message}`, true); }
     }
   }
 
@@ -478,7 +492,7 @@ export class Stage {
     return {
       app: 'signalform', version: 2, name: this.scene.name, aspect: this.scene.aspect,
       groups: this.scene.groups.map((g) => ({ id: g.id, name: g.name })),
-      widgets: this.scene.widgets.map((w) => ({ module: w.module, name: w.name, rect: w.rect, opacity: w.opacity, blend: w.blend, visible: w.visible, locked: w.locked, group: w.group, bg: w.bg, radius: w.radius, params: w.params }))
+      widgets: this.scene.widgets.map((w) => ({ module: w.module, name: w.name, rect: w.rect, opacity: w.opacity, blend: w.blend, visible: w.visible, locked: w.locked, group: w.group, bg: w.bg, radius: w.radius, fx: w.fx, params: w.params }))
     };
   }
 }

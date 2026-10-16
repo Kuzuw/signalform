@@ -23,7 +23,10 @@ export default {
     { key: 'palette', label: 'Palette', type: 'select', default: 'ember', showIf: { colorMode: 'multi' }, options: Object.keys(PALETTES).map((k) => [k, k[0].toUpperCase() + k.slice(1)]) },
     { key: 'color', label: 'Single color', type: 'color', default: '#e9edf7', showIf: { colorMode: 'single' } },
     { key: 'width', label: 'Line width', type: 'range', min: 0.5, max: 4, step: 0.1, default: 1.2 },
-    { key: 'speed', label: 'Flow speed', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 }
+    { key: 'speed', label: 'Flow speed', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
+    { key: 'turn', label: 'Ring rotation', type: 'range', min: -2, max: 2, step: 0.05, default: 0.25, showIf: { mode: 'radial' } },
+    { key: 'twist', label: 'Layer twist', type: 'range', min: -1, max: 1, step: 0.01, default: 0, showIf: { mode: 'radial' } },
+    { key: 'beatWidth', label: 'Thicken on kicks', type: 'range', min: 0, max: 3, step: 0.05, default: 0.8 }
   ],
   create(canvas) {
     const ctx = canvas.getContext('2d');
@@ -60,7 +63,7 @@ export default {
           ctx.beginPath();
           if (p.mode === 'radial') {
             const R = Math.min(W, H) * (0.08 + (l / L) * 0.42 * p.spacing);
-            const a0 = F.time * 0.05 * p.speed;
+            const a0 = F.time * 0.2 * p.turn + l * p.twist * 0.15;
             for (let i = 0; i <= M; i++) {
               const j = i % M, a = a0 + (i / M) * TAU;
               const r = R + v[j] * Math.min(W, H) * 0.06 * amp * (0.5 + t);
@@ -83,7 +86,7 @@ export default {
           }
           if (p.fill) { ctx.fillStyle = rgba(c.map((x) => x * (p.mode === 'radial' ? 0.12 + 0.4 * t : 0.06 + 0.1 * t)), 1); ctx.fill(); }
           ctx.strokeStyle = rgba(c, 0.55 + 0.45 * t);
-          ctx.lineWidth = p.width * S * (l === 0 ? 1.5 : 1);
+          ctx.lineWidth = p.width * S * (l === 0 ? 1.5 : 1) * (1 + F.kick * p.beatWidth);
           ctx.stroke();
         }
       },

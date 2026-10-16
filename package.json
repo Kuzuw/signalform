@@ -1,7 +1,7 @@
 {
   "name": "signalform",
   "productName": "Signalform",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Free, open-source realtime audio-reactive visual engine for Windows.",
   "main": "main/main.js",
   "author": "Kuzuw",

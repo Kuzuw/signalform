@@ -2,6 +2,7 @@ import { createShader, glUnavailable } from './gl.js';
 
 const FRAG = `
 uniform float uMode, uIter, uZoom, uSym, uHue, uSat, uGlow, uWarp, uRotA, uAA;
+uniform vec2 uPan;
 uniform float uBass, uMid, uHigh, uKick, uDrop, uBuild;
 
 vec3 palette(float t) {
@@ -78,7 +79,7 @@ vec3 ifs(vec2 p) {
 vec3 scene(vec2 frag) {
   vec2 p = (frag - 0.5 * uRes) / uRes.y;
   float zoom = uZoom * (1.0 + 0.06 * uKick + 0.2 * uDrop - 0.15 * uBuild);
-  p /= zoom;
+  p = p / zoom + uPan;
   p *= rot(uT * 0.03 + uRotA * 0.2);
   p = kaleido(p, uSym);
   if (uMode < 0.5) return julia(p * 1.7);
@@ -108,6 +109,9 @@ export default {
     { key: 'sym', label: 'Kaleidoscope segments', type: 'range', min: 1, max: 16, step: 1, default: 1 },
     { key: 'rotate', label: 'Rotation speed', type: 'range', min: 0, max: 2, step: 0.01, default: 0.3 },
     { key: 'warp', label: 'Harmonic deformation', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
+    { key: 'panX', label: 'Pan X', type: 'range', min: -1.5, max: 1.5, step: 0.005, default: 0 },
+    { key: 'panY', label: 'Pan Y', type: 'range', min: -1.5, max: 1.5, step: 0.005, default: 0 },
+    { key: 'cycle', label: 'Color cycling', type: 'range', min: 0, max: 1, step: 0.01, default: 0.1, section: 'Color' },
     { key: 'hue', label: 'Palette shift', type: 'range', min: 0, max: 1, step: 0.005, default: 0.05 },
     { key: 'sat', label: 'Saturation', type: 'range', min: 0, max: 1.4, step: 0.01, default: 0.9 },
     { key: 'glow', label: 'Glow', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
@@ -118,7 +122,7 @@ export default {
     let s;
     try { s = createShader(canvas, FRAG); } catch (e) { s = null; }
     if (!s) return glUnavailable(canvas);
-    let time = 0, rotA = 0;
+    let time = 0, rotA = 0, hueT = 0;
     return {
       render(F, { dt, params: p }) {
         time += dt * p.speed * (0.7 + F.mid + F.drop * 3);
@@ -126,7 +130,9 @@ export default {
         s.audio(F);
         s.set('uT', time); s.set('uRotA', rotA);
         s.set('uMode', Number(p.mode)); s.set('uIter', p.iter); s.set('uZoom', p.zoom); s.set('uSym', p.sym);
-        s.set('uHue', p.hue + F.centroid * 0.15); s.set('uSat', p.sat); s.set('uGlow', p.glow); s.set('uWarp', p.warp); s.set('uAA', p.aa ? 1 : 0);
+        hueT += dt * p.cycle * 0.1;
+        s.set('uPan', [p.panX, p.panY]);
+        s.set('uHue', p.hue + hueT + F.centroid * 0.15); s.set('uSat', p.sat); s.set('uGlow', p.glow); s.set('uWarp', p.warp); s.set('uAA', p.aa ? 1 : 0);
         s.set('uBass', F.bass); s.set('uMid', F.mid); s.set('uHigh', F.high); s.set('uKick', F.kick); s.set('uDrop', F.drop); s.set('uBuild', F.build);
         s.draw();
       },

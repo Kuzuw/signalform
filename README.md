@@ -65,18 +65,18 @@
 
 | Module | What it does | Reacts to |
 |---|---|---|
-| **ASCII** | Rasterizes noise, the spectrum, the waveform or your own text into glyphs (blocks, dots, binary, hex, katakana or your own set). | Columns follow frequencies; bass punches the density; hats sparkle. |
-| **Aura** | Soft light sources with optical streaks and diffraction spikes that drift, orbit or pass by. | Bass and mids swell the light; kicks and drops flare it. |
-| **Ferro** | A pool of glossy black ferrofluid, rendered in 3D on a studio floor: sharp spikes in a hexagonal or ring layout, satellite droplets, softbox reflections and an orbiting camera. | Bass and kicks stand the spikes up, the spectrum can map from center to edge, kicks can send ripples; it sinks through a build and leaps on the drop. |
-| **Flow Field** | Thousands of particles streaming through curl-noise, vortex, wave, radial or crosshatch fields. | Bass drives the flow; kicks burst it outwards; highs add turbulence. |
-| **Fractal** | Julia, Kali and folded-geometry fractals with kaleidoscope symmetry and color cycling. | Bass and mids deform it; the brightness of the sound shifts its colors; drops push it further. |
-| **Grain** | Thousands of grains flowing over a surface that remembers where they have been. | Bass shakes it; hits scatter the grains; hats add sparkle. |
-| **Lissajous** | Layered harmonic curves with 3D tilt and tumble. | Pitch sets the ratios, or the stereo X/Y signal draws the figure. |
-| **Oscilloscope** | A phosphor scope: waveform (Y/T), stereo phase (X/Y) or a custom shape, which you can draw on the widget. | The raw waveform, with echoes and afterglow. |
-| **Spectre** | The spectrum as luminous bands, layers, a flowing spectrogram or a ring. | Every band, with peak caps and a response curve you can tune. |
-| **Trace** | Up to 12 parallel lines as an open line, a closed loop or a spiral. | Each part of the spectrum bends its own stretch of line; hits send ripples along it. |
-| **Waveform** | Layered waveforms as radial rings, stacked contours or a mirrored mass, with rotation and twist. | The waveform shapes each layer; kicks thicken the lines. |
-| **Oscillon** | A phosphor beam sweeps a closed surface until it becomes a glowing shell. | Snaps to a new form on heavy hits, squeezes on a build and opens on the drop. |
+| **ASCII** | Bold glyphs (x, %, X, &, #, @) rising out of the dark like a terminal, or blocks, dots, binary, hex, katakana or your own text. | Columns follow frequencies; bass punches the density; hats sparkle. |
+| **Aura** | A breathing ring of thousands of shimmering specks, as a ring, two rings, a disc or a turning sphere. Light blooms with streaks and diffraction spikes are a second look. | The rim swells where its slice of the spectrum is loud; kicks pulse it, drops blow it wide. |
+| **Ferro** | Black magnetic fluid on white: a chain of glossy beads that merge and part, small buds and thorns, and a spray of droplets around it. | Kicks fuse the beads, hits fling droplets that the magnet pulls back, heavy hits and drops snap it into one round drop. |
+| **Flow Field** | A grid of points carried by a slowly shearing flow field, or thousands of particles streaming through curl-noise, vortex, wave, radial or crosshatch fields. | Bass pushes the field; kicks burst it outwards; highs add turbulence. |
+| **Fractal** | A recursive network: clusters of linked points inside clusters, filling the frame. Julia, Kali and folded-geometry fractals are also available. | Hits light up links, kicks make it breathe, drops and heavy hits rewire it. |
+| **Grain** | Dust strung along slow, wavy bands that thicken, thin out and drift. A dense grain texture is a second look. | Bass sways the bands, kicks scatter them, hats make specks glint. |
+| **Lissajous** | Dozens of fine translucent ribbons tracing a tumbling harmonic knot in 3D. | Pitch sets the ratios, mids deform the knot, or the stereo X/Y signal draws the figure. |
+| **Oscilloscope** | A green phosphor scope in stereo phase (X/Y), waveform (Y/T) or a custom shape you can draw on the widget. | The raw stereo signal, with echoes and afterglow. |
+| **Spectre** | The spectrum as glowing emission lines in prism colors, or as bands, layers, a flowing spectrogram or a ring. | Every band lights its own lines, equalized so quiet regions still glow. |
+| **Trace** | The live signal at high gain, like a pen recorder pushed into the rails, or up to 12 lines as an open line, a loop or a spiral. | The raw waveform; or the spectrum bends the lines and hits send ripples. |
+| **Waveform** | A solid white mass of the music scrolling past, jagged with transients, or layered rings, contours and mirrored layers. | Peaks of each slice shape the edge; kicks thicken it. |
+| **Oscillon** | A phosphor beam sweeps a translucent shell (cushion, pebble, peanut, trefoil, apple, ring, clover or orb), with bright caustic folds. | Snaps to a new form on heavy hits and drops, every sound leaves a swelling on the surface, squeezes on a build and throws itself open on the drop. |
 | **Stroke** | A pen of light on a long exposure. Slow strokes burn thick, fast ones thin to a wire. | Follows the melody; hits break the line into flaring corners. |
 | **Discharge** | Lightning on a photographic plate. | Kicks tear long channels, snares throw arcs, hats crackle; it holds back through a build and breaks loose on the drop. |
 | **Familiar** | Up to 100,000 points of light that rest as one creature, or become a word you type. | Breathes in silence, scatters on hits and gathers back. |
@@ -164,7 +164,7 @@ Connect captures the **default** output device. Check that the music plays throu
 <details>
 <summary><b>The visuals stutter or the frame rate is low.</b></summary>
 
-Lower the particle or point count of Flow Field, Familiar and Oscillon, set Ferro's **Quality** to *Fast*, turn off **Smooth edges** in Fractal, use fewer widgets, or pick a smaller stage aspect. On laptops, make sure Signalform runs on the dedicated GPU (Windows Settings → System → Display → Graphics).
+Lower the particle or point count of Flow Field, Familiar and Oscillon, turn off **Smooth edges** in Fractal, use fewer widgets, or pick a smaller stage aspect. On laptops, make sure Signalform runs on the dedicated GPU (Windows Settings → System → Display → Graphics).
 </details>
 
 <details>

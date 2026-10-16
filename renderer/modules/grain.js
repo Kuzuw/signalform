@@ -1,11 +1,17 @@
-import { noise3, hexToRgb, TAU } from './util.js';
+import { noise3, hexToRgb, rgba, TAU } from './util.js';
 
 export default {
   id: 'grain',
   name: 'Grain',
   tagline: 'Dynamic grain structures and flow.',
   params: [
-    { key: 'count', label: 'Grains', type: 'range', min: 5000, max: 120000, step: 1000, default: 50000 },
+    { key: 'look', label: 'Look', type: 'select', default: 'dust', options: [['dust', 'Drifting dust bands'], ['sand', 'Grain texture']] },
+    { key: 'bands', label: 'Bands', type: 'range', min: 1, max: 9, step: 1, default: 5, showIf: { look: 'dust' } },
+    { key: 'specks', label: 'Specks', type: 'range', min: 1000, max: 30000, step: 500, default: 7000, showIf: { look: 'dust' } },
+    { key: 'wave', label: 'Waviness', type: 'range', min: 0, max: 2, step: 0.05, default: 1, showIf: { look: 'dust' } },
+    { key: 'spreadY', label: 'Band thickness', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1, showIf: { look: 'dust' } },
+    { key: 'dustColor', label: 'Dust color', type: 'color', default: '#ffffff', showIf: { look: 'dust' } },
+    { key: 'count', label: 'Grains', type: 'range', min: 5000, max: 120000, step: 1000, default: 50000, showIf: { look: 'sand' } },
     { key: 'size', label: 'Grain size', type: 'range', min: 1, max: 6, step: 1, default: 2 },
     { key: 'flow', label: 'Flow speed', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
     { key: 'turb', label: 'Turbulence', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
@@ -14,8 +20,8 @@ export default {
     { key: 'drift', label: 'Drift', type: 'select', default: 'none', options: [['none', 'Wander'], ['rise', 'Rise'], ['fall', 'Fall like sand'], ['wind', 'Wind'], ['swirl', 'Swirl']] },
     { key: 'shake', label: 'Bass shake', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'scatter', label: 'Scatter on hits', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'colorA', label: 'Shadow color', type: 'color', default: '#3a2a1f' },
-    { key: 'colorB', label: 'Highlight color', type: 'color', default: '#ffd9a8' },
+    { key: 'colorA', label: 'Shadow color', type: 'color', default: '#3a2a1f', showIf: { look: 'sand' } },
+    { key: 'colorB', label: 'Highlight color', type: 'color', default: '#ffd9a8', showIf: { look: 'sand' } },
     { key: 'contrast', label: 'Contrast', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 }
   ],
   create(canvas) {
@@ -34,8 +40,48 @@ export default {
       for (let i = 0; i < n; i++) { X[i] = Math.random() * bw; Y[i] = Math.random() * bh; }
     }
     let key = '';
+    // ---- dust: specks strung along slow wavy bands, thick in places and thinning out in others
+    let DN = 0, DX, DO, DB, DL, dz = 0, kickE = 0;
+    function dust(F, dt, W, H, S, p) {
+      const n = Math.round(p.specks);
+      if (n !== DN) {
+        DN = n; DX = new Float32Array(n); DO = new Float32Array(n); DB = new Uint8Array(n); DL = new Float32Array(n);
+        for (let i = 0; i < n; i++) { DX[i] = Math.random(); DO[i] = (Math.random() + Math.random() + Math.random() - 1.5); DB[i] = (Math.random() * 9) | 0; DL[i] = Math.random(); }
+      }
+      dt = Math.max(0, dt);
+      dz += dt * 0.12 * p.flow * (0.6 + F.mid * 1.2 + F.drop * 2);
+      kickE = Math.max(kickE * Math.exp(-dt / 0.2), F.kick * p.scatter);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      const K = Math.round(p.bands), sc = 1 / p.scale;
+      const amp = H * 0.06 * p.wave * (1 + F.bass * p.shake * 1.2);
+      const r = Math.max(1, p.size * S * 0.55);
+      const c = hexToRgb(p.dustColor);
+      const paths = [new Path2D(), new Path2D(), new Path2D()];
+      const vx = dt * 0.02 * p.flow * (1 + F.mid);
+      for (let i = 0; i < n; i++) {
+        const b = DB[i] % K;
+        let x = DX[i] + vx * (0.6 + (b % 3) * 0.25);
+        if (x > 1.05) x -= 1.1;
+        DX[i] = x;
+        const xs = x * 2.2 * sc;
+        // where along its band a speck sits decides whether that stretch is dense, sparse or empty
+        const dens = noise3(xs * 1.3, b * 3.7, dz * 0.7);
+        if (dens < -0.15 + DL[i] * 0.5) continue;
+        const base = H * (0.15 + 0.72 * (b + 0.5) / K) + noise3(b * 1.1, 0.5, dz * 0.3) * H * 0.08;
+        const yc = base + Math.sin(xs * 3 + dz * 2 + b * 1.7) * amp + noise3(xs * 2, b * 2.3, dz) * amp * 1.4;
+        const thick = H * 0.018 * p.spreadY * (0.6 + 1.4 * (0.5 + 0.5 * noise3(xs * 2.5, b * 5.1, dz * 0.5))) * (1 + F.level * 0.6 + kickE * 2.5);
+        const y = yc + DO[i] * thick;
+        const lum = DL[i] * (0.6 + 0.4 * dens) + F.hat * 0.3 * (DL[i] > 0.85 ? 1 : 0);
+        paths[lum > 0.66 ? 2 : lum > 0.33 ? 1 : 0].rect(x * W, y, r, r);
+      }
+      const al = [0.35, 0.65, 1];
+      for (let k = 0; k < 3; k++) { ctx.fillStyle = rgba(c, al[k] * Math.min(1, p.contrast)); ctx.fill(paths[k]); }
+    }
     return {
       render(F, { dt, W, H, S, params: p }) {
+        if (p.look === 'dust') return dust(F, dt, W, H, S, p);
         const size = Math.max(1, Math.round(p.size * S * 0.75));
         const k = [W, H, size, p.count].join('|');
         if (k !== key) { key = k; setup(W, H, size, Math.round(p.count)); }

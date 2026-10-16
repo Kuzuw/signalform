@@ -7,15 +7,15 @@ export default {
   params: [
     { key: 'speed', label: 'Pen speed', type: 'range', min: 0.1, max: 3, step: 0.05, default: 1, section: 'Motion' },
     { key: 'melody', label: 'Follow the melody', type: 'range', min: 0, max: 1, step: 0.01, default: 0.6 },
-    { key: 'wander', label: 'Wander', type: 'range', min: 0, max: 2, step: 0.05, default: 0.8 },
+    { key: 'wander', label: 'Wander', type: 'range', min: 0, max: 2, step: 0.05, default: 0.55 },
     { key: 'corners', label: 'Corner on hits', type: 'range', min: 0, max: 1, step: 0.01, default: 0.7 },
     { key: 'figure', label: 'Race a laser figure on big drops', type: 'toggle', default: true },
-    { key: 'exposure', label: 'Exposure length', type: 'range', min: 0.5, max: 0.998, step: 0.001, default: 0.985, section: 'Light' },
+    { key: 'exposure', label: 'Exposure length', type: 'range', min: 0.5, max: 0.998, step: 0.001, default: 0.992, section: 'Light' },
     { key: 'thick', label: 'Slow stroke width', type: 'range', min: 1, max: 24, step: 0.5, default: 9 },
     { key: 'thin', label: 'Fast stroke width', type: 'range', min: 0.3, max: 4, step: 0.1, default: 0.8 },
     { key: 'flare', label: 'Flare size', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'color', label: 'Light', type: 'color', default: '#f4f6ff' },
-    { key: 'glowColor', label: 'Halo', type: 'color', default: '#8fb4ff' }
+    { key: 'color', label: 'Light', type: 'color', default: '#ffffff' },
+    { key: 'glowColor', label: 'Halo', type: 'color', default: '#c4c8d0' }
   ],
   create(canvas) {
     const ctx = canvas.getContext('2d');
@@ -51,6 +51,8 @@ export default {
         tctx.globalCompositeOperation = 'lighter';
         const col = hexToRgb(p.color), glow = hexToRgb(p.glowColor);
         const m = Math.min(W, H) * 0.08;
+        // keep the drawing in a centered square, like a sheet of paper, so it stays composed on wide stages
+        const side = Math.min(W, H) * 0.86, bx0 = (W - side) / 2, by0 = (H - side) / 2;
 
         // the biggest drops: race a laser figure (a star polygon) around the frame
         if (p.figure && F.drop > 0.95 && !fig) fig = { t: 0, n: [5, 7, 9][(Math.random() * 3) | 0], k: 2 + ((Math.random() * 2) | 0), rot: Math.random() * TAU };
@@ -84,13 +86,16 @@ export default {
           let wSum = 0;
           for (let i = 0; i < steps; i++) {
             const turn = noise3(time * 0.4, 7, 0) * p.wander * 2.2 * (dt / steps) * 3;
-            const wantY = m + pitchY * (H - 2 * m);
+            const wantY = by0 + pitchY * side;
             const toward = Math.atan2(wantY - y, W * 0.35) * p.melody;
             dir += turn + (toward - Math.sin(dir) * 0.6) * p.melody * (dt / steps) * 2.5;
             const v = spd * Math.min(W, H) * 0.9 * (dt / steps);
             let nx = x + Math.cos(dir) * v, ny = y + Math.sin(dir) * v;
-            if (nx < m || nx > W - m) { dir = Math.PI - dir; nx = Math.min(W - m, Math.max(m, nx)); }
-            if (ny < m || ny > H - m) { dir = -dir; ny = Math.min(H - m, Math.max(m, ny)); }
+            // soft pull back towards the middle before the walls, then a bounce at the walls
+            const cxs = W / 2, cys = H / 2, dxs = (x - cxs) / (side / 2), dys = (y - cys) / (side / 2);
+            if (dxs * dxs + dys * dys > 0.55) { const want = Math.atan2(cys - y, cxs - x); dir += Math.atan2(Math.sin(want - dir), Math.cos(want - dir)) * 0.06; }
+            if (nx < bx0 || nx > bx0 + side) { dir = Math.PI - dir; nx = Math.min(bx0 + side, Math.max(bx0, nx)); }
+            if (ny < by0 || ny > by0 + side) { dir = -dir; ny = Math.min(by0 + side, Math.max(by0, ny)); }
             // slow strokes burn thick, fast ones thin to a wire
             const speedPx = v / (dt / steps) / Math.min(W, H);
             wSum += (p.thin + (p.thick - p.thin) * Math.exp(-speedPx * 2.2)) * S;

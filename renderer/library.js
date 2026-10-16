@@ -73,10 +73,9 @@ export const STARTERS = [
   },
   {
     name: 'Magnetic',
-    note: 'A pool of ferrofluid with spectral layers glowing along the floor.',
+    note: 'Black magnetic fluid on white, throwing off droplets on every hit.',
     scene: { aspect: '16:9', widgets: [
-      W('ferro', { x: 0, y: 0, w: 1, h: 1 }, BASE),
-      W('spectre', { x: 0, y: 0.72, w: 1, h: 0.28 }, { opacity: 0.8, params: { mode: 'layers', mirror: false } })
+      W('ferro', { x: 0, y: 0, w: 1, h: 1 }, BASE)
     ] }
   },
   {

@@ -5,7 +5,11 @@ export default {
   name: 'Trace',
   tagline: 'A living line driven by sound.',
   params: [
-    { key: 'form', label: 'Form', type: 'select', default: 'line', options: [['line', 'Open line'], ['loop', 'Closed loop'], ['spiral', 'Spiral']] },
+    { key: 'form', label: 'Form', type: 'select', default: 'signal', options: [['signal', 'Live signal'], ['line', 'Open line'], ['loop', 'Closed loop'], ['spiral', 'Spiral']] },
+    { key: 'gain', label: 'Signal gain', type: 'range', min: 0.5, max: 8, step: 0.05, default: 2.6, showIf: { form: 'signal' } },
+    { key: 'window', label: 'Time window', type: 'range', min: 0.1, max: 1, step: 0.01, default: 1, showIf: { form: 'signal' } },
+    { key: 'clip', label: 'Clip at the edges', type: 'toggle', default: true, showIf: { form: 'signal' } },
+    { key: 'auto', label: 'Automatic gain', type: 'toggle', default: true, showIf: { form: 'signal' } },
     { key: 'lines', label: 'Lines', type: 'range', min: 1, max: 12, step: 1, default: 1 },
     { key: 'spread', label: 'Line spacing', type: 'range', min: 0, max: 1, step: 0.01, default: 0.25, showIf: { lines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] } },
     { key: 'lag', label: 'Line delay', type: 'range', min: 0, max: 1, step: 0.01, default: 0.3, showIf: { lines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] } },
@@ -24,8 +28,34 @@ export default {
   create(canvas) {
     const ctx = canvas.getContext('2d');
     let n = 0, D = null, V = null, waves = [], tm = 0;
+    // the raw signal at high gain, like a pen recorder pushed into the rails
+    let agc = 0.3;
+    function signal(F, W, H, S, p) {
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+      const w = F.wave, n = Math.max(32, Math.floor(w.length * p.window));
+      const step = Math.max(1, Math.floor(n / Math.min(n, W / (0.9 * S))));
+      // automatic gain: follow the recent peak so quiet passages still fill the frame
+      let pk = 0; for (let i = 0; i < n; i += 4) pk = Math.max(pk, Math.abs(w[i]));
+      agc = Math.max(pk, agc * 0.985, 0.02);
+      const gain = p.gain * (1 + F.drop * 0.5) * (p.auto ? 0.35 / agc : 1);
+      const half = H * 0.5, lim = p.clip ? 1 : 1.6;
+      const path = new Path2D();
+      let first = true;
+      for (let i = 0; i < n; i += step) {
+        const v = Math.max(-lim, Math.min(lim, w[i] * gain));
+        const x = i / (n - 1) * W, y = half - v * half * 0.985;
+        if (first) { path.moveTo(x, y); first = false; } else path.lineTo(x, y);
+      }
+      const c = hexToRgb(p.colorA);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineJoin = 'round';
+      if (p.glow > 0) { ctx.strokeStyle = rgba(c, 0.12 * p.glow); ctx.lineWidth = p.width * S * 2.6; ctx.stroke(path); }
+      ctx.strokeStyle = rgba(c, 0.95); ctx.lineWidth = Math.max(0.8, p.width * S * 0.55); ctx.stroke(path);
+      ctx.globalCompositeOperation = 'source-over';
+    }
     return {
       render(F, { dt, W, H, S, params: p }) {
+        if (p.form === 'signal') return signal(F, W, H, S, p);
         const N = Math.round(p.points);
         if (N !== n) { n = N; D = new Float32Array(n); V = new Float32Array(n); }
         tm += dt * (0.3 + F.mid * 0.8) * p.drift;

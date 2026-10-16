@@ -1,6 +1,6 @@
 import { noise3, hexToRgb, mixRgb, rgba, clear, clamp } from './util.js';
 
-const GLYPHS = { classic: ' .:-=+*#%@', blocks: ' ░▒▓█', dots: ' ·•●', binary: ' 01', hex: ' 0123456789ABCDEF', lines: ' -=≡', kana: ' ｰｨｩｪｫｬｭｮｯｱｲｳｴｵｶｷｸｹｺ' };
+const GLYPHS = { signs: '  x%X&#@', classic: ' .:-=+*#%@', blocks: ' ░▒▓█', dots: ' ·•●', binary: ' 01', hex: ' 0123456789ABCDEF', lines: ' -=≡', kana: ' ｰｨｩｪｫｬｭｮｯｱｲｳｴｵｶｷｸｹｺ' };
 
 export default {
   id: 'ascii',
@@ -9,20 +9,20 @@ export default {
   params: [
     { key: 'source', label: 'Source', type: 'select', default: 'field', options: [['field', 'Noise field'], ['spectrum', 'Spectrum'], ['wave', 'Waveform'], ['text', 'Your text']] },
     { key: 'text', label: 'Text', type: 'text', default: 'SIGNAL', showIf: { source: 'text' } },
-    { key: 'glyphs', label: 'Glyph set', type: 'select', default: 'classic', section: 'Glyphs', options: [['classic', 'Classic  .:-=+*#%@'], ['blocks', 'Blocks ░▒▓█'], ['dots', 'Dots ·•●'], ['binary', 'Binary 01'], ['hex', 'Hex 0–F'], ['lines', 'Lines -=≡'], ['kana', 'Katakana'], ['custom', 'My characters']] },
+    { key: 'glyphs', label: 'Glyph set', type: 'select', default: 'signs', section: 'Glyphs', options: [['signs', 'Signs x X % & # @'], ['classic', 'Classic  .:-=+*#%@'], ['blocks', 'Blocks ░▒▓█'], ['dots', 'Dots ·•●'], ['binary', 'Binary 01'], ['hex', 'Hex 0–F'], ['lines', 'Lines -=≡'], ['kana', 'Katakana'], ['custom', 'My characters']] },
     { key: 'charset', label: 'Characters (light → dense)', type: 'text', default: ' .:-=+*#%@', showIf: { glyphs: 'custom' } },
-    { key: 'weight', label: 'Weight', type: 'select', default: '600', options: [['300', 'Light'], ['500', 'Regular'], ['600', 'Medium'], ['800', 'Bold']] },
-    { key: 'cell', label: 'Glyph size', type: 'range', min: 6, max: 40, step: 1, default: 12 },
+    { key: 'weight', label: 'Weight', type: 'select', default: '800', options: [['300', 'Light'], ['500', 'Regular'], ['600', 'Medium'], ['800', 'Bold']] },
+    { key: 'cell', label: 'Glyph size', type: 'range', min: 6, max: 40, step: 1, default: 18 },
     { key: 'spacing', label: 'Letter spacing', type: 'range', min: 0.45, max: 1.2, step: 0.01, default: 0.62 },
-    { key: 'density', label: 'Density', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1, section: 'Motion' },
+    { key: 'density', label: 'Density', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1.35, section: 'Motion' },
     { key: 'motion', label: 'Glyph motion', type: 'select', default: 'drift', options: [['still', 'Still'], ['drift', 'Drift'], ['rain', 'Rain'], ['jitter', 'Jitter']] },
     { key: 'speed', label: 'Motion speed', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
     { key: 'punch', label: 'Bass punch', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'sparkle', label: 'Hi-hat sparkle', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'bandMap', label: 'Columns follow frequencies', type: 'toggle', default: true },
     { key: 'colorMode', label: 'Coloring', type: 'select', default: 'gradient', section: 'Color', options: [['mono', 'Single color'], ['gradient', 'By intensity'], ['frequency', 'By frequency']] },
-    { key: 'colorA', label: 'Color A', type: 'color', default: '#cfd6e6' },
-    { key: 'colorB', label: 'Color B', type: 'color', default: '#ff7a3d' },
+    { key: 'colorA', label: 'Color A', type: 'color', default: '#3c3c42' },
+    { key: 'colorB', label: 'Color B', type: 'color', default: '#f4f4f6' },
     { key: 'invert', label: 'Invert', type: 'toggle', default: false }
   ],
   create(canvas) {

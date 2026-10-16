@@ -1,8 +1,8 @@
 import { Accum, TAU } from './util.js';
 
 // The creature's spine: a curling neck over a heavy body. Catmull-Rom through these points.
-const SPINE = [[0.08, 0.92, 0.0], [0.26, 0.8, 0.05], [0.24, 0.52, 0.0], [0.05, 0.2, -0.04], [-0.24, -0.08, 0.0], [-0.18, -0.45, 0.05], [0.12, -0.6, 0.0], [0.34, -0.42, -0.04]];
-const RADIUS = [0.05, 0.07, 0.09, 0.13, 0.22, 0.27, 0.24, 0.16];
+const SPINE = [[0.02, 0.86, 0.0], [0.1, 0.7, 0.05], [0.08, 0.5, 0.0], [0.0, 0.28, -0.04], [-0.12, 0.0, 0.0], [-0.1, -0.3, 0.05], [0.06, -0.46, 0.0], [0.22, -0.36, -0.04]];
+const RADIUS = [0.07, 0.08, 0.1, 0.16, 0.3, 0.36, 0.32, 0.2];
 
 function cr(P, t) {
   const n = P.length - 1, f = Math.min(n - 1e-6, Math.max(0, t * n)), i = Math.floor(f), u = f - i;
@@ -30,7 +30,7 @@ export default {
     { key: 'shape', label: 'Body', type: 'select', default: 'creature', section: 'Body', options: [['creature', 'Creature'], ['orb', 'Orb'], ['text', 'Your word']] },
     { key: 'text', label: 'Word', type: 'text', default: 'SIGNAL', showIf: { shape: 'text' } },
     { key: 'count', label: 'Points of light', type: 'range', min: 5000, max: 100000, step: 1000, default: 45000 },
-    { key: 'size', label: 'Size', type: 'range', min: 0.3, max: 1.6, step: 0.01, default: 1 },
+    { key: 'size', label: 'Size', type: 'range', min: 0.3, max: 1.6, step: 0.01, default: 1.1 },
     { key: 'breath', label: 'Breathing', type: 'range', min: 0, max: 2, step: 0.05, default: 1, section: 'Behavior' },
     { key: 'scatter', label: 'Scatter on hits', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'gather', label: 'Gathers back', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
@@ -39,8 +39,8 @@ export default {
     { key: 'grain', label: 'Point size', type: 'range', min: 0.5, max: 4, step: 0.05, default: 1, section: 'Light' },
     { key: 'dof', label: 'Depth of field', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'shadow', label: 'Self-shadowing', type: 'range', min: 0, max: 1, step: 0.05, default: 0.7 },
-    { key: 'color', label: 'Light', type: 'color', default: '#f5f3ff' },
-    { key: 'tint', label: 'Shadow tint', type: 'color', default: '#3b3550' },
+    { key: 'color', label: 'Light', type: 'color', default: '#f4f4f4' },
+    { key: 'tint', label: 'Shadow tint', type: 'color', default: '#3a3a3c' },
     { key: 'exposure', label: 'Exposure', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
     { key: 'trail', label: 'Trails', type: 'range', min: 0, max: 0.9, step: 0.01, default: 0.2 }
   ],

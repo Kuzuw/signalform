@@ -36,15 +36,15 @@ export default {
     { key: 'origin', label: 'Strikes start from', type: 'select', default: 'top', options: [['top', 'The top'], ['bottom', 'The bottom'], ['sides', 'The sides'], ['center', 'The center'], ['anywhere', 'Anywhere']] },
     { key: 'sens', label: 'Sensitivity', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1 },
     { key: 'length', label: 'Channel length', type: 'range', min: 0.3, max: 1.6, step: 0.05, default: 1 },
-    { key: 'branch', label: 'Branching', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
+    { key: 'branch', label: 'Branching', type: 'range', min: 0, max: 3, step: 0.05, default: 1.8 },
     { key: 'rough', label: 'Roughness', type: 'range', min: 0.3, max: 2, step: 0.05, default: 1 },
     { key: 'buildDrop', label: 'Hold back on builds, break loose on drops', type: 'toggle', default: true },
-    { key: 'width', label: 'Channel width', type: 'range', min: 0.3, max: 4, step: 0.05, default: 1.4, section: 'Plate' },
+    { key: 'width', label: 'Channel width', type: 'range', min: 0.3, max: 4, step: 0.05, default: 1.1, section: 'Plate' },
     { key: 'afterglow', label: 'Afterglow', type: 'range', min: 0, max: 0.95, step: 0.01, default: 0.55 },
-    { key: 'sky', label: 'Sky flash', type: 'range', min: 0, max: 1.5, step: 0.05, default: 0.7 },
-    { key: 'grain', label: 'Plate grain', type: 'range', min: 0, max: 1, step: 0.05, default: 0.35 },
+    { key: 'sky', label: 'Sky flash', type: 'range', min: 0, max: 1.5, step: 0.05, default: 0.35 },
+    { key: 'grain', label: 'Plate grain', type: 'range', min: 0, max: 1, step: 0.05, default: 0.08 },
     { key: 'core', label: 'Core', type: 'color', default: '#ffffff' },
-    { key: 'glow', label: 'Glow', type: 'color', default: '#9db8ff' }
+    { key: 'glow', label: 'Glow', type: 'color', default: '#d2d6e0' }
   ],
   create(canvas) {
     const ctx = canvas.getContext('2d');

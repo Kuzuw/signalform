@@ -31,12 +31,12 @@ const log = (...a) => console.log('•', ...a);
 
 // Module stills, with settings that show each one at its best.
 const LOOKS = {
-  ascii: { cell: 15, density: 1.5, colorB: '#ffb547', glyphs: 'classic' }, aura: { intensity: 1.1, blobs: 4, soft: 1.3 }, ferro: { zoom: 1.4, view: 0.45 }, flowfield: { count: 7000 }, fractal: { mode: '2', hue: 0.5 }, grain: { contrast: 0.6, colorB: '#ffe6c4' },
-  lissajous: { layers: 7 }, oscilloscope: { shape: 'star', echoes: 3 }, spectre: { mode: 'bands' }, trace: { lines: 6, spread: 0.3 },
-  waveform: {}, oscillon: { form: 'torus' }, stroke: { exposure: 0.995 }, discharge: { afterglow: 0.8 }, familiar: {},
+  ascii: {}, aura: {}, ferro: { snap: 'never' }, flowfield: {}, fractal: {}, grain: {},
+  lissajous: { size: 0.8 }, oscilloscope: { gain: 1.6 }, spectre: {}, trace: {},
+  waveform: {}, oscillon: { form: 'trefoil', spin: 0 }, stroke: {}, discharge: { afterglow: 0.8 }, familiar: {},
   tunnel: {}, horizon: {}, strings: { count: 16 }, halo: { echoes: 2 }, cells: {}
 };
-const GL = ['aura', 'ferro', 'fractal', 'tunnel', 'cells'];
+const GL = ['ferro', 'tunnel', 'cells'];
 const NAMES = {};
 
 async function tiles() {
@@ -124,14 +124,14 @@ async function banner(file = 'banner.png', W = 1280, H = 400, strip0 = 600) {
 async function app() {
   const browser = await launch(true);
   const page = await browser.newPage({ viewport: { width: 1600, height: 940 }, deviceScaleFactor: 1 });
-  await page.goto(`${base}/renderer/index.html`);
-  await page.waitForFunction(() => window.__ready, null, { timeout: 90000 });
+  await page.goto(`${base}/renderer/index.html`, { timeout: 300000 });
+  await page.waitForFunction(() => window.__ready, null, { timeout: 300000 });
   await page.evaluate(() => window.signalform.loadScene({
     name: 'Night Drive', aspect: '16:9', widgets: [
-      { module: 'aura', rect: { x: 0, y: 0, w: 1, h: 1 }, blend: 'normal', bg: { mode: 'solid', tone: 'dark' }, params: { intensity: 0.55, blobs: 3 } },
-      { module: 'oscillon', rect: { x: 0.04, y: 0.08, w: 0.44, h: 0.84 }, blend: 'screen', params: { form: 'torus' } },
-      { module: 'spectre', name: 'Spectrum', rect: { x: 0.52, y: 0.08, w: 0.44, h: 0.4 }, blend: 'normal', bg: { mode: 'glass', tone: 'dark' }, radius: 22, params: { mode: 'bands', bands: 40 } },
-      { module: 'lissajous', rect: { x: 0.52, y: 0.52, w: 0.44, h: 0.4 }, blend: 'normal', bg: { mode: 'glass', tone: 'dark' }, radius: 22, params: { layers: 6 } }
+      { module: 'flowfield', rect: { x: 0, y: 0, w: 1, h: 1 }, blend: 'normal', bg: { mode: 'solid', tone: 'dark' }, opacity: 0.55, params: {} },
+      { module: 'oscillon', rect: { x: 0.04, y: 0.08, w: 0.44, h: 0.84 }, blend: 'screen', params: { form: 'pebble' } },
+      { module: 'spectre', name: 'Spectrum', rect: { x: 0.52, y: 0.08, w: 0.44, h: 0.4 }, blend: 'normal', bg: { mode: 'glass', tone: 'dark' }, radius: 22, params: {} },
+      { module: 'lissajous', rect: { x: 0.52, y: 0.52, w: 0.44, h: 0.4 }, blend: 'normal', bg: { mode: 'glass', tone: 'dark' }, radius: 22, params: {} }
     ]
   }, true));
   await page.waitForTimeout(9000);
@@ -155,8 +155,8 @@ function encodeGif(dir) {
 async function gif() {
   const browser = await launch(true);
   const page = await browser.newPage({ viewport: { width: 1600, height: 940 } });
-  await page.goto(`${base}/renderer/index.html`);
-  await page.waitForFunction(() => window.__ready, null, { timeout: 90000 });
+  await page.goto(`${base}/renderer/index.html`, { timeout: 300000 });
+  await page.waitForFunction(() => window.__ready, null, { timeout: 300000 });
   await page.evaluate(() => window.signalform.loadScene({
     name: 'Storm', aspect: '16:9', widgets: [
       { module: 'discharge', rect: { x: 0, y: 0, w: 1, h: 1 }, blend: 'normal', bg: { mode: 'solid', tone: 'dark' }, params: { afterglow: 0.75, sky: 1 } },

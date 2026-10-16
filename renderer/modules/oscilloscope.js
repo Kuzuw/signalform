@@ -52,7 +52,7 @@ export default {
   name: 'Oscilloscope',
   tagline: 'Signal rendered through light.',
   params: [
-    { key: 'mode', label: 'Display', type: 'select', default: 'shape', options: [['yt', 'Waveform (Y/T)'], ['xy', 'Stereo phase (X/Y)'], ['shape', 'Custom shape']] },
+    { key: 'mode', label: 'Display', type: 'select', default: 'xy', options: [['yt', 'Waveform (Y/T)'], ['xy', 'Stereo phase (X/Y)'], ['shape', 'Custom shape']] },
     { key: 'shape', label: 'Shape', type: 'select', default: 'circle', showIf: { mode: 'shape' }, options: [['circle', 'Circle'], ['square', 'Square'], ['triangle', 'Triangle'], ['star', 'Star'], ['heart', 'Heart'], ['infinity', 'Infinity'], ['custom', 'My drawing']] },
     { key: 'draw', label: 'Draw a shape on the widget', type: 'action', showIf: { mode: 'shape' } },
     { key: 'customShape', type: 'hidden', default: null },
@@ -65,7 +65,7 @@ export default {
     { key: 'persist', label: 'Phosphor persistence', section: 'Phosphor', type: 'range', min: 0, max: 0.97, step: 0.01, default: 0.8 },
     { key: 'width', label: 'Beam width', type: 'range', min: 0.5, max: 5, step: 0.1, default: 1.5 },
     { key: 'glow', label: 'Optical bloom', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'color', label: 'Phosphor color', section: 'Color', type: 'color', default: '#8dffb0' },
+    { key: 'color', label: 'Phosphor color', section: 'Color', type: 'color', default: '#2fe3a2' },
     { key: 'grid', label: 'Graticule', type: 'toggle', default: false }
   ],
   create(canvas) {

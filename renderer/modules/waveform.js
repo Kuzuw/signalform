@@ -13,15 +13,17 @@ export default {
   name: 'Waveform',
   tagline: 'Layered waveform shapes from audio.',
   params: [
-    { key: 'mode', label: 'Arrangement', type: 'select', default: 'radial', options: [['radial', 'Radial rings'], ['stacked', 'Stacked contours'], ['mirror', 'Mirrored mass']] },
+    { key: 'mode', label: 'Arrangement', type: 'select', default: 'envelope', options: [['envelope', 'Scrolling mass'], ['radial', 'Radial rings'], ['stacked', 'Stacked contours'], ['mirror', 'Mirrored layers']] },
+    { key: 'body', label: 'Body thickness', type: 'range', min: 0, max: 0.4, step: 0.01, default: 0.12, showIf: { mode: 'envelope' } },
+    { key: 'spiky', label: 'Spikiness', type: 'range', min: 0, max: 2, step: 0.05, default: 1, showIf: { mode: 'envelope' } },
     { key: 'layers', label: 'Layers', type: 'range', min: 3, max: 60, step: 1, default: 24 },
     { key: 'spacing', label: 'Layer spacing', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1 },
     { key: 'amp', label: 'Amplitude', type: 'range', min: 0.1, max: 3, step: 0.05, default: 1 },
     { key: 'detail', label: 'Detail', type: 'range', min: 32, max: 400, step: 1, default: 160 },
     { key: 'fill', label: 'Filled shapes', type: 'toggle', default: true },
-    { key: 'colorMode', label: 'Color', type: 'select', default: 'multi', options: [['multi', 'Multi-color palette'], ['single', 'Single color']] },
+    { key: 'colorMode', label: 'Color', type: 'select', default: 'single', options: [['multi', 'Multi-color palette'], ['single', 'Single color']] },
     { key: 'palette', label: 'Palette', type: 'select', default: 'ember', showIf: { colorMode: 'multi' }, options: Object.keys(PALETTES).map((k) => [k, k[0].toUpperCase() + k.slice(1)]) },
-    { key: 'color', label: 'Single color', type: 'color', default: '#e9edf7', showIf: { colorMode: 'single' } },
+    { key: 'color', label: 'Single color', type: 'color', default: '#ffffff', showIf: { colorMode: 'single' } },
     { key: 'width', label: 'Line width', type: 'range', min: 0.5, max: 4, step: 0.1, default: 1.2 },
     { key: 'speed', label: 'Flow speed', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
     { key: 'turn', label: 'Ring rotation', type: 'range', min: -2, max: 2, step: 0.05, default: 0.25, showIf: { mode: 'radial' } },
@@ -41,8 +43,44 @@ export default {
       }
       return out;
     }
+    // ---- the envelope of the music scrolling past: each column is the peak of a short slice
+    let envT = [], envB = [], envAcc = 0, sm = 0;
+    function envelope(F, dt, W, H, S, p) {
+      const cols = Math.round(p.detail);
+      envAcc += dt * p.speed * 70;
+      const amp = p.amp;
+      let guard = 0;
+      while (envAcc >= 1 && guard++ < 12) {
+        envAcc -= 1;
+        // peaks of a random slice of the buffer keep the edge jagged like a real recording
+        const w = F.wave, len = 256, o = Math.floor(Math.random() * (w.length - len));
+        let hi = 0, lo = 0;
+        for (let i = o; i < o + len; i++) { if (w[i] > hi) hi = w[i]; if (w[i] < lo) lo = w[i]; }
+        sm += (F.level - sm) * 0.2;
+        const spike = p.spiky * (Math.random() < 0.35 ? Math.random() * 0.6 : 0) * (0.4 + F.hat + F.snare);
+        envT.unshift(Math.min(0.48, p.body * (0.6 + sm) + hi * 0.2 * amp + spike * 0.16 + F.kick * 0.03));
+        envB.unshift(Math.min(0.48, p.body * (0.6 + sm) - lo * 0.2 * amp + spike * 0.12 + F.kick * 0.03));
+      }
+      if (envT.length > cols) { envT.length = cols; envB.length = cols; }
+      clear(ctx, W, H);
+      const n = envT.length;
+      if (n < 2) return;
+      const cy = H / 2, c = p.colorMode === 'single' ? hexToRgb(p.color) : gradient((PALETTES[p.palette] || PALETTES.ember).map(hexToRgb), 0.9);
+      const x = (i) => W - (i / (cols - 1)) * W;     // newest on the right, scrolling left
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) ctx.lineTo(x(i), cy - envT[i] * H);
+      for (let i = n - 1; i >= 0; i--) ctx.lineTo(x(i), cy + envB[i] * H);
+      ctx.closePath();
+      ctx.fillStyle = rgba(c, 1);
+      if (p.fill) ctx.fill();
+      ctx.strokeStyle = rgba(c, 0.6);
+      ctx.lineWidth = p.width * S * (1 + F.kick * p.beatWidth);
+      ctx.lineJoin = 'miter';
+      ctx.stroke();
+    }
     return {
       render(F, { dt, W, H, S, params: p }) {
+        if (p.mode === 'envelope') return envelope(F, Math.max(0, dt), W, H, S, p);
         const M = Math.round(p.detail), L = Math.round(p.layers);
         acc += dt * p.speed * 30;
         while (acc >= 1) { acc -= 1; hist.unshift(snapshot(F, M)); }

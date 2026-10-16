@@ -16,20 +16,20 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |---|---|---|---|
 | **Settings** | Source | Noise field · Spectrum · Waveform · Your text | Noise field |
 |  | Text<br><sub>shown when Source: Your text</sub> | text | `SIGNAL` |
-| **Glyphs** | Glyph set | Classic  .:-=+*#%@ · Blocks ░▒▓█ · Dots ·•● · Binary 01 · Hex 0–F · Lines -=≡ · Katakana · My characters | Classic  .:-=+*#%@ |
+| **Glyphs** | Glyph set | Signs x X % & # @ · Classic  .:-=+*#%@ · Blocks ░▒▓█ · Dots ·•● · Binary 01 · Hex 0–F · Lines -=≡ · Katakana · My characters | Signs x X % & # @ |
 |  | Characters (light → dense)<br><sub>shown when Glyph set: My characters</sub> | text | ` .:-=+*#%@` |
-|  | Weight | Light · Regular · Medium · Bold | Medium |
-|  | Glyph size | 6 – 40 | 12 |
+|  | Weight | Light · Regular · Medium · Bold | Bold |
+|  | Glyph size | 6 – 40 | 18 |
 |  | Letter spacing | 0.45 – 1.2 | 0.62 |
-| **Motion** | Density | 0.2 – 2 | 1 |
+| **Motion** | Density | 0.2 – 2 | 1.35 |
 |  | Glyph motion | Still · Drift · Rain · Jitter | Drift |
 |  | Motion speed | 0 – 3 | 1 |
 |  | Bass punch | 0 – 2 | 1 |
 |  | Hi-hat sparkle | 0 – 2 | 1 |
 |  | Columns follow frequencies | on / off | on |
 | **Color** | Coloring | Single color · By intensity · By frequency | By intensity |
-|  | Color A | color | `#cfd6e6` |
-|  | Color B | color | `#ff7a3d` |
+|  | Color A | color | `#3c3c42` |
+|  | Color B | color | `#f4f4f6` |
 |  | Invert | on / off | off |
 
 ## Aura
@@ -40,18 +40,31 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Color A | color | `#ff8a3d` |
-|  | Color B | color | `#5ab8ff` |
-|  | Softness | 0.3 – 3 | 1.2 |
-|  | Intensity | 0.2 – 3 | 1 |
-|  | Motion | Drifting · Orbiting · Passing by · Still in a row | Drifting |
-|  | Spread | 0.2 – 2 | 1 |
-|  | Light sources | 1 – 7 | 4 |
-|  | Optical streaks | 0 – 1.5 | 0.6 |
-|  | Diffraction spikes | None · 4 points · 6 points · 8 points | 6 points |
-|  | Diffraction color split | 0 – 2 | 0.8 |
-|  | Drift speed | 0 – 3 | 1 |
-|  | Film grain | 0 – 0.12 | 0.03 |
+| **Settings** | Look | A ring of specks · Light blooms | A ring of specks |
+| **Specks** | Shape<br><sub>shown when Look: A ring of specks</sub> | Ring · Two rings · Disc · Turning sphere | Ring |
+|  | Specks<br><sub>shown when Look: A ring of specks</sub> | 2000 – 60000 | 11000 |
+|  | Size<br><sub>shown when Look: A ring of specks</sub> | 0.3 – 1.6 | 1 |
+|  | Thickness<br><sub>shown when Look: A ring of specks</sub> | 0.1 – 2 | 1 |
+|  | Width<br><sub>shown when Look: A ring of specks</sub> | 0.6 – 1.6 | 1.12 |
+|  | Scattered specks<br><sub>shown when Look: A ring of specks</sub> | 0 – 0.5 | 0.22 |
+|  | Wobble<br><sub>shown when Look: A ring of specks</sub> | 0 – 2 | 0.8 |
+|  | Shimmer<br><sub>shown when Look: A ring of specks</sub> | 0 – 2 | 1 |
+|  | Speck size<br><sub>shown when Look: A ring of specks</sub> | 0.5 – 3 | 1.1 |
+|  | Haze<br><sub>shown when Look: A ring of specks</sub> | 0 – 2 | 0.45 |
+|  | Speck color<br><sub>shown when Look: A ring of specks</sub> | color | `#ffffff` |
+|  | Haze color<br><sub>shown when Look: A ring of specks</sub> | color | `#55555c` |
+| **Blooms** | Color A<br><sub>shown when Look: Light blooms</sub> | color | `#ff8a3d` |
+|  | Color B<br><sub>shown when Look: Light blooms</sub> | color | `#5ab8ff` |
+|  | Softness<br><sub>shown when Look: Light blooms</sub> | 0.3 – 3 | 1.2 |
+|  | Intensity<br><sub>shown when Look: Light blooms</sub> | 0.2 – 3 | 1 |
+|  | Motion<br><sub>shown when Look: Light blooms</sub> | Drifting · Orbiting · Passing by · Still in a row | Drifting |
+|  | Spread<br><sub>shown when Look: Light blooms</sub> | 0.2 – 2 | 1 |
+|  | Light sources<br><sub>shown when Look: Light blooms</sub> | 1 – 7 | 4 |
+|  | Optical streaks<br><sub>shown when Look: Light blooms</sub> | 0 – 1.5 | 0.6 |
+|  | Diffraction spikes<br><sub>shown when Look: Light blooms</sub> | None · 4 points · 6 points · 8 points | 6 points |
+|  | Diffraction color split<br><sub>shown when Look: Light blooms</sub> | 0 – 2 | 0.8 |
+|  | Film grain<br><sub>shown when Look: Light blooms</sub> | 0 – 0.12 | 0.03 |
+| **Motion** | Motion speed | 0 – 3 | 1 |
 
 ## Ferro
 
@@ -61,33 +74,24 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Fluid** | Magnetic strength | 0 – 2 | 1 |
-|  | Spikes follow | The whole mix · Spectrum (center lows, edge highs) · Ripples on kicks | The whole mix |
-|  | Spike layout | Hexagonal · Concentric rings | Hexagonal |
-|  | Spike count | 5 – 24 | 11 |
-|  | Spike height | 0.2 – 2 | 1 |
-|  | Sharpness | 0 – 1 | 0.65 |
-|  | Irregularity | 0 – 1 | 0.25 |
-|  | Body size | 0.5 – 1.4 | 1 |
-|  | Body height | 0.1 – 0.8 | 0.32 |
-|  | Wobble | 0 – 2 | 0.7 |
-|  | Magnet wander | 0 – 1 | 0.35 |
-|  | Lattice spin | -1 – 1 | 0.1 |
-|  | Satellite droplets | 0 – 6 | 3 |
+| **Body** | Body segments | 1 – 6 | 4 |
+|  | Buds | 0 – 7 | 5 |
+|  | Body size | 0.4 – 1.6 | 1 |
+|  | Merging | 0 – 1 | 0.5 |
+|  | Uneven beads | 0 – 1 | 0.55 |
+|  | Turbulence | 0 – 2 | 0.8 |
+|  | Drift and turn | 0 – 2 | 0.6 |
+|  | Snap into a sphere | On heavy hits and drops · Only on drops · Never | On heavy hits and drops |
+| **Spikes and spray** | Spikes | 0 – 2 | 1 |
+|  | Droplets | 0 – 48 | 40 |
+|  | Fling on hits | 0 – 2 | 1 |
+|  | Magnetic pull | 0 – 2 | 0.6 |
+| **Light** | Background | color | `#eeeef3` |
+|  | Fluid | color | `#050506` |
+|  | Rim light | 0 – 2 | 1 |
+|  | Gloss | 0 – 3 | 1 |
+|  | Zoom | 0.5 – 2 | 1 |
 |  | Motion speed | 0 – 3 | 1 |
-| **Camera** | Camera height | 0.05 – 1.4 | 0.5 |
-|  | Camera angle | 0 – 360 ° | 35 ° |
-|  | Orbit speed | -1 – 1 | 0.15 |
-|  | Zoom | 0.6 – 2.2 | 1.05 |
-| **Light** | Metal tint | color | `#d6dceb` |
-|  | Reflections | 0 – 2 | 1 |
-|  | Rim light | color | `#ff6a2b` |
-|  | Rim light amount | 0 – 2 | 1 |
-|  | Light angle | 0 – 6.28 | 0.8 |
-|  | Floor | Glossy (reflects) · Matte | Glossy (reflects) |
-|  | Backdrop | color | `#0c0d11` |
-|  | Exposure | 0.3 – 2.5 | 1 |
-|  | Quality | Fast · Balanced · Best (uses more GPU) | Balanced |
 
 ## Flow Field
 
@@ -97,6 +101,10 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
+| **Settings** | Look | A grid of points carried by the field · Particle streams | A grid of points carried by the field |
+|  | Grid spacing<br><sub>shown when Look: A grid of points carried by the field</sub> | 6 – 40 | 15 |
+|  | Displacement<br><sub>shown when Look: A grid of points carried by the field</sub> | 0 – 4 | 1.6 |
+|  | Point size<br><sub>shown when Look: A grid of points carried by the field</sub> | 0.5 – 4 | 1.2 |
 | **Field** | Stream pattern | Curl noise · Vortex · Waves · Radial burst · Crosshatch | Curl noise |
 |  | Particles | 500 – 20000 | 4000 |
 |  | Flow speed | 0.1 – 4 | 1 |
@@ -110,8 +118,8 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Particle shape | Streaks · Dots · Dashes | Streaks |
 |  | Brightness | 0.1 – 3 | 1 |
 |  | Line width | 0.5 – 4 | 1 |
-| **Color** | Coloring | By direction · By speed · Single color | By direction |
-|  | Color A | color | `#ff8a3d` |
+| **Color** | Coloring | By direction · By speed · Single color | Single color |
+|  | Color A | color | `#e6e6ea` |
 |  | Color B | color | `#38c6c0` |
 
 ## Fractal
@@ -122,20 +130,31 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Structure | Julia set · Kali set · Folded geometry | Folded geometry |
-|  | Detail (iterations) | 6 – 160 | 24 |
-|  | Zoom | 0.3 – 4 | 1 |
-|  | Kaleidoscope segments | 1 – 16 | 1 |
-|  | Rotation speed | 0 – 2 | 0.3 |
-|  | Harmonic deformation | 0 – 3 | 1 |
-|  | Pan X | -1.5 – 1.5 | 0 |
-|  | Pan Y | -1.5 – 1.5 | 0 |
-| **Color** | Color cycling | 0 – 1 | 0.1 |
-|  | Palette shift | 0 – 1 | 0.05 |
-|  | Saturation | 0 – 1.4 | 0.9 |
-|  | Glow | 0 – 2 | 1 |
-|  | Evolution speed | 0 – 3 | 1 |
-|  | Smooth edges (uses more GPU) | on / off | on |
+| **Settings** | Structure | Recursive network · Julia set · Kali set · Folded geometry | Recursive network |
+|  | Recursion depth<br><sub>shown when Structure: Recursive network</sub> | 2 – 5 | 4 |
+|  | Branches per level<br><sub>shown when Structure: Recursive network</sub> | 2 – 6 | 4 |
+|  | Links per point<br><sub>shown when Structure: Recursive network</sub> | 1 – 6 | 3 |
+|  | Long links<br><sub>shown when Structure: Recursive network</sub> | 0 – 1 | 0.45 |
+|  | Cluster tightness<br><sub>shown when Structure: Recursive network</sub> | 0.25 – 0.7 | 0.6 |
+|  | Motion<br><sub>shown when Structure: Recursive network</sub> | 0 – 2 | 0.7 |
+|  | Rewire on drops and heavy hits<br><sub>shown when Structure: Recursive network</sub> | on / off | on |
+| **Network look** | Lines<br><sub>shown when Structure: Recursive network</sub> | color | `#d8d8de` |
+|  | Line brightness<br><sub>shown when Structure: Recursive network</sub> | 0.05 – 1 | 0.34 |
+|  | Point size<br><sub>shown when Structure: Recursive network</sub> | 0 – 4 | 1.2 |
+|  | Background<br><sub>shown when Structure: Recursive network</sub> | color | `#0f0f11` |
+|  | Detail (iterations)<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 6 – 160 | 24 |
+|  | Zoom<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 0.3 – 4 | 1 |
+|  | Kaleidoscope segments<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 1 – 16 | 1 |
+|  | Rotation speed<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 0 – 2 | 0.3 |
+|  | Harmonic deformation<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 0 – 3 | 1 |
+|  | Pan X<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | -1.5 – 1.5 | 0 |
+|  | Pan Y<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | -1.5 – 1.5 | 0 |
+| **Color** | Color cycling<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 0 – 1 | 0.1 |
+|  | Palette shift<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 0 – 1 | 0.05 |
+|  | Saturation<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 0 – 1.4 | 0.9 |
+|  | Glow<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | 0 – 2 | 1 |
+|  | Smooth edges (uses more GPU)<br><sub>shown when Structure: Julia set / Kali set / Folded geometry</sub> | on / off | on |
+| **Motion** | Evolution speed | 0 – 3 | 1 |
 
 ## Grain
 
@@ -145,7 +164,13 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Grains | 5000 – 120000 | 50000 |
+| **Settings** | Look | Drifting dust bands · Grain texture | Drifting dust bands |
+|  | Bands<br><sub>shown when Look: Drifting dust bands</sub> | 1 – 9 | 5 |
+|  | Specks<br><sub>shown when Look: Drifting dust bands</sub> | 1000 – 30000 | 7000 |
+|  | Waviness<br><sub>shown when Look: Drifting dust bands</sub> | 0 – 2 | 1 |
+|  | Band thickness<br><sub>shown when Look: Drifting dust bands</sub> | 0.2 – 3 | 1 |
+|  | Dust color<br><sub>shown when Look: Drifting dust bands</sub> | color | `#ffffff` |
+|  | Grains<br><sub>shown when Look: Grain texture</sub> | 5000 – 120000 | 50000 |
 |  | Grain size | 1 – 6 | 2 |
 |  | Flow speed | 0 – 3 | 1 |
 |  | Turbulence | 0 – 3 | 1 |
@@ -154,8 +179,8 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Drift | Wander · Rise · Fall like sand · Wind · Swirl | Wander |
 |  | Bass shake | 0 – 2 | 1 |
 |  | Scatter on hits | 0 – 2 | 1 |
-|  | Shadow color | color | `#3a2a1f` |
-|  | Highlight color | color | `#ffd9a8` |
+|  | Shadow color<br><sub>shown when Look: Grain texture</sub> | color | `#3a2a1f` |
+|  | Highlight color<br><sub>shown when Look: Grain texture</sub> | color | `#ffd9a8` |
 |  | Contrast | 0.2 – 3 | 1 |
 
 ## Lissajous
@@ -168,18 +193,19 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |---|---|---|---|
 | **Settings** | Curve source | Harmonic (follows pitch) · Stereo X/Y signal · Both layered | Harmonic (follows pitch) |
 |  | Frequency ratio | Auto from sound · 1 : 1 · 1 : 2 · 2 : 3 · 3 : 4 · 3 : 5 · 4 : 5 · 5 : 6 · 5 : 8 · 2 : 5 · 3 : 7 | Auto from sound |
-|  | Layers | 1 – 12 | 5 |
-|  | Layer phase spread | 0 – 1 | 0.18 |
+|  | Knot complexity | 0 – 1.5 | 0.35 |
+|  | Layers | 1 – 40 | 22 |
+|  | Layer phase spread | 0 – 1 | 0.05 |
 |  | Phase drift | 0 – 3 | 0.6 |
-|  | Size | 0.2 – 1.2 | 0.8 |
-|  | 3D tilt | 0 – 1.5 | 0.35 |
-|  | Tumble speed | 0 – 2 | 0.3 |
+|  | Size | 0.2 – 1.2 | 0.62 |
+|  | 3D tilt | 0 – 1.5 | 0.9 |
+|  | Tumble speed | 0 – 2 | 0.5 |
 |  | Signal interference | 0 – 2 | 0.7 |
-|  | Line width | 0.5 – 5 | 1.4 |
-|  | Glow | 0 – 2 | 1 |
-|  | Persistence | 0 – 0.97 | 0.75 |
-|  | Color A | color | `#7fe3d6` |
-|  | Color B | color | `#ff6fae` |
+|  | Line width | 0.3 – 5 | 0.35 |
+|  | Glow | 0 – 2 | 0.25 |
+|  | Persistence | 0 – 0.97 | 0.55 |
+|  | Color A | color | `#ffffff` |
+|  | Color B | color | `#b8b8c0` |
 
 ## Oscilloscope
 
@@ -189,7 +215,7 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Display | Waveform (Y/T) · Stereo phase (X/Y) · Custom shape | Custom shape |
+| **Settings** | Display | Waveform (Y/T) · Stereo phase (X/Y) · Custom shape | Stereo phase (X/Y) |
 |  | Shape<br><sub>shown when Display: Custom shape</sub> | Circle · Square · Triangle · Star · Heart · Infinity · My drawing | Circle |
 |  | Draw a shape on the widget<br><sub>shown when Display: Custom shape</sub> | button |  |
 |  | Gain | 0.1 – 4 | 1 |
@@ -201,7 +227,7 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 | **Phosphor** | Phosphor persistence | 0 – 0.97 | 0.8 |
 |  | Beam width | 0.5 – 5 | 1.5 |
 |  | Optical bloom | 0 – 2 | 1 |
-| **Color** | Phosphor color | color | `#8dffb0` |
+| **Color** | Phosphor color | color | `#2fe3a2` |
 |  | Graticule | on / off | off |
 
 ## Spectre
@@ -212,11 +238,12 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Structure | Luminous bands · Spectral layers · Flowing spectrogram · Radial spectrum | Spectral layers |
-|  | Coloring | Per band · Monochrome | Per band |
+| **Settings** | Structure | Spectral lines · Luminous bands · Spectral layers · Flowing spectrogram · Radial spectrum | Spectral lines |
+|  | Coloring | Light spectrum · Per band · Monochrome | Light spectrum |
 |  | Bands | 8 – 64 | 48 |
 | **Frequencies** | Lowest frequency | 30 – 2000 | 30 |
 |  | Highest frequency | 400 – 16000 | 16000 |
+|  | Equalize bands<br><sub>shown when Structure: Spectral lines</sub> | on / off | on |
 |  | Response curve | 0.5 – 3 | 1.4 |
 |  | Treble boost | 0 – 2 | 0.4 |
 |  | Layers<br><sub>shown when Structure: Spectral layers / Flowing spectrogram</sub> | 1 – 24 | 10 |
@@ -241,7 +268,11 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Form | Open line · Closed loop · Spiral | Open line |
+| **Settings** | Form | Live signal · Open line · Closed loop · Spiral | Live signal |
+|  | Signal gain<br><sub>shown when Form: Live signal</sub> | 0.5 – 8 | 2.6 |
+|  | Time window<br><sub>shown when Form: Live signal</sub> | 0.1 – 1 | 1 |
+|  | Clip at the edges<br><sub>shown when Form: Live signal</sub> | on / off | on |
+|  | Automatic gain<br><sub>shown when Form: Live signal</sub> | on / off | on |
 |  | Lines | 1 – 12 | 1 |
 |  | Line spacing<br><sub>shown when Lines ≥ 2</sub> | 0 – 1 | 0.25 |
 |  | Line delay<br><sub>shown when Lines ≥ 2</sub> | 0 – 1 | 0.3 |
@@ -265,15 +296,17 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Arrangement | Radial rings · Stacked contours · Mirrored mass | Radial rings |
+| **Settings** | Arrangement | Scrolling mass · Radial rings · Stacked contours · Mirrored layers | Scrolling mass |
+|  | Body thickness<br><sub>shown when Arrangement: Scrolling mass</sub> | 0 – 0.4 | 0.12 |
+|  | Spikiness<br><sub>shown when Arrangement: Scrolling mass</sub> | 0 – 2 | 1 |
 |  | Layers | 3 – 60 | 24 |
 |  | Layer spacing | 0.2 – 2 | 1 |
 |  | Amplitude | 0.1 – 3 | 1 |
 |  | Detail | 32 – 400 | 160 |
 |  | Filled shapes | on / off | on |
-|  | Color | Multi-color palette · Single color | Multi-color palette |
+|  | Color | Multi-color palette · Single color | Single color |
 |  | Palette<br><sub>shown when Color: Multi-color palette</sub> | Ember · Glacier · Acid · Dusk · Mono | Ember |
-|  | Single color<br><sub>shown when Color: Single color</sub> | color | `#e9edf7` |
+|  | Single color<br><sub>shown when Color: Single color</sub> | color | `#ffffff` |
 |  | Line width | 0.5 – 4 | 1.2 |
 |  | Flow speed | 0.2 – 3 | 1 |
 |  | Ring rotation<br><sub>shown when Arrangement: Radial rings</sub> | -2 – 2 | 0.25 |
@@ -288,21 +321,24 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Shape** | Form | Changes with the music · Sphere · Spindle · Torus · Shell · Bell · Knot | Changes with the music |
+| **Shape** | Form | Changes with the music · Cushion · Pebble · Peanut · Trefoil · Apple · Ring · Clover · Orb | Changes with the music |
 |  | Snap to a new form<br><sub>shown when Form: Changes with the music</sub> | On heavy hits and drops · Only on drops · Never | On heavy hits and drops |
+|  | Snap speed<br><sub>shown when Form: Changes with the music</sub> | 0.5 – 10 | 5 |
 |  | Scale | 0.3 – 1.6 | 1 |
-|  | Swelling from sounds | 0 – 2 | 1 |
+|  | Swelling from sounds | 0 – 2.5 | 1 |
 |  | Squeeze on build, open on drop | on / off | on |
-| **Beam** | Beam samples per frame | 4000 – 80000 | 20000 |
-|  | Beam weave | 3 – 120 | 37 |
+|  | Wobble | 0 – 2 | 0.6 |
+|  | Frayed surface | 0 – 2 | 0.5 |
+| **Beam** | Beam samples per frame | 8000 – 120000 | 32000 |
+|  | Beam weave | 3 – 160 | 23 |
 |  | Weave ratio | 0.2 – 1.5 | 0.618 |
 |  | Beam speed | 0.1 – 3 | 1 |
-|  | Phosphor persistence | 0 – 0.97 | 0.82 |
-|  | Rotation | -2 – 2 | 0.35 |
-| **Light** | Phosphor | color | `#e8eeff` |
-|  | Shadow tint | color | `#2a3550` |
-|  | Exposure | 0.2 – 4 | 1 |
-|  | Bloom | 0 – 2 | 0.8 |
+|  | Phosphor persistence | 0 – 0.97 | 0.7 |
+|  | Rotation | -2 – 2 | 0.25 |
+| **Light** | Phosphor | color | `#f2f2f2` |
+|  | Shadow tint | color | `#3c3c40` |
+|  | Exposure | 0.2 – 4 | 1.15 |
+|  | Bloom | 0 – 2 | 0.9 |
 
 ## Stroke
 
@@ -314,15 +350,15 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |---|---|---|---|
 | **Motion** | Pen speed | 0.1 – 3 | 1 |
 |  | Follow the melody | 0 – 1 | 0.6 |
-|  | Wander | 0 – 2 | 0.8 |
+|  | Wander | 0 – 2 | 0.55 |
 |  | Corner on hits | 0 – 1 | 0.7 |
 |  | Race a laser figure on big drops | on / off | on |
-| **Light** | Exposure length | 0.5 – 0.998 | 0.985 |
+| **Light** | Exposure length | 0.5 – 0.998 | 0.992 |
 |  | Slow stroke width | 1 – 24 | 9 |
 |  | Fast stroke width | 0.3 – 4 | 0.8 |
 |  | Flare size | 0 – 2 | 1 |
-|  | Light | color | `#f4f6ff` |
-|  | Halo | color | `#8fb4ff` |
+|  | Light | color | `#ffffff` |
+|  | Halo | color | `#c4c8d0` |
 
 ## Discharge
 
@@ -336,15 +372,15 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Strikes start from | The top · The bottom · The sides · The center · Anywhere | The top |
 |  | Sensitivity | 0.2 – 2 | 1 |
 |  | Channel length | 0.3 – 1.6 | 1 |
-|  | Branching | 0 – 2 | 1 |
+|  | Branching | 0 – 3 | 1.8 |
 |  | Roughness | 0.3 – 2 | 1 |
 |  | Hold back on builds, break loose on drops | on / off | on |
-| **Plate** | Channel width | 0.3 – 4 | 1.4 |
+| **Plate** | Channel width | 0.3 – 4 | 1.1 |
 |  | Afterglow | 0 – 0.95 | 0.55 |
-|  | Sky flash | 0 – 1.5 | 0.7 |
-|  | Plate grain | 0 – 1 | 0.35 |
+|  | Sky flash | 0 – 1.5 | 0.35 |
+|  | Plate grain | 0 – 1 | 0.08 |
 |  | Core | color | `#ffffff` |
-|  | Glow | color | `#9db8ff` |
+|  | Glow | color | `#d2d6e0` |
 
 ## Familiar
 
@@ -357,7 +393,7 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 | **Body** | Body | Creature · Orb · Your word | Creature |
 |  | Word<br><sub>shown when Body: Your word</sub> | text | `SIGNAL` |
 |  | Points of light | 5000 – 100000 | 45000 |
-|  | Size | 0.3 – 1.6 | 1 |
+|  | Size | 0.3 – 1.6 | 1.1 |
 | **Behavior** | Breathing | 0 – 2 | 1 |
 |  | Scatter on hits | 0 – 2 | 1 |
 |  | Gathers back | 0.2 – 3 | 1 |
@@ -366,8 +402,8 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 | **Light** | Point size | 0.5 – 4 | 1 |
 |  | Depth of field | 0 – 2 | 1 |
 |  | Self-shadowing | 0 – 1 | 0.7 |
-|  | Light | color | `#f5f3ff` |
-|  | Shadow tint | color | `#3b3550` |
+|  | Light | color | `#f4f4f4` |
+|  | Shadow tint | color | `#3a3a3c` |
 |  | Exposure | 0.2 – 3 | 1 |
 |  | Trails | 0 – 0.9 | 0.2 |
 

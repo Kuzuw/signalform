@@ -9,18 +9,19 @@ export default {
   params: [
     { key: 'mode', label: 'Curve source', type: 'select', default: 'harmonic', options: [['harmonic', 'Harmonic (follows pitch)'], ['stereo', 'Stereo X/Y signal'], ['both', 'Both layered']] },
     { key: 'ratio', label: 'Frequency ratio', type: 'select', default: 'auto', options: [['auto', 'Auto from sound'], ...RATIOS.map((r) => [r.join(':'), r.join(' : ')])] },
-    { key: 'layers', label: 'Layers', type: 'range', min: 1, max: 12, step: 1, default: 5 },
-    { key: 'spread', label: 'Layer phase spread', type: 'range', min: 0, max: 1, step: 0.01, default: 0.18 },
+    { key: 'complexity', label: 'Knot complexity', type: 'range', min: 0, max: 1.5, step: 0.01, default: 0.35 },
+    { key: 'layers', label: 'Layers', type: 'range', min: 1, max: 40, step: 1, default: 22 },
+    { key: 'spread', label: 'Layer phase spread', type: 'range', min: 0, max: 1, step: 0.01, default: 0.05 },
     { key: 'phaseSpeed', label: 'Phase drift', type: 'range', min: 0, max: 3, step: 0.05, default: 0.6 },
-    { key: 'size', label: 'Size', type: 'range', min: 0.2, max: 1.2, step: 0.01, default: 0.8 },
-    { key: 'tilt', label: '3D tilt', type: 'range', min: 0, max: 1.5, step: 0.01, default: 0.35 },
-    { key: 'tumble', label: 'Tumble speed', type: 'range', min: 0, max: 2, step: 0.01, default: 0.3 },
+    { key: 'size', label: 'Size', type: 'range', min: 0.2, max: 1.2, step: 0.01, default: 0.62 },
+    { key: 'tilt', label: '3D tilt', type: 'range', min: 0, max: 1.5, step: 0.01, default: 0.9 },
+    { key: 'tumble', label: 'Tumble speed', type: 'range', min: 0, max: 2, step: 0.01, default: 0.5 },
     { key: 'wobble', label: 'Signal interference', type: 'range', min: 0, max: 2, step: 0.05, default: 0.7 },
-    { key: 'width', label: 'Line width', type: 'range', min: 0.5, max: 5, step: 0.1, default: 1.4 },
-    { key: 'glow', label: 'Glow', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'trail', label: 'Persistence', type: 'range', min: 0, max: 0.97, step: 0.01, default: 0.75 },
-    { key: 'colorA', label: 'Color A', type: 'color', default: '#7fe3d6' },
-    { key: 'colorB', label: 'Color B', type: 'color', default: '#ff6fae' }
+    { key: 'width', label: 'Line width', type: 'range', min: 0.3, max: 5, step: 0.05, default: 0.35 },
+    { key: 'glow', label: 'Glow', type: 'range', min: 0, max: 2, step: 0.05, default: 0.25 },
+    { key: 'trail', label: 'Persistence', type: 'range', min: 0, max: 0.97, step: 0.01, default: 0.55 },
+    { key: 'colorA', label: 'Color A', type: 'color', default: '#ffffff' },
+    { key: 'colorB', label: 'Color B', type: 'color', default: '#b8b8c0' }
   ],
   create(canvas) {
     const ctx = canvas.getContext('2d');
@@ -47,12 +48,12 @@ export default {
         }
         ra += (ta - ra) * (1 - Math.exp(-dt * 2.5));
         rb += (tb - rb) * (1 - Math.exp(-dt * 2.5));
-        const N = 700, wob = p.wobble;
+        const N = 900, wob = p.wobble, cx3 = p.complexity * (0.8 + F.mid * 0.6);
         if (p.mode !== 'stereo') {
           for (let l = 0; l < p.layers; l++) {
             const lt = p.layers > 1 ? l / (p.layers - 1) : 0;
             const ph = phase + lt * p.spread * TAU;
-            const rr = R * (1 - lt * 0.12) * (0.85 + F.bass * 0.25);
+            const rr = R * (1 - lt * 0.05) * (0.85 + F.bass * 0.25);
             const col = mixRgb(A, B, lt);
             glowStroke(ctx, (c) => {
               for (let i = 0; i <= N; i++) {
@@ -60,6 +61,7 @@ export default {
                 const w = F.wave[(i * 2) % 2048] * wob * 0.22;
                 // a third harmonic gives depth; tilt and tumble rotate the figure in 3D
                 let X = Math.sin(ra * u + ph) * (1 + w), Y = Math.sin(rb * u) * (1 - w), Z = Math.sin((ra + rb) * 0.5 * u + ph * 0.7);
+                if (cx3) { X = (X + cx3 * Math.sin(2 * u + ph * 1.3)) / (1 + cx3); Y = (Y + cx3 * Math.cos(u * 1.5 - ph)) / (1 + cx3); Z = (Z + cx3 * Math.sin(2 * u + ph * 0.5)) / (1 + cx3); }
                 const ty = tumbleA, tx = p.tilt;
                 const X1 = X * Math.cos(ty) + Z * Math.sin(ty), Z1 = -X * Math.sin(ty) + Z * Math.cos(ty);
                 const Y1 = Y * Math.cos(tx) - Z1 * Math.sin(tx), Z2 = Y * Math.sin(tx) + Z1 * Math.cos(tx);
@@ -67,7 +69,7 @@ export default {
                 const x = cx + X1 * rr * pr, y = cy + Y1 * rr * pr;
                 if (i) c.lineTo(x, y); else c.moveTo(x, y);
               }
-            }, scaleA(col, (0.4 + F.level * 0.4) / Math.sqrt(Math.max(1, p.layers / 3))), p.width * S, p.glow);
+            }, scaleA(col, (0.32 + F.level * 0.3) / Math.sqrt(Math.max(1, p.layers / 4))), p.width * S, p.glow);
           }
         }
         if (p.mode !== 'harmonic') {

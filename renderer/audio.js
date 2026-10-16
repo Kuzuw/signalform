@@ -317,6 +317,12 @@ function makeFrame() {
 class DemoBeat {
   constructor(ctx, out) {
     this.ctx = ctx; this.out = ctx.createGain(); this.out.gain.value = 0.7; this.out.connect(out);
+    // a little stereo room: short, different delays on each side so the mix is wide, not mono
+    for (const [time, pan, fb] of [[0.013, -1, 0.25], [0.021, 1, 0.28]]) {
+      const d = ctx.createDelay(0.1), g = ctx.createGain(), fbg = ctx.createGain(), pn = ctx.createStereoPanner();
+      d.delayTime.value = time; g.gain.value = 0.42; fbg.gain.value = fb; pn.pan.value = pan;
+      this.out.connect(d); d.connect(fbg); fbg.connect(d); d.connect(g); g.connect(pn); pn.connect(out);
+    }
     this.running = false; this.step = 0; this.bpm = 124;
     const b = this.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -348,7 +354,7 @@ class DemoBeat {
     const full = sec === 'drop', groove = sec === 'groove';
     if ((full || groove) && i % 4 === 0) this.kick(t, full ? 1 : 0.85);
     if ((full || groove) && (i === 4 || i === 12)) this.hit(t, 'bandpass', 1700, 0.17, 0.5);
-    if ((full || groove) && i % 2 === 1) this.hit(t, 'highpass', 7500, 0.04, full ? 0.22 : 0.15);
+    if ((full || groove) && i % 2 === 1) this.hit(t, 'highpass', 7500, 0.04, full ? 0.22 : 0.15, i % 4 === 1 ? -0.6 : 0.6);
     if (full && i === 14) this.hit(t, 'highpass', 6000, 0.18, 0.16);
     if ((full || groove) && [0, 3, 6, 10, 13].includes(i)) this.tone(t, 'sawtooth', roots[chord] * (i === 6 ? 2 : 1), 0.2, full ? 0.45 : 0.32, full ? 520 : 380);
     if (i === 0 && bar % 2 === 0) chords[chord].forEach((f, k) => this.tone(t, 'triangle', f, S * 32, sec === 'break' ? 0.1 : 0.06, 1500, (k - 1) * 0.5));
@@ -366,12 +372,14 @@ class DemoBeat {
     g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
     o.connect(g); g.connect(this.out); o.start(t); o.stop(t + 0.42);
   }
-  hit(t, type, f, dur, peak) {
+  hit(t, type, f, dur, peak, pan = 0) {
     const s = this.ctx.createBufferSource(); s.buffer = this.noise;
     const bq = this.ctx.createBiquadFilter(); bq.type = type; bq.frequency.value = f;
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(bq); bq.connect(g); g.connect(this.out); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+    s.connect(bq); bq.connect(g);
+    if (pan) { const p = this.ctx.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(this.out); } else g.connect(this.out);
+    s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
   }
   riser(t, dur, prog) {
     const s = this.ctx.createBufferSource(); s.buffer = this.noise; s.loop = true;

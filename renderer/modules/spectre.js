@@ -1,15 +1,20 @@
-import { hexToRgb, mixRgb, rgba, fade, clear, scaleRgb } from './util.js';
+import { hexToRgb, mixRgb, rgba, fade, clear, scaleRgb, gradient } from './util.js';
+
+// teal → red → amber → green → violet → lavender, like light through a prism
+const SPECTRUM = ['#1c5a52', '#c8213a', '#e33b4a', '#b98a2a', '#8fd12a', '#20d23a', '#1a5a3a', '#2a1a3a', '#8a2ab4', '#5a2a6a', '#c9b2dc'].map(hexToRgb);
+const LINE_TEX = Array.from({ length: 97 }, (_, i) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); });
 
 export default {
   id: 'spectre',
   name: 'Spectre',
   tagline: 'Harmonic frequencies visualized as light.',
   params: [
-    { key: 'mode', label: 'Structure', type: 'select', default: 'layers', options: [['bands', 'Luminous bands'], ['layers', 'Spectral layers'], ['flow', 'Flowing spectrogram'], ['ring', 'Radial spectrum']] },
-    { key: 'coloring', label: 'Coloring', type: 'select', default: 'band', options: [['band', 'Per band'], ['mono', 'Monochrome']] },
+    { key: 'mode', label: 'Structure', type: 'select', default: 'lines', options: [['lines', 'Spectral lines'], ['bands', 'Luminous bands'], ['layers', 'Spectral layers'], ['flow', 'Flowing spectrogram'], ['ring', 'Radial spectrum']] },
+    { key: 'coloring', label: 'Coloring', type: 'select', default: 'spectrum', options: [['spectrum', 'Light spectrum'], ['band', 'Per band'], ['mono', 'Monochrome']] },
     { key: 'bands', label: 'Bands', type: 'range', min: 8, max: 64, step: 1, default: 48 },
     { key: 'fromHz', label: 'Lowest frequency', type: 'range', min: 30, max: 2000, step: 10, default: 30, section: 'Frequencies' },
     { key: 'toHz', label: 'Highest frequency', type: 'range', min: 400, max: 16000, step: 100, default: 16000 },
+    { key: 'equalize', label: 'Equalize bands', type: 'toggle', default: true, showIf: { mode: 'lines' } },
     { key: 'curve', label: 'Response curve', type: 'range', min: 0.5, max: 3, step: 0.05, default: 1.4 },
     { key: 'tilt', label: 'Treble boost', type: 'range', min: 0, max: 2, step: 0.05, default: 0.4 },
     { key: 'layers', label: 'Layers', type: 'range', min: 1, max: 24, step: 1, default: 10, showIf: { mode: ['layers', 'flow'] } },
@@ -28,7 +33,7 @@ export default {
   ],
   create(canvas) {
     const ctx = canvas.getContext('2d');
-    let vals = new Float32Array(64), caps = new Float32Array(64), hist = [];
+    let vals = new Float32Array(64), caps = new Float32Array(64), hist = [], runMax = new Float32Array(0);
     return {
       render(F, { dt, W, H, S, params: p }) {
         const nb = Math.round(p.bands);
@@ -46,13 +51,39 @@ export default {
           caps[i] = Math.max(vals[i], caps[i] - dt * 0.35);
         }
         const lo = hexToRgb(p.colorLow), mi = hexToRgb(p.colorMid), hi = hexToRgb(p.colorHigh), mono = hexToRgb(p.colorMono);
-        const colorAt = (t) => p.coloring === 'mono' ? mono : t < 0.5 ? mixRgb(lo, mi, t * 2) : mixRgb(mi, hi, (t - 0.5) * 2);
-        if (p.persist > 0) fade(ctx, W, H, p.persist); else clear(ctx, W, H);
+        const colorAt = (t) => p.coloring === 'mono' ? mono : p.coloring === 'spectrum' ? gradient(SPECTRUM, t) : t < 0.5 ? mixRgb(lo, mi, t * 2) : mixRgb(mi, hi, (t - 0.5) * 2);
+        if (p.persist > 0 && p.mode !== 'lines') fade(ctx, W, H, p.persist); else clear(ctx, W, H);
         ctx.globalCompositeOperation = 'lighter';
         const g = p.glow, HH = H * 0.45 * p.height;
         const cy = p.mirror ? H / 2 : H * 0.92;
 
-        if (p.mode === 'bands') {
+        if (p.mode === 'lines') {
+          // the spectrum as emission lines: full-height stripes whose light follows their band
+          const cols = Math.max(nb * 3, Math.round(W / (2.5 * S)));
+          let vmax = 0.35; for (let i = 0; i < nb; i++) vmax = Math.max(vmax, vals[i] * (0.8 + (i / nb) * 0.9));
+          // equalize: every band is measured against its own recent peak, so quiet regions still light up
+          if (runMax.length !== nb) runMax = new Float32Array(nb).fill(0.2);
+          const kd = Math.exp(-dt / 2.5);
+          for (let i = 0; i < nb; i++) runMax[i] = Math.max(vals[i], runMax[i] * kd, 0.06);
+          const cw = W / cols;
+          for (let pass = 0; pass < (g > 0 ? 2 : 1); pass++) {
+            for (let c = 0; c < cols; c++) {
+              const t = c / (cols - 1), b = t * (nb - 1), i0 = Math.floor(b), fr = b - i0;
+              const v = vals[i0] * (1 - fr) + vals[Math.min(nb - 1, i0 + 1)] * fr;
+              const tex = 0.55 + 0.45 * LINE_TEX[c % LINE_TEX.length];
+              const col = colorAt(t);
+              const rm = runMax[i0] * (1 - fr) + runMax[Math.min(nb - 1, i0 + 1)] * fr;
+              const vv = p.equalize ? (0.12 + 0.88 * Math.pow(Math.min(1, v / rm), 2.2)) * Math.min(1, rm * 7) : Math.pow(Math.min(1, v * (0.8 + t * 0.9) / vmax), 1.8);
+              if (pass === 0) { ctx.fillStyle = rgba(col, Math.min(1, (0.03 + vv * 1.15) * tex)); ctx.fillRect(c * cw, 0, cw + 0.6, H); }
+              else if (c % 3 === 0) { ctx.fillStyle = rgba(col, Math.min(0.3, v * 0.12 * g)); ctx.fillRect(c * cw - cw * 3, 0, cw * 7, H); }
+            }
+          }
+          // a little darker towards the top and bottom edges
+          ctx.globalCompositeOperation = 'source-over';
+          const vg = ctx.createLinearGradient(0, 0, 0, H);
+          vg.addColorStop(0, 'rgba(0,0,0,0.35)'); vg.addColorStop(0.18, 'rgba(0,0,0,0)'); vg.addColorStop(0.82, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.35)');
+          ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+        } else if (p.mode === 'bands') {
           const bw = W / nb, bwid = Math.max(1, bw * (1 - p.gap));
           for (let i = 0; i < nb; i++) {
             const h = vals[i] * HH * (p.mirror ? 1 : 1.9);

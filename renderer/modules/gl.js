@@ -61,6 +61,8 @@ export function createShader(canvas, fragBody) {
     seti(name, v) { const l = loc(name); if (l) gl.uniform1i(l, v); },
     // float array uniform, e.g. `uniform float uRing[64];` → setv('uRing', Float32Array)
     setv(name, arr) { const l = loc(name + '[0]') || loc(name); if (l) gl.uniform1fv(l, arr); },
+    // vec4 array uniform: `uniform vec4 uB[6];` → setv4('uB', Float32Array(24))
+    setv4(name, arr) { const l = loc(name + '[0]') || loc(name); if (l) gl.uniform4fv(l, arr); },
     audio(F) {
       // log-resample the spectrum into 256 bins
       const n = F.spectrum.length, hz = F.sampleRate / (n * 2);

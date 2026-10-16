@@ -4,6 +4,28 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-17
+
+### Changed
+Every original module was matched against the reference look of the Form Vision modules and restyled. Where a module changed character, the previous look is kept as an option.
+- **Ferro:** black magnetic fluid on white: a chain of glossy beads that merge on the beat, buds and thorns, and a spray of droplets that hits fling out and the magnet pulls back. Heavy hits and drops snap it into one round drop.
+- **Aura:** a breathing ring of shimmering specks (ring, two rings, disc or turning sphere) whose rim swells with its slice of the spectrum. The light blooms are kept as *Look → Light blooms*.
+- **Oscillon:** new forms (cushion, pebble, peanut, trefoil, apple, ring, clover, orb) with bright caustic folds. It snaps to a new form on heavy hits and drops, every sound leaves a visible swelling on the surface, and it squeezes through a build and throws itself open on the drop. New settings: snap speed, wobble and frayed surface.
+- **Flow Field:** new default look, a grid of points carried by a shearing flow field.
+- **Fractal:** new default structure, a recursive network of linked clusters that rewires on drops.
+- **Grain:** new default look, dust strung along drifting, wavy bands.
+- **Spectre:** new default structure, glowing emission lines in prism colors with per-band equalization.
+- **Trace:** new default form, the live signal at high gain.
+- **Waveform:** new default arrangement, a solid scrolling mass of the music.
+- **Lissajous:** fine translucent ribbons tracing a tumbling knot; new *Knot complexity* setting.
+- **ASCII:** bold *x % X & # @* glyphs in grey and white by default.
+- **Oscilloscope:** stereo X/Y in green phosphor by default.
+- **Stroke**, **Discharge** and **Familiar:** neutral white light, a fuller Familiar body, denser lightning branches, and the Stroke pen keeps to a centered square.
+- The Magnetic starter scene shows the new Ferro.
+
+Scenes and presets saved with earlier versions keep the settings they stored; anything they didn't store now takes the new defaults.
+
+
 ## [1.2.0] - 2026-10-17
 
 ### Added
@@ -65,7 +87,8 @@ First public release. Free and open source under the MIT license, for Windows 10
 - Live Output dialog for Spout and NDI (the native add-ons are not bundled yet).
 - Windows installer built and published by GitHub Actions.
 
-[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Kuzuw/signalform/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Kuzuw/signalform/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Kuzuw/signalform/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Kuzuw/signalform/releases/tag/v1.0.0

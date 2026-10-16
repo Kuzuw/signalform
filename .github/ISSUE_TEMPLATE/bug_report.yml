@@ -1,0 +1,71 @@
+name: Bug report
+description: Something doesn't work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Please search [existing issues](https://github.com/Kuzuw/signalform/issues) first.
+        For security problems, follow [SECURITY.md](https://github.com/Kuzuw/signalform/blob/main/SECURITY.md) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect to see?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Load the "Storm Shell" scene
+        2. Choose Connect as the audio source
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - A module (say which below)
+        - Stage, layers or groups
+        - Inspector (Module, Look, Audio tabs)
+        - Audio source or analysis
+        - Recording or video export
+        - Live Output (Spout, NDI)
+        - Scenes or presets
+        - Installer or startup
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Signalform version
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 23H2
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: Graphics card
+      placeholder: NVIDIA RTX 3060 / Intel Iris Xe / ...
+  - type: input
+    id: source
+    attributes:
+      label: Audio source
+      placeholder: Connect (system audio), a microphone, a track file, the demo beat...
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, recordings or scene file
+      description: Drag files here. A `.sfscene` export of your scene helps a lot with visual bugs.

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Download the latest release
+    url: https://github.com/Kuzuw/signalform/releases/latest
+    about: Many problems are already fixed in the newest version.
+  - name: Report a security vulnerability
+    url: https://github.com/Kuzuw/signalform/security/advisories/new
+    about: Please report security problems privately.

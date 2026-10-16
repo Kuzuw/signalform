@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a new module, a setting or an improvement.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: Describe what you're trying to achieve, for example a show, a stream or a music video.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How could Signalform help? References, sketches and videos are welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - New module
+        - New setting for an existing module
+        - Composition, layers or stage
+        - Audio input or analysis
+        - Output (recording, export, Spout, NDI)
+        - Interface
+        - Other
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to help build this.

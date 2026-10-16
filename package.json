@@ -2,17 +2,39 @@
   "name": "signalform",
   "productName": "Signalform",
   "version": "1.1.0",
-  "description": "Free, open-source realtime audio-reactive visual engine for Windows.",
+  "description": "Free, open-source realtime audio-reactive visual engine for Windows: 15 modules you can layer, blend and export to video.",
+  "keywords": [
+    "audio-visualizer",
+    "music-visualizer",
+    "vj",
+    "visuals",
+    "audio-reactive",
+    "generative-art",
+    "electron",
+    "windows",
+    "spout",
+    "ndi"
+  ],
   "main": "main/main.js",
   "author": "Kuzuw",
   "license": "MIT",
+  "homepage": "https://github.com/Kuzuw/signalform",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kuzuw/signalform.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Kuzuw/signalform/issues"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
     "dist:win": "electron-builder --win --x64",
     "dist": "electron-builder --win --x64",
     "test:ui": "node test/run-app.mjs",
-    "test:render": "node test/run-render.mjs"
+    "test:render": "node test/run-render.mjs",
+    "docs:modules": "node --no-warnings scripts/gen-modules-doc.mjs",
+    "docs:images": "node scripts/readme-assets/make.mjs"
   },
   "dependencies": {
     "ffmpeg-static": "^5.2.0"
@@ -20,10 +42,5 @@
   "devDependencies": {
     "electron": "^35.0.0",
     "electron-builder": "^25.1.8"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Kuzuw/signalform.git"
-  },
-  "homepage": "https://github.com/Kuzuw/signalform"
+  }
 }

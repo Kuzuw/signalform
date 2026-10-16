@@ -155,6 +155,7 @@ function addModule(id, rect) {
 /* ---------------- frame loop ---------------- */
 let lastT = performance.now(), t0 = lastT, meterTick = 0, fpsT = lastT, fpsFrames = 0;
 function loop(now) {
+  if (app.paused) { lastT = now; return requestAnimationFrame(loop); } // frame-by-frame capture (scripts/readme-assets)
   const dt = Math.min(0.1, Math.max(0.001, (now - lastT) / 1000)); lastT = now;
   const t = (now - t0) / 1000;
   const F = app.audio.update(dt, t);

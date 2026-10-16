@@ -48,7 +48,7 @@
 
 <img src="docs/images/app.png" alt="The Signalform window: audio source and module library on the left, the stage in the middle, the inspector on the right" width="100%">
 
-| | |
+| Feature | What you get |
 |---|---|
 | **15 visual modules** | From phosphor oscilloscopes and lightning to a 100,000-point creature that can spell words. GPU-accelerated where it matters. |
 | **Free composition** | Every module is a widget. Move, resize, layer, blend, group, align, lock, hide or duplicate it. Cards can be glass, solid, dark, light or clear, with rounded corners. |

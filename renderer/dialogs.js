@@ -151,7 +151,7 @@ export function outputDialog(app) {
     build(body) {
       const draw = () => {
         body.innerHTML = '';
-        body.append(h('p', {}, 'Send the whole stage, a group or a single widget as a live video source. Pick it up in Resolume, OBS, TouchDesigner, VDMX or anything that receives Syphon, Spout or NDI.'));
+        body.append(h('p', {}, 'Send the whole stage, a group or a single widget as a live video source. Pick it up in Resolume, OBS, TouchDesigner or anything that receives Spout or NDI.'));
         for (const o of outs.list) {
           const card = h('div', { class: 'out-card' + (o.running ? ' on' : '') });
           const disabled = o.running;
@@ -161,7 +161,7 @@ export function outputDialog(app) {
           const fps = sel('', [[30, '30 fps'], [60, '60 fps']], o.fps); fps.disabled = disabled; fps.onchange = (e) => { o.fps = +e.target.value; app.saveSettings(); };
           const backends = h('div', { class: 'grid2' }, ...outs.backends.map((b) => h('label', { class: 'backend' },
             h('input', { type: 'checkbox', checked: o.kinds.includes(b.kind) && b.available, disabled: disabled || !b.available, onchange: (e) => { o.kinds = e.target.checked ? [...new Set([...o.kinds, b.kind])] : o.kinds.filter((k) => k !== b.kind); app.saveSettings(); } }),
-            h('b', {}, b.label + (b.platform === 'darwin' ? ' · macOS' : b.platform === 'win32' ? ' · Windows' : ' · network')),
+            h('b', {}, b.label + (b.kind === 'ndi' ? ' · network' : ' · local apps')),
             b.available ? null : h('small', {}, b.reason))));
           const toggle = h('button', { class: 'btn ' + (o.running ? '' : 'primary'), type: 'button', onclick: async () => {
             toggle.disabled = true;

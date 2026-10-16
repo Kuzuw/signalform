@@ -1,5 +1,5 @@
 'use strict';
-// NDI sender (macOS + Windows) through the optional `grandiose` native module
+// NDI sender through the optional `grandiose` native module
 // (a fork with send support, e.g. github.com/rse/grandiose). NDI Tools or the
 // NDI runtime must be installed on the machine.
 let lib = null, loadError = '';

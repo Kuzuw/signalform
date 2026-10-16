@@ -106,7 +106,7 @@ export class AudioEngine {
     const stream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: true });
     stream.getVideoTracks().forEach((t) => t.stop());
     if (!stream.getAudioTracks().length) {
-      throw new Error('This system did not share any audio. On macOS, install a virtual device such as BlackHole and pick it as an input instead.');
+      throw new Error('No system audio was shared. Pick a virtual cable (such as VB-Cable) as the input instead.');
     }
     this._teardown();
     this.stream = stream;

@@ -2,16 +2,15 @@
   "name": "signalform",
   "productName": "Signalform",
   "version": "1.0.0",
-  "description": "Realtime audio-reactive visual engine. Standalone desktop app for macOS and Windows.",
+  "description": "Free, open-source realtime audio-reactive visual engine for Windows.",
   "main": "main/main.js",
   "author": "Kuzuw",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "dist:mac": "electron-builder --mac --arm64 --x64",
     "dist:win": "electron-builder --win --x64",
-    "dist": "electron-builder",
+    "dist": "electron-builder --win --x64",
     "test:ui": "node test/run-app.mjs",
     "test:render": "node test/run-render.mjs"
   },

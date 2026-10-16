@@ -1,6 +1,6 @@
 import { installShim } from './shim.js';
 import { AudioEngine } from './audio.js';
-import { MODULES, NEW_MODULES, defaults } from './modules/index.js';
+import { MODULES, defaults } from './modules/index.js';
 import { Stage } from './stage.js';
 import { Inspector } from './inspector.js';
 import { Recorder, Outputs } from './capture.js';
@@ -196,7 +196,7 @@ function renderModuleList() {
       title: `${m.name}: ${m.tagline}`,
       onclick: () => addModule(m.id)
     }, h('span', { class: 'thumb' }, thumbs.get(m.id)),
-      h('span', { class: 'tname' }, m.name, NEW_MODULES.has(m.id) ? h('em', {}, 'NEW') : ''));
+      h('span', { class: 'tname' }, m.name));
     tile.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/x-module', m.id); e.dataTransfer.effectAllowed = 'copy'; });
     box.append(tile);
   }

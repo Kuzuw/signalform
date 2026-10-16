@@ -1,9 +1,8 @@
 'use strict';
 // Live output manager. The renderer composites a widget or the whole stage, reads the
 // pixels back (RGBA, top-down) and sends them here. Each output can feed several
-// backends at once: Syphon (macOS), Spout (Windows) and NDI (both).
+// backends at once: Spout and NDI.
 const adapters = {
-  syphon: require('./syphon'),
   spout: require('./spout'),
   ndi: require('./ndi')
 };

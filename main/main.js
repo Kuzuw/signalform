@@ -93,9 +93,7 @@ function setupPermissions() {
   });
   ses.setPermissionCheckHandler((wc, permission) => ['media', 'display-capture', 'fullscreen'].includes(permission));
 
-  // System audio. Windows supports WASAPI loopback directly. On macOS 13+ Electron
-  // routes loopback through ScreenCaptureKit; if the OS refuses, the renderer falls back
-  // to virtual devices such as BlackHole, which appear as normal inputs.
+  // System audio: Windows WASAPI loopback of the default output device.
   ses.setDisplayMediaRequestHandler((request, callback) => {
     desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
       if (!sources.length) return callback({});

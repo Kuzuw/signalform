@@ -30,7 +30,6 @@ export function installShim() {
     },
     output: {
       backends: async () => [
-        { kind: 'syphon', label: 'Syphon', platform: 'darwin', available: false, reason: 'Live output works in the desktop app.' },
         { kind: 'spout', label: 'Spout', platform: 'win32', available: false, reason: 'Live output works in the desktop app.' },
         { kind: 'ndi', label: 'NDI', platform: 'any', available: false, reason: 'Live output works in the desktop app.' }
       ],

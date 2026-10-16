@@ -15,7 +15,6 @@ import discharge from './discharge.js';
 import familiar from './familiar.js';
 
 export const MODULES = [ascii, aura, ferro, flowfield, fractal, grain, lissajous, oscilloscope, spectre, trace, waveform, oscillon, stroke, discharge, familiar];
-export const NEW_MODULES = new Set(['oscillon', 'stroke', 'discharge', 'familiar']);
 export const byId = Object.fromEntries(MODULES.map((m) => [m.id, m]));
 
 export function defaults(mod) {

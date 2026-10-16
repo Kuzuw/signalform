@@ -89,7 +89,6 @@ input[type=range]:disabled { opacity: .4; }
 .topbar { grid-area: top; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--panel); border-bottom: 1px solid var(--line); -webkit-app-region: drag; min-width: 0; }
 .topbar > * { -webkit-app-region: no-drag; }
 .topbar .spacer { flex: 1; -webkit-app-region: drag; }
-body.mac .topbar { padding-left: 84px; }
 .brand { display: flex; align-items: center; gap: 9px; font-weight: 680; letter-spacing: .01em; white-space: nowrap; -webkit-app-region: drag; margin-right: 6px; }
 .mark { width: 15px; height: 15px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #c9c9d4 35%, #55555e 70%, #1a1a1d); box-shadow: 0 0 12px #ffffff30; }
 .scene-name { background: transparent !important; border-color: transparent !important; font-weight: 560; width: 220px; color: var(--muted); }
@@ -144,7 +143,6 @@ body.mac .topbar { padding-left: 84px; }
 .tile .thumb { display: block; aspect-ratio: 16 / 9; border-radius: 7px; overflow: hidden; background: #000; }
 .tile .thumb canvas { width: 100%; height: 100%; display: block; }
 .tile .tname { display: flex; align-items: center; gap: 6px; padding: 0 3px; font-weight: 560; font-size: 12.5px; }
-.tile .tname em { font: 700 8.5px/1 var(--mono); letter-spacing: .08em; font-style: normal; color: var(--on-ink); background: var(--on); padding: 3px 4px; border-radius: 4px; }
 .tile .lock { margin-left: auto; color: var(--dim); display: grid; } .tile .lock svg { width: 12px; height: 12px; }
 .mods .note { margin-top: 2px; }
 

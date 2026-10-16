@@ -58,6 +58,13 @@ jobs:
           if [ -z "$CSC_LINK" ]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; unset CSC_LINK CSC_KEY_PASSWORD; fi
           npx electron-builder --win --x64 --publish never -c.npmRebuild=false
 
+      - name: Report what the installer contains
+        shell: bash
+        run: |
+          R=dist/win-unpacked/resources
+          node -e "const a=require('@electron/asar');const l=a.listPackage('$R/app.asar');for(const m of ['electron-spout','grandiose','ffmpeg-static']){console.log('::notice::'+m+(l.some(p=>p.includes('node_modules'+require('path').sep+m+require('path').sep)||p.includes('node_modules/'+m+'/'))?' is bundled':' is NOT bundled'))}"
+          find $R -name "*.node" -o -name "ffmpeg.exe" | sed 's|^|::notice::file |'
+
       - uses: actions/upload-artifact@v4
         with:
           name: Signalform-windows

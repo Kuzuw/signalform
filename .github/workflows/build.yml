@@ -83,16 +83,23 @@ jobs:
         with:
           path: out
           merge-multiple: true
+      - name: Release notes from the changelog
+        run: |
+          v="${{ steps.v.outputs.tag }}"; v="${v#v}"
+          {
+            echo "Free and open-source audio-reactive visuals for Windows 10 and 11."
+            echo
+            echo "**Download:** \`Signalform-Setup-$v.exe\` below, then run it. The installer is not code-signed yet, so Windows SmartScreen may warn on first run: choose **More info** → **Run anyway**."
+            echo
+            # the section of CHANGELOG.md for this version, without its heading
+            awk -v ver="$v" '$0 ~ "^## \\[" ver "\\]" {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md
+          } > notes.md
+          cat notes.md
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.v.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: Signalform ${{ steps.v.outputs.tag }}
           make_latest: true
-          body: |
-            Free and open-source audio-reactive visuals for Windows 10 and 11.
-
-            **Download:** `Signalform-Setup-*.exe` below, then run it.
-
-            The installer is not code-signed yet, so Windows SmartScreen may warn on first run: choose **More info** → **Run anyway**.
+          body_path: notes.md
           files: out/*.exe

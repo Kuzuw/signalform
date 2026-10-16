@@ -2,9 +2,9 @@
 
 > Generated from the code by `npm run docs:modules`. Do not edit by hand.
 
-Signalform ships with 15 modules. Every widget also has the shared [Look](#look-every-widget) and [Audio](#audio-every-widget) controls, whatever its module.
+Signalform ships with 20 modules. Every widget also has the shared [Look](#look-every-widget) and [Audio](#audio-every-widget) controls, whatever its module.
 
-[ASCII](#ascii) · [Aura](#aura) · [Ferro](#ferro) · [Flow Field](#flow-field) · [Fractal](#fractal) · [Grain](#grain) · [Lissajous](#lissajous) · [Oscilloscope](#oscilloscope) · [Spectre](#spectre) · [Trace](#trace) · [Waveform](#waveform) · [Oscillon](#oscillon) · [Stroke](#stroke) · [Discharge](#discharge) · [Familiar](#familiar)
+[ASCII](#ascii) · [Aura](#aura) · [Ferro](#ferro) · [Flow Field](#flow-field) · [Fractal](#fractal) · [Grain](#grain) · [Lissajous](#lissajous) · [Oscilloscope](#oscilloscope) · [Spectre](#spectre) · [Trace](#trace) · [Waveform](#waveform) · [Oscillon](#oscillon) · [Stroke](#stroke) · [Discharge](#discharge) · [Familiar](#familiar) · [Tunnel](#tunnel) · [Horizon](#horizon) · [Strings](#strings) · [Halo](#halo) · [Cells](#cells)
 
 ## ASCII
 
@@ -61,18 +61,33 @@ Signalform ships with 15 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Magnetic strength | 0 – 2 | 1 |
-|  | Spike density | 6 – 40 | 18 |
-|  | Body size | 0.08 – 0.4 | 0.27 |
-|  | Spike sharpness | 0.6 – 4 | 1.8 |
-|  | Turbulence | 0 – 2 | 0.8 |
-|  | Orbiting droplets | 0 – 6 | 4 |
-|  | Metal tint | color | `#c9d2e3` |
+| **Fluid** | Magnetic strength | 0 – 2 | 1 |
+|  | Spikes follow | The whole mix · Spectrum (center lows, edge highs) · Ripples on kicks | The whole mix |
+|  | Spike layout | Hexagonal · Concentric rings | Hexagonal |
+|  | Spike count | 5 – 24 | 11 |
+|  | Spike height | 0.2 – 2 | 1 |
+|  | Sharpness | 0 – 1 | 0.65 |
+|  | Irregularity | 0 – 1 | 0.25 |
+|  | Body size | 0.5 – 1.4 | 1 |
+|  | Body height | 0.1 – 0.8 | 0.32 |
+|  | Wobble | 0 – 2 | 0.7 |
+|  | Magnet wander | 0 – 1 | 0.35 |
+|  | Lattice spin | -1 – 1 | 0.1 |
+|  | Satellite droplets | 0 – 6 | 3 |
+|  | Motion speed | 0 – 3 | 1 |
+| **Camera** | Camera height | 0.05 – 1.4 | 0.5 |
+|  | Camera angle | 0 – 360 ° | 35 ° |
+|  | Orbit speed | -1 – 1 | 0.15 |
+|  | Zoom | 0.6 – 2.2 | 1.05 |
+| **Light** | Metal tint | color | `#d6dceb` |
+|  | Reflections | 0 – 2 | 1 |
 |  | Rim light | color | `#ff6a2b` |
 |  | Rim light amount | 0 – 2 | 1 |
-|  | Gloss | 0 – 2 | 1 |
 |  | Light angle | 0 – 6.28 | 0.8 |
-|  | Motion speed | 0 – 3 | 1 |
+|  | Floor | Glossy (reflects) · Matte | Glossy (reflects) |
+|  | Backdrop | color | `#0c0d11` |
+|  | Exposure | 0.3 – 2.5 | 1 |
+|  | Quality | Fast · Balanced · Best (uses more GPU) | Balanced |
 
 ## Flow Field
 
@@ -355,6 +370,139 @@ Signalform ships with 15 modules. Every widget also has the shared [Look](#look-
 |  | Shadow tint | color | `#3b3550` |
 |  | Exposure | 0.2 – 3 | 1 |
 |  | Trails | 0 – 0.9 | 0.2 |
+
+## Tunnel
+
+<img src="images/modules/tunnel.jpg" width="420" alt="Tunnel">
+
+*An endless flight carried by the beat.*
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Walls | Light rings · Wire grid · Light panels · Warp streaks | Light rings |
+|  | Shape | Round · Triangle · Square · Pentagon · Hexagon · Octagon | Round |
+| **Motion** | Flight speed | 0 – 4 | 1 |
+|  | Surge on kicks | 0 – 3 | 1 |
+|  | Twist | -3 – 3 | 0.6 |
+|  | Roll | -1 – 1 | 0.08 |
+|  | Curves | 0 – 2 | 0.8 |
+| **Walls** | Ring density | 0.5 – 8 | 3.2 |
+|  | Segments around<br><sub>shown when Walls: Wire grid / Light panels / Warp streaks</sub> | 4 – 48 | 16 |
+|  | Line width | 0.2 – 4 | 1.3 |
+|  | Walls follow the spectrum | on / off | on |
+|  | Depth fade | 0 – 3 | 1 |
+|  | Light at the end | 0 – 2 | 0.6 |
+| **Color** | Coloring | By depth · By frequency · By energy | By depth |
+|  | Color A | color | `#ff7a3d` |
+|  | Color B | color | `#6a5cff` |
+|  | Brightness | 0.2 – 3 | 1 |
+|  | Glow | 0 – 2 | 0.6 |
+
+## Horizon
+
+<img src="images/modules/horizon.jpg" width="420" alt="Horizon">
+
+*A landscape grown from the spectrum.*
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Landscape | Valley (lows on the sides) · Ridge (lows in the middle) · Lows left, highs right | Valley (lows on the sides) |
+|  | Drawing | Rows · Wire grid · Points | Wire grid |
+|  | Hide what is behind | on / off | on |
+| **Terrain** | Rows | 12 – 90 | 44 |
+|  | Detail | 16 – 128 | 64 |
+|  | Mountain height | 0.1 – 2.5 | 1 |
+|  | Flat road<br><sub>shown when Landscape: Valley (lows on the sides)</sub> | 0 – 0.6 | 0.12 |
+|  | Smoothing | 0 – 0.95 | 0.45 |
+|  | Travel speed | 0.1 – 4 | 1 |
+| **View** | Camera height | 0.1 – 1.5 | 0.55 |
+|  | Horizon line | 0.15 – 0.75 | 0.42 |
+|  | Sky | Nothing · Glow · Setting sun · Moon | Setting sun |
+|  | Stars | on / off | on |
+| **Color** | Line width | 0.3 – 4 | 1.2 |
+|  | Glow | 0 – 2 | 0.8 |
+|  | Valleys | color | `#3d7bff` |
+|  | Peaks | color | `#ff4fc3` |
+|  | Sun and glow | color | `#ff8a3d` |
+
+## Strings
+
+<img src="images/modules/strings.jpg" width="420" alt="Strings">
+
+*Plucked by the hits, bowed by the mix.*
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Layout | Horizontal · Vertical · Harp · Across a circle | Horizontal |
+|  | Strings | 3 – 40 | 14 |
+|  | Spread | 0.2 – 1 | 0.78 |
+| **Vibration** | Pluck on hits | 0 – 2 | 1 |
+|  | Bowed by the level | 0 – 2 | 0.6 |
+|  | Amplitude | 0.2 – 3 | 1.4 |
+|  | Sustain | 0.1 – 5 s | 1.4 s |
+|  | Harmonics | 1 – 8 | 5 |
+|  | Vibration speed | 0.1 – 3 | 1 |
+|  | Shutter blur | 1 – 12 | 6 |
+| **Light** | Line width | 0.3 – 4 | 1.2 |
+|  | Glow | 0 – 2 | 1 |
+|  | Afterglow | 0 – 0.95 | 0.35 |
+|  | Show the ends | on / off | on |
+| **Color** | Coloring | Low to high · By energy · Single color | Low to high |
+|  | Low strings | color | `#ff9a3d` |
+|  | High strings | color | `#7ad7ff` |
+
+## Halo
+
+<img src="images/modules/halo.jpg" width="420" alt="Halo">
+
+*Every hit throws a ring of light.*
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Rings come from | Every hit · Kicks only · A steady pulse · A continuous stream | Every hit |
+|  | Rings per second<br><sub>shown when Rings come from: A steady pulse / A continuous stream</sub> | 0.5 – 16 | 4 |
+|  | Rings per hit<br><sub>shown when Rings come from: Every hit / Kicks only</sub> | 1 – 4 | 1 |
+| **Shape** | Shape | Circle · Polygon · Star · Flower | Circle |
+|  | Points<br><sub>shown when Shape: Polygon / Star / Flower</sub> | 3 – 12 | 6 |
+|  | Rim follows | The spectrum · The waveform · Nothing | The spectrum |
+|  | Rim depth<br><sub>shown when Rim follows: The spectrum / The waveform</sub> | 0 – 2 | 0.7 |
+|  | Twist per ring | -45 – 45 ° | 6 ° |
+| **Motion** | Expansion speed | 0.1 – 3 | 1 |
+|  | Ring life | 0.3 – 5 s | 1.8 s |
+|  | Reach | 0.3 – 1.6 | 0.95 |
+|  | Pulsing core | 0 – 0.4 | 0.1 |
+| **Light** | Line width | 0.3 – 6 | 1.4 |
+|  | Glow | 0 – 2 | 1 |
+|  | Afterglow | 0 – 0.95 | 0.25 |
+| **Color** | Coloring | By hit (kick, snare, hat) · By age · Single color | By hit (kick, snare, hat) |
+|  | Kick / young | color | `#ff6a3d` |
+|  | Snare / old | color | `#ffd36b` |
+|  | Hi-hat<br><sub>shown when Coloring: By hit (kick, snare, hat)</sub> | color | `#7ad7ff` |
+
+## Cells
+
+<img src="images/modules/cells.jpg" width="420" alt="Cells">
+
+*A living tissue that listens cell by cell.*
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Style | Glass · Organic · Crystal · Stained glass | Glass |
+|  | Cells follow | A random slice each · Center lows, edge highs · Lows left, highs right | A random slice each |
+| **Motion** | Cell count | 2 – 30 | 7 |
+|  | Movement range | 0 – 1 | 0.8 |
+|  | Movement speed | 0 – 3 | 0.6 |
+|  | Flinch on hits | 0 – 2 | 0.8 |
+|  | Shrink on builds | on / off | on |
+| **Look** | Wall width | 0.1 – 4 | 1 |
+|  | Wall glow | 0 – 2 | 1 |
+|  | Cell light | 0 – 2 | 1 |
+|  | Depth | 0 – 1 | 0.5 |
+|  | Brightness | 0.2 – 3 | 1 |
+| **Color** | Coloring | By frequency · Two colors · Single color | By frequency |
+|  | Color A | color | `#ff4d6d` |
+|  | Color B | color | `#4d7cff` |
+|  | Wall color | color | `#f2f4ff` |
 
 ## Look (every widget)
 

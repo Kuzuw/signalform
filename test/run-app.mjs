@@ -35,7 +35,7 @@ await page.goto(base);
 await page.waitForFunction(() => window.__ready, null, { timeout: 60000 }).catch(() => { console.log('BOOT FAILED', problems); process.exit(1); });
 await page.waitForTimeout(2000);
 await shot('ui-trial');
-step(`modules available: ${await page.$$eval('.tile', (l) => l.length)} (expect 15)`);
+step(`modules available: ${await page.$$eval('.tile', (l) => l.length)} (expect 20)`);
 await page.click('#sourceCard'); await page.waitForTimeout(200);
 await shot('ui-source-menu');
 step('source menu items: ' + (await page.$$eval('.src-item b', (l) => l.map((x) => x.textContent))).join(' | '));

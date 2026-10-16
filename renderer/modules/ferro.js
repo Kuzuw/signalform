@@ -1,128 +1,291 @@
 import { createShader, glUnavailable } from './gl.js';
 import { hexToVec } from './util.js';
 
+// A pool of ferrofluid on a studio floor, raymarched in 3D.
+// The body is a height field (dome + floor) smoothly joined with a lattice of cones (the spikes)
+// and a few satellite droplets. Black glossy material lit only by reflections of softboxes.
 const FRAG = `
-uniform vec3 uTint, uGlowCol;
-uniform float uSharp;
-uniform float uDensity, uSpike, uTurb, uSize, uLightA, uDrops, uGloss, uGlow;
+uniform vec3 uTint, uRimCol, uBack;
+uniform float uBody, uDomeH, uSpikeH, uCell, uSharp, uWobble, uArr, uPattern, uIrreg, uTwist;
+uniform float uCamEl, uCamAz, uZoom, uGloss, uRim, uLightA, uFloor, uExpo;
 uniform float uBass, uMid, uHigh, uKick, uDrop, uBuild;
+uniform float uRipT, uRipA, uDrops;
+uniform int uSteps;
+uniform vec2 uMag;
 uniform vec4 uDrop0, uDrop1, uDrop2, uDrop3, uDrop4, uDrop5;
 
-vec2 hexOffset(vec2 p) {
-  const vec2 s = vec2(1.0, 1.7320508);
-  vec2 a = mod(p, s) - s * 0.5;
-  vec2 b = mod(p - s * 0.5, s) - s * 0.5;
-  return dot(a, a) < dot(b, b) ? a : b;
+float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+
+float domeH(vec2 q) {
+  float w = uWobble * 0.16 * (vnoise(q * 1.1 + uT * 0.23) + 0.5 * vnoise(q * 2.3 - uT * 0.37 + 4.0));
+  float r = length(q) / uBody * (1.0 + w);
+  float k = max(0.0, 1.0 - r * r);
+  return uDomeH * uBody * pow(k, 0.75);
 }
 
-float field(vec2 w) {
-  float f = (uSize * uSize) / (dot(w, w) + 1e-3);
+// nearest spike cell: returns center (in the lattice frame) and its local offset
+vec2 cellCenter(vec2 q) {
+  if (uArr < 0.5) {
+    vec2 s = vec2(1.0, 1.7320508) * uCell;
+    vec2 a = mod(q, s) - s * 0.5;
+    vec2 b = mod(q - s * 0.5, s) - s * 0.5;
+    vec2 o = dot(a, a) < dot(b, b) ? a : b;
+    return q - o;
+  }
+  // concentric rings, about six more spikes per ring
+  float r = length(q);
+  float k = floor(r / uCell + 0.5);
+  if (k < 0.5) return vec2(0.0);
+  float n = floor(6.2831853 * k + 0.5);
+  float a = atan(q.y, q.x) + k * 0.37;
+  float ai = floor(a / 6.2831853 * n + 0.5) / n * 6.2831853 - k * 0.37;
+  return vec2(cos(ai), sin(ai)) * k * uCell;
+}
+
+float spikes(vec3 p) {
+  vec2 q = rot(uTwist) * p.xz;
+  vec2 c = cellCenter(q);
+  vec2 cw = rot(-uTwist) * c;                       // cell center in world space
+  float rn = hash(floor(c / uCell * 2.0 + 0.5) + 3.1);
+  float rr = length(cw) / uBody;
+  float env = 1.0 - smoothstep(0.0, 0.95, length(cw - uMag) / uBody);
+  env = env * env * (3.0 - 2.0 * env);
+  float drive = 1.0;
+  if (uPattern > 0.5 && uPattern < 1.5) drive = 0.3 + 2.4 * spec(0.04 + rr * 0.7);
+  else if (uPattern > 1.5) drive = 0.45 + uRipA * 1.6 * exp(-pow((rr - uRipT * 0.9) / 0.22, 2.0));
+  float h = uSpikeH * uBody * env * drive * (1.0 - uIrreg * 0.75 * rn);
+  if (h < 0.004) return 1e3;
+  float base = domeH(cw);
+  float rb = uCell * mix(0.47, 0.3, uSharp) * (0.9 + 0.1 * env);
+  float tip = uCell * mix(0.07, 0.006, uSharp);
+  vec2 v = vec2(length(q - c), p.y - (base + h));
+  vec2 sl = normalize(vec2(rb, -h)), nn = normalize(vec2(h, rb));
+  float d = dot(v, sl) < 0.0 ? length(v) : dot(v, nn);
+  d = max(d, -(v.y + h + uCell * 0.6));
+  return d - tip;
+}
+
+float droplets(vec3 p) {
+  float d = 1e3;
   vec4 D[6] = vec4[6](uDrop0, uDrop1, uDrop2, uDrop3, uDrop4, uDrop5);
   for (int i = 0; i < 6; i++) {
     if (float(i) >= uDrops) break;
-    vec2 d = w - D[i].xy;
-    f += D[i].z * D[i].z / (dot(d, d) + 1e-3);
+    vec3 c = vec3(D[i].x, D[i].z * 0.7, D[i].y);
+    vec3 e = (p - c) / vec3(1.0, 0.85, 1.0);
+    d = smin(d, (length(e) - D[i].z) * 0.75, 0.05);
   }
-  return f;
+  return d;
 }
 
-vec2 warp(vec2 p) {
-  float tb = uTurb * (0.6 + uMid * 1.2);
-  return p + tb * 0.06 * vec2(vnoise(p * 3.0 + uT * 0.35), vnoise(p * 3.0 - uT * 0.31 + 7.0))
-           + tb * 0.025 * vec2(vnoise(p * 7.0 - uT * 0.6), vnoise(p * 7.0 + uT * 0.5 + 3.0));
+float topY() { return uDomeH * uBody + uSpikeH * uBody * 2.2 + 0.05; }
+float reach() { return uBody * 1.75; }
+
+float map(vec3 p) {
+  float far = length(p.xz) - reach();
+  if (far > 0.45) return min(p.y, far);           // empty floor: cheap (margin keeps the AO probes exact)
+  float h = domeH(p.xz);
+  float ground = (p.y - h) * mix(1.0, 0.62, smoothstep(0.0, 0.04, h));   // dome blended into the floor
+  float d = smin(ground, spikes(p), uCell * 0.32);
+  if (uDrops > 0.5) d = smin(d, droplets(p), 0.12 * uBody);
+  return d;
 }
 
-// surface height: a soft-body dome plus the hexagonal spike lattice of a magnetized fluid
-float height(vec2 p, out float mask) {
-  vec2 w = warp(p);
-  float f = field(w);
-  mask = smoothstep(0.9, 1.25, f);
-  float dome = mask * (0.18 + 0.22 * (1.0 - 1.0 / (f * 0.6 + 1.0)));
-  vec2 rp = rot(uT * 0.05) * w;
-  vec2 o = hexOffset(rp * uDensity);
-  float d = length(o) * 2.0;
-  float spikeZone = smoothstep(1.3, 2.6, f);
-  float s = pow(max(0.0, 1.0 - d), uSharp) * uSpike * spikeZone;
-  return dome + s * 0.32;
+vec3 calcNormal(vec3 p, float e) {
+  vec2 k = vec2(1.0, -1.0);
+  return normalize(k.xyy * map(p + k.xyy * e) + k.yyx * map(p + k.yyx * e) + k.yxy * map(p + k.yxy * e) + k.xxx * map(p + k.xxx * e));
 }
+
+float march(vec3 ro, vec3 rd, int steps, out bool hit) {
+  hit = false;
+  if (rd.y >= -1e-4 && ro.y > topY()) return 1e4;
+  float t = 0.0;
+  float ty = topY();
+  if (ro.y > ty) t = (ro.y - ty) / -rd.y;         // nothing above the tallest spike
+  for (int i = 0; i < 200; i++) {
+    if (i >= steps) break;
+    vec3 p = ro + rd * t;
+    float d = map(p);
+    if (d < 0.0006 * (1.0 + t)) { hit = true; break; }
+    if (p.y < ty && length(p.xz) < reach() + 0.05) d = min(d, uCell * 0.42);
+    t += d;
+    if (t > 60.0 || p.y < -0.05 || (rd.y > 0.0 && p.y > ty)) break;
+  }
+  return t;
+}
+
+float softbox(vec3 r, vec3 L, float w, float h) {
+  float c = dot(r, L);
+  if (c <= 0.0) return 0.0;
+  vec3 T = normalize(cross(L, abs(L.y) > 0.9 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0)));
+  vec3 B = cross(T, L);
+  float a = dot(r, T) / c, b = dot(r, B) / c;
+  return smoothstep(w, w * 0.8, abs(a)) * smoothstep(h, h * 0.8, abs(b));
+}
+
+vec3 backLin() { return pow(uBack, vec3(2.2)); }
 
 vec3 env(vec3 r) {
-  // a studio: dark room, a wide softbox above, a warm strip light at the side
-  float sky = smoothstep(-0.4, 1.0, r.y * 0.8 + r.z * 0.25);
-  vec3 c = mix(vec3(0.01, 0.012, 0.016), vec3(0.2, 0.22, 0.26), sky);
-  vec3 L1 = normalize(vec3(cos(uLightA) * 0.7, sin(uLightA) * 0.7, 0.55));
-  c += vec3(1.0) * pow(max(dot(r, L1), 0.0), 60.0) * 2.5 * uGloss;
-  c += vec3(0.9) * pow(max(dot(r, normalize(vec3(-0.5, 0.75, 0.45))), 0.0), 14.0) * 0.35 * uGloss;
-  vec3 L2 = normalize(vec3(-cos(uLightA + 1.4) * 0.8, -0.35, 0.5));
-  c += uGlowCol * pow(max(dot(r, L2), 0.0), 18.0) * (0.6 + uHigh * 1.4) * uGlow;
+  vec3 c = backLin() * 1.2 + vec3(0.035) * smoothstep(-0.1, 0.9, r.y);
+  // the studio walls: a faint bright band around the horizon outlines every spike
+  c += vec3(0.22, 0.23, 0.26) * exp(-abs(r.y - 0.08) * 14.0) * (0.6 + 0.4 * sin(atan(r.z, r.x) * 3.0 + uLightA));
+  float la = uLightA;
+  vec3 key = normalize(vec3(0.45 * cos(la), 1.0, 0.45 * sin(la)));
+  c += vec3(1.0) * softbox(r, key, 0.34, 0.2) * 4.0;
+  vec3 s1 = normalize(vec3(cos(la + 2.3), 0.32, sin(la + 2.3)));
+  c += vec3(0.95, 0.97, 1.0) * softbox(r, s1, 0.09, 0.7) * 4.0;
+  vec3 s2 = normalize(vec3(cos(la - 2.1), 0.22, sin(la - 2.1)));
+  c += pow(uRimCol, vec3(2.2)) * softbox(r, s2, 0.12, 0.7) * 4.5 * uRim * (0.55 + uHigh * 0.8 + uKick * 0.9 + uDrop);
+  c += pow(uRimCol, vec3(2.2)) * 0.12 * uRim * smoothstep(0.05, -0.5, r.y) * (0.4 + uBass);
   return c;
 }
 
+float calcAO(vec3 p, vec3 n) {
+  float o = 0.0, s = 1.0;
+  for (int i = 1; i <= 4; i++) {
+    float h = 0.015 + 0.055 * float(i) * uBody;
+    o += (h - map(p + n * h)) * s;
+    s *= 0.65;
+  }
+  return clamp(1.0 - o * 2.6 / uBody, 0.0, 1.0);
+}
+
+vec3 shadeFluid(vec3 p, vec3 n, vec3 rd, float ao) {
+  vec3 r = reflect(rd, n);
+  float fr = 0.05 + 0.95 * pow(1.0 - max(dot(n, -rd), 0.0), 5.0);
+  vec3 tint = pow(uTint, vec3(2.2));
+  vec3 refl = env(r) * mix(vec3(1.0), tint, 0.75) * mix(0.16, 1.0, fr) * uGloss;
+  // the floor reflected in the low flanks: dark, with the rim glow
+  if (r.y < 0.0) refl *= 0.35;
+  return tint * 0.006 + refl * mix(0.25, 1.0, ao);
+}
+
 void main() {
-  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
-  float m;
-  float h = height(p, m);
-  float e = 1.5 / uRes.y;
-  float m1;
-  float hx = height(p + vec2(e, 0.0), m1) - height(p - vec2(e, 0.0), m1);
-  float hy = height(p + vec2(0.0, e), m1) - height(p - vec2(0.0, e), m1);
-  vec3 n = normalize(vec3(-hx / (2.0 * e), -hy / (2.0 * e), 1.0) * vec3(0.06, 0.06, 1.0));
-  vec3 v = normalize(vec3(p * 0.4, -1.0));
-  vec3 r = reflect(v, n);
-  float fres = pow(1.0 - max(dot(-v, n), 0.0), 3.0);
-  vec3 metal = env(r) * uTint * (0.7 + 0.6 * fres) + fres * 0.08;
-  // background: dark floor with a soft reflection pool under the fluid
-  float pool = exp(-dot(p, p) * 3.0);
-  vec3 bg = vec3(0.012, 0.013, 0.017) + uGlowCol * 0.04 * pool * (0.5 + uBass) * uGlow;
-  vec3 col = mix(bg, metal, m);
-  // rim light where the surface meets the floor
-  col += uGlowCol * smoothstep(0.0, 0.5, m) * smoothstep(1.0, 0.4, m) * 0.25 * (0.4 + uKick + uDrop) * uGlow;
-  col = pow(col, vec3(0.92));
+  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+  float dist = 4.7 * uBody / uZoom;
+  vec3 ta = vec3(0.0, 0.18 * uBody, 0.0);
+  vec3 ro = ta + dist * vec3(cos(uCamEl) * cos(uCamAz), sin(uCamEl), cos(uCamEl) * sin(uCamAz));
+  vec3 cw = normalize(ta - ro), cu = normalize(cross(cw, vec3(0.0, 1.0, 0.0))), cv = cross(cu, cw);
+  vec3 rd = normalize(uv.x * cu + uv.y * cv + 2.0 * cw);
+
+  // a studio sweep: the backdrop is lit softly behind the subject
+  vec3 bg = backLin() * (0.7 + 0.5 * smoothstep(-0.4, 0.6, uv.y)) + vec3(0.016, 0.017, 0.02) * exp(-dot(uv - vec2(0.0, 0.12), uv - vec2(0.0, 0.12)) * 3.0);
+  vec3 col = bg;
+  bool hit;
+  float t = march(ro, rd, uSteps, hit);
+  if (hit) {
+    vec3 p = ro + rd * t;
+    vec3 n = calcNormal(p, 0.0008 * (1.0 + t));
+    float fluid = smoothstep(0.004, 0.03, p.y);
+    float ao = calcAO(p, n);
+    vec3 fl = shadeFluid(p, n, rd, ao);
+    // floor: backdrop color, contact shadow, rim-colored glow pool, optional mirror reflection
+    float r = length(p.xz) / uBody;
+    vec3 floorCol = (backLin() * 0.9 + vec3(0.03, 0.031, 0.034) * exp(-r * r * 0.18)) * mix(0.2, 1.0, ao);
+    floorCol += pow(uRimCol, vec3(2.2)) * uRim * 0.1 * exp(-max(r - 0.85, 0.0) * 4.5) * (0.25 + uBass * 0.7 + uKick * 0.6 + uDrop) * ao;
+    if (uFloor > 0.5) {
+      vec3 rr = reflect(rd, vec3(0.0, 1.0, 0.0));
+      bool h2;
+      vec3 ro2 = p + vec3(0.0, 0.002, 0.0);
+      float t2 = march(ro2, rr, uSteps / 2, h2);
+      vec3 rc = backLin();
+      if (h2) {
+        vec3 p2 = ro2 + rr * t2;
+        vec3 n2 = calcNormal(p2, 0.002);
+        rc = shadeFluid(p2, n2, rr, 1.0);
+      }
+      float ff = 0.04 + 0.96 * pow(1.0 - max(-rd.y, 0.0), 5.0);
+      floorCol += rc * mix(0.1, 0.7, ff) * ao;
+    }
+    col = mix(floorCol, fl, fluid);
+    float fog = 1.0 - exp(-0.004 * t * t / (uBody * uBody));
+    col = mix(col, bg, clamp(fog, 0.0, 1.0));
+  }
+  col *= uExpo;
+  col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);   // ACES fit
+  col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+  col += (hash(gl_FragCoord.xy + uT) - 0.5) / 255.0;                     // dither the dark gradients
   fragColor = vec4(col, 1.0);
 }`;
+
+const STEPS = { draft: 64, balanced: 100, high: 150 };
 
 export default {
   id: 'ferro',
   name: 'Ferro',
   tagline: 'Reactive magnetic fluid simulation.',
   params: [
-    { key: 'magnet', label: 'Magnetic strength', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'density', label: 'Spike density', type: 'range', min: 6, max: 40, step: 1, default: 18 },
-    { key: 'size', label: 'Body size', type: 'range', min: 0.08, max: 0.4, step: 0.01, default: 0.27 },
-    { key: 'sharp', label: 'Spike sharpness', type: 'range', min: 0.6, max: 4, step: 0.05, default: 1.8 },
-    { key: 'turb', label: 'Turbulence', type: 'range', min: 0, max: 2, step: 0.05, default: 0.8 },
-    { key: 'drops', label: 'Orbiting droplets', type: 'range', min: 0, max: 6, step: 1, default: 4 },
-    { key: 'tint', label: 'Metal tint', type: 'color', default: '#c9d2e3' },
+    { key: 'magnet', label: 'Magnetic strength', type: 'range', min: 0, max: 2, step: 0.05, default: 1, section: 'Fluid' },
+    { key: 'pattern', label: 'Spikes follow', type: 'select', default: 'mix', options: [['mix', 'The whole mix'], ['spectrum', 'Spectrum (center lows, edge highs)'], ['ripple', 'Ripples on kicks']] },
+    { key: 'layout', label: 'Spike layout', type: 'select', default: 'hex', options: [['hex', 'Hexagonal'], ['rings', 'Concentric rings']] },
+    { key: 'density', label: 'Spike count', type: 'range', min: 5, max: 24, step: 1, default: 11 },
+    { key: 'spikeHeight', label: 'Spike height', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1 },
+    { key: 'sharpness', label: 'Sharpness', type: 'range', min: 0, max: 1, step: 0.01, default: 0.65 },
+    { key: 'irregular', label: 'Irregularity', type: 'range', min: 0, max: 1, step: 0.01, default: 0.25 },
+    { key: 'body', label: 'Body size', type: 'range', min: 0.5, max: 1.4, step: 0.01, default: 1 },
+    { key: 'dome', label: 'Body height', type: 'range', min: 0.1, max: 0.8, step: 0.01, default: 0.32 },
+    { key: 'wobble', label: 'Wobble', type: 'range', min: 0, max: 2, step: 0.05, default: 0.7 },
+    { key: 'wander', label: 'Magnet wander', type: 'range', min: 0, max: 1, step: 0.01, default: 0.35 },
+    { key: 'spin', label: 'Lattice spin', type: 'range', min: -1, max: 1, step: 0.01, default: 0.1 },
+    { key: 'drops', label: 'Satellite droplets', type: 'range', min: 0, max: 6, step: 1, default: 3 },
+    { key: 'speed', label: 'Motion speed', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
+    { key: 'view', label: 'Camera height', type: 'range', min: 0.05, max: 1.4, step: 0.01, default: 0.5, section: 'Camera' },
+    { key: 'angle', label: 'Camera angle', type: 'range', min: 0, max: 360, step: 1, default: 35, unit: '°' },
+    { key: 'orbit', label: 'Orbit speed', type: 'range', min: -1, max: 1, step: 0.01, default: 0.15 },
+    { key: 'zoom', label: 'Zoom', type: 'range', min: 0.6, max: 2.2, step: 0.01, default: 1.05 },
+    { key: 'tint', label: 'Metal tint', type: 'color', default: '#d6dceb', section: 'Light' },
+    { key: 'gloss', label: 'Reflections', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'glowColor', label: 'Rim light', type: 'color', default: '#ff6a2b' },
     { key: 'glow', label: 'Rim light amount', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'gloss', label: 'Gloss', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
     { key: 'light', label: 'Light angle', type: 'range', min: 0, max: 6.28, step: 0.01, default: 0.8 },
-    { key: 'speed', label: 'Motion speed', type: 'range', min: 0, max: 3, step: 0.05, default: 1 }
+    { key: 'floor', label: 'Floor', type: 'select', default: 'mirror', options: [['mirror', 'Glossy (reflects)'], ['matte', 'Matte']] },
+    { key: 'back', label: 'Backdrop', type: 'color', default: '#0c0d11' },
+    { key: 'exposure', label: 'Exposure', type: 'range', min: 0.3, max: 2.5, step: 0.05, default: 1 },
+    { key: 'quality', label: 'Quality', type: 'select', default: 'balanced', options: [['draft', 'Fast'], ['balanced', 'Balanced'], ['high', 'Best (uses more GPU)']] }
   ],
   create(canvas) {
     let s;
     try { s = createShader(canvas, FRAG); } catch (e) { s = null; }
     if (!s) return glUnavailable(canvas);
-    let time = 0, spike = 0, squeeze = 0;
-    const drops = Array.from({ length: 6 }, (_, i) => ({ a: i * 1.047, r: 0.3 + 0.05 * (i % 3), sp: 0.25 + 0.08 * i, z: 0.04 + 0.012 * (i % 3) }));
+    let time = 0, spike = 0, squeeze = 0, az = 0, twist = 0, ripT = 9, ripA = 0;
+    const drops = Array.from({ length: 6 }, (_, i) => ({ a: i * 2.1, r: 1.22 + 0.1 * (i % 3), sp: 0.12 + 0.05 * i, z: 0.055 + 0.02 * ((i * 7) % 3) }));
     return {
       render(F, { dt, params: p }) {
-        time += dt * p.speed;
-        // spikes rise with the low end and stand tall on kicks, collapse on a build
-        const target = p.magnet * (0.25 + F.bass * 1.1 + F.kick * 0.7 + F.drop * 0.8) * (1 - F.build * 0.6);
-        spike += (target - spike) * (1 - Math.exp(-dt / (target > spike ? 0.04 : 0.25)));
-        squeeze += ((F.build * 0.35 - F.drop * 0.25) - squeeze) * (1 - Math.exp(-dt / 0.3));
+        const sp = p.speed;
+        time += dt * sp;
+        // spikes stand up with the low end and kicks, sink through a build, leap on the drop
+        const target = p.magnet * (0.28 + F.bass * 0.85 + F.kick * 0.55 + F.drop * 0.7) * (1 - F.build * 0.55);
+        spike += (target - spike) * (1 - Math.exp(-dt / (target > spike ? 0.035 : 0.22)));
+        squeeze += ((F.build * 0.14 - F.drop * 0.1) - squeeze) * (1 - Math.exp(-dt / 0.35));
+        if (F.onsets.some((o) => o.band === 'kick')) { ripT = 0; ripA = 1; }
+        ripT += dt * sp; ripA *= Math.exp(-dt / 0.9);
+        az += dt * p.orbit * 0.25 * sp;
+        twist += dt * p.spin * 0.12 * sp;
+        const R = p.body * (1 - squeeze);
         s.audio(F);
         s.set('uT', time);
-        s.set('uTint', hexToVec(p.tint)); s.set('uGlowCol', hexToVec(p.glowColor));
-        s.set('uDensity', p.density); s.set('uSpike', spike); s.set('uTurb', p.turb); s.set('uSharp', p.sharp);
-        s.set('uSize', p.size * (1 - squeeze) * (1 + F.kick * 0.06)); s.set('uLightA', p.light + time * 0.05);
-        s.set('uDrops', p.drops); s.set('uGloss', p.gloss); s.set('uGlow', p.glow);
+        s.set('uTint', hexToVec(p.tint)); s.set('uRimCol', hexToVec(p.glowColor)); s.set('uBack', hexToVec(p.back));
+        s.set('uBody', R); s.set('uDomeH', p.dome * (1 + F.kick * 0.08));
+        s.set('uSpikeH', spike * 0.42 * p.spikeHeight);
+        s.set('uCell', 2 / p.density);
+        s.set('uSharp', p.sharpness); s.set('uIrreg', p.irregular);
+        s.set('uWobble', p.wobble * (0.7 + F.mid * 0.9));
+        s.set('uArr', p.layout === 'rings' ? 1 : 0);
+        s.set('uPattern', p.pattern === 'spectrum' ? 1 : p.pattern === 'ripple' ? 2 : 0);
+        s.set('uTwist', twist);
+        const w = p.wander * R * 0.45;
+        s.set('uMag', [Math.cos(time * 0.21) * w + F.mid * 0.05, Math.sin(time * 0.29) * w]);
+        s.set('uRipT', ripT); s.set('uRipA', ripA);
+        s.set('uCamEl', p.view); s.set('uCamAz', p.angle * Math.PI / 180 + az); s.set('uZoom', p.zoom);
+        s.set('uGloss', p.gloss); s.set('uRim', p.glow); s.set('uLightA', p.light); s.set('uFloor', p.floor === 'mirror' ? 1 : 0);
+        s.set('uExpo', p.exposure * (1 + F.drop * 0.25));
+        s.seti('uSteps', STEPS[p.quality] || 100);
         s.set('uBass', F.bass); s.set('uMid', F.mid); s.set('uHigh', F.high); s.set('uKick', F.kick); s.set('uDrop', F.drop); s.set('uBuild', F.build);
+        s.set('uDrops', p.drops);
         drops.forEach((d, i) => {
-          d.a += dt * p.speed * d.sp * (1 + F.mid);
-          const rr = d.r * (1 + F.drop * 0.5 - F.build * 0.3) + Math.sin(time * 0.7 + i) * 0.04;
-          s.set('uDrop' + i, [Math.cos(d.a) * rr * 1.2, Math.sin(d.a * 1.1) * rr * 0.8, d.z * (1 + F.bands[8 + i * 6] * 0.8), 0]);
+          d.a += dt * sp * d.sp * (1 + F.mid * 0.8);
+          // droplets drift in, merge with the body, and are flung out again on drops
+          const rr = R * (d.r + 0.22 * Math.sin(time * 0.37 + i * 1.7) + F.drop * 0.35 - F.build * 0.2);
+          s.set('uDrop' + i, [Math.cos(d.a) * rr, Math.sin(d.a) * rr, d.z * R * (1 + F.bands[6 + i * 7] * 0.5), 0]);
         });
         s.draw();
       },

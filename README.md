@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <b>Turn any sound into live visuals.</b> Fifteen audio-reactive modules you can layer, resize and blend<br>
+  <b>Turn any sound into live visuals.</b> Twenty audio-reactive modules you can layer, resize and blend<br>
   into one composition, then record it, render a track to MP4 or perform it full screen. No DAW required.
 </p>
 
@@ -50,24 +50,24 @@
 
 | Feature | What you get |
 |---|---|
-| **15 visual modules** | From phosphor oscilloscopes and lightning to a 100,000-point creature that can spell words. GPU-accelerated where it matters. |
+| **20 visual modules** | From phosphor oscilloscopes and lightning to raymarched ferrofluid, a tunnel flight and a 100,000-point creature that can spell words. GPU-accelerated where it matters. |
 | **Free composition** | Every module is a widget. Move, resize, layer, blend, group, align, lock, hide or duplicate it. Cards can be glass, solid, dark, light or clear, with rounded corners. |
 | **Deep control** | Each widget has three tabs: **Module** (its own settings, eight color palettes, presets, Randomize), **Look** (color, transform, mirror and kaleidoscope, glow, trails, pixelate, vignette) and **Audio** (reactivity, which part of the mix it hears, smoothing, hit strength, speed). |
 | **Music-aware analysis** | Bass, mid and high levels; kick, snare and hi-hat detection; pitch; and build-up and drop detection, shared by every module. |
 | **Any sound in** | What your PC is playing, a microphone or audio interface, a virtual cable, a track file, or the built-in demo beat. |
 | **Video out** | Render a track to MP4 with its audio, or record live takes of the whole stage, a group or a single widget. |
-| **Scenes and presets** | Save whole layouts as scenes (and share them as `.sfscene` files), or save module settings as presets. Seven starter scenes are included. |
+| **Scenes and presets** | Save whole layouts as scenes (and share them as `.sfscene` files), or save module settings as presets. Ten starter scenes are included. |
 | **Free and open source** | MIT licensed. No account, no license key, no telemetry. |
 
 ## Modules
 
-<p align="center"><img src="docs/images/modules.png" alt="All fifteen modules" width="100%"></p>
+<p align="center"><img src="docs/images/modules.png" alt="All twenty modules" width="100%"></p>
 
 | Module | What it does | Reacts to |
 |---|---|---|
 | **ASCII** | Rasterizes noise, the spectrum, the waveform or your own text into glyphs (blocks, dots, binary, hex, katakana or your own set). | Columns follow frequencies; bass punches the density; hats sparkle. |
 | **Aura** | Soft light sources with optical streaks and diffraction spikes that drift, orbit or pass by. | Bass and mids swell the light; kicks and drops flare it. |
-| **Ferro** | A metallic magnetic fluid that grows spikes, with orbiting droplets and rim light. | Bass raises the spikes; kicks jolt it; it tightens on a build and bursts on the drop. |
+| **Ferro** | A pool of glossy black ferrofluid, rendered in 3D on a studio floor: sharp spikes in a hexagonal or ring layout, satellite droplets, softbox reflections and an orbiting camera. | Bass and kicks stand the spikes up, the spectrum can map from center to edge, kicks can send ripples; it sinks through a build and leaps on the drop. |
 | **Flow Field** | Thousands of particles streaming through curl-noise, vortex, wave, radial or crosshatch fields. | Bass drives the flow; kicks burst it outwards; highs add turbulence. |
 | **Fractal** | Julia, Kali and folded-geometry fractals with kaleidoscope symmetry and color cycling. | Bass and mids deform it; the brightness of the sound shifts its colors; drops push it further. |
 | **Grain** | Thousands of grains flowing over a surface that remembers where they have been. | Bass shakes it; hits scatter the grains; hats add sparkle. |
@@ -80,6 +80,11 @@
 | **Stroke** | A pen of light on a long exposure. Slow strokes burn thick, fast ones thin to a wire. | Follows the melody; hits break the line into flaring corners. |
 | **Discharge** | Lightning on a photographic plate. | Kicks tear long channels, snares throw arcs, hats crackle; it holds back through a build and breaks loose on the drop. |
 | **Familiar** | Up to 100,000 points of light that rest as one creature, or become a word you type. | Breathes in silence, scatters on hits and gathers back. |
+| **Tunnel** | An endless flight through a curving tunnel of light rings, wire grid, light panels or warp streaks, round or polygonal. | Each ring is born at the far end with the energy of that moment, so every hit flies towards you; kicks surge forward, drops hit hyperspeed. |
+| **Horizon** | A wireframe landscape grown from the spectrum, rolling towards a setting sun, a moon or a glow. | Every row of terrain is the spectrum when it was born; kicks raise ridges, drops flash the sky. |
+| **Strings** | Strings laid out horizontally, vertically, as a harp or across a circle, drawn with a shutter blur like a real instrument. | Hits pluck the strings of their register, each string is bowed by its own band, builds raise the tension. |
+| **Halo** | Rings of light thrown from the center, as circles, polygons, stars or flowers. | Each hit throws a ring colored by kick, snare or hi-hat, shaped by the spectrum or waveform of that instant. |
+| **Cells** | A moving Voronoi tissue in glass, organic, crystal or stained-glass styles. | Every cell listens to its own slice of the spectrum; hits make the tissue flinch and builds shrink it. |
 
 Every control of every module, with ranges and defaults, is listed in the **[module reference](docs/MODULES.md)**.
 
@@ -105,7 +110,7 @@ Every control of every module, with ranges and defaults, is listed in the **[mod
 5. **Save** the layout with **Scenes** (Ctrl+S), then **Record**, export a video, or press **F** to perform full screen.
 
 > [!TIP]
-> Not sure where to start? Open **Scenes** and load a starter: *Phosphor Room*, *Three Cards*, *Storm Shell*, *Long Exposure*, *Magnetic*, *Paper* or *Vertical Story*.
+> Not sure where to start? Open **Scenes** and load a starter: *Phosphor Room*, *Three Cards*, *Storm Shell*, *Long Exposure*, *Magnetic*, *Paper*, *Vertical Story*, *Hyperspace*, *Sunset Run* or *Stained Glass*.
 
 ## Keyboard and mouse
 
@@ -159,7 +164,7 @@ Connect captures the **default** output device. Check that the music plays throu
 <details>
 <summary><b>The visuals stutter or the frame rate is low.</b></summary>
 
-Lower the particle or point count of Flow Field, Familiar and Oscillon, turn off **Smooth edges** in Fractal, use fewer widgets, or pick a smaller stage aspect. On laptops, make sure Signalform runs on the dedicated GPU (Windows Settings → System → Display → Graphics).
+Lower the particle or point count of Flow Field, Familiar and Oscillon, set Ferro's **Quality** to *Fast*, turn off **Smooth edges** in Fractal, use fewer widgets, or pick a smaller stage aspect. On laptops, make sure Signalform runs on the dedicated GPU (Windows Settings → System → Display → Graphics).
 </details>
 
 <details>
@@ -222,7 +227,7 @@ renderer/             the interface (plain ES modules, no build step)
   stage.js            widgets, layout, layering, groups and the compositor
   fx.js               per-widget Look and Audio controls
   inspector.js        the Module / Look / Audio panel, generated from parameter schemas
-  modules/            the 15 visual modules (WebGL 2 for Aura, Ferro and Fractal, Canvas 2D for the rest)
+  modules/            the 20 visual modules (WebGL 2 for Aura, Ferro, Fractal, Tunnel and Cells; Canvas 2D for the rest)
 docs/                 module reference and README images
 scripts/              generators for docs/MODULES.md and the README images
 test/                 headless interface, module and render tests

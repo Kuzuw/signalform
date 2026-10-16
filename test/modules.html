@@ -30,7 +30,7 @@ window.start = async () => { await eng.useDemo(); };
 let last = performance.now(), t0 = last;
 window.timings = {};
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const dt = Math.max(0.001, Math.min(0.05, (now - last) / 1000)); last = now;
   const F = eng.update(dt, (now - t0) / 1000);
   for (const x of inst) {
     const a = performance.now();

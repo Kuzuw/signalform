@@ -1,8 +1,8 @@
 {
   "name": "signalform",
   "productName": "Signalform",
-  "version": "1.1.0",
-  "description": "Free, open-source realtime audio-reactive visual engine for Windows: 15 modules you can layer, blend and export to video.",
+  "version": "1.2.0",
+  "description": "Free, open-source realtime audio-reactive visual engine for Windows: 20 modules you can layer, blend and export to video.",
   "keywords": [
     "audio-visualizer",
     "music-visualizer",

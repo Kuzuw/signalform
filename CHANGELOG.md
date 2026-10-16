@@ -4,10 +4,23 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-17
+
 ### Added
+- Five new modules:
+  - **Tunnel:** an endless flight through a curving tunnel of light rings, wire grid, light panels or warp streaks, round or polygonal. Rings are born at the far end with the energy of that moment, so every hit flies towards the viewer.
+  - **Horizon:** a wireframe landscape grown from the spectrum, rolling towards a setting sun, a moon or a glow, with valley, ridge and left-to-right layouts.
+  - **Strings:** plucked by the hits and bowed by their own band; horizontal, vertical, harp or across a circle, with a shutter blur.
+  - **Halo:** rings of light thrown from the center by every hit, shaped by the spectrum or waveform of that instant.
+  - **Cells:** a moving Voronoi tissue in glass, organic, crystal or stained-glass styles; every cell listens to its own slice of the spectrum.
+- Three starter scenes: Hyperspace, Sunset Run and Stained Glass.
 - Module reference (`docs/MODULES.md`) generated from the modules' parameter lists, with `npm run docs:modules`.
 - README images rendered from the app itself (`npm run docs:images`).
 - Contributing guide, code of conduct, security policy, and issue and pull request templates.
+
+### Changed
+- **Ferro rebuilt from scratch** as a raymarched 3D scene: a pool of glossy ferrofluid with sharp concave spikes on a studio floor, softbox and rim-light reflections, a glossy or matte floor, satellite droplets that merge with the body, and an orbiting camera. New settings: spike layout (hexagonal or rings), what the spikes follow (the whole mix, the spectrum from center to edge, or ripples on kicks), spike height, sharpness, irregularity, body height, wobble, magnet wander, lattice spin, camera height, angle, orbit and zoom, backdrop color, exposure and quality.
+- The Magnetic starter scene uses the new Ferro.
 
 ## [1.1.0] - 2026-10-16
 
@@ -52,6 +65,7 @@ First public release. Free and open source under the MIT license, for Windows 10
 - Live Output dialog for Spout and NDI (the native add-ons are not bundled yet).
 - Windows installer built and published by GitHub Actions.
 
-[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Kuzuw/signalform/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Kuzuw/signalform/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Kuzuw/signalform/releases/tag/v1.0.0

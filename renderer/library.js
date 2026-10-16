@@ -73,10 +73,10 @@ export const STARTERS = [
   },
   {
     name: 'Magnetic',
-    note: 'Ferrofluid body over spectral layers.',
+    note: 'A pool of ferrofluid with spectral layers glowing along the floor.',
     scene: { aspect: '16:9', widgets: [
-      W('spectre', { x: 0, y: 0.5, w: 1, h: 0.5 }, { ...BASE, params: { mode: 'layers' } }),
-      W('ferro', { x: 0.2, y: 0, w: 0.6, h: 1 })
+      W('ferro', { x: 0, y: 0, w: 1, h: 1 }, BASE),
+      W('spectre', { x: 0, y: 0.72, w: 1, h: 0.28 }, { opacity: 0.8, params: { mode: 'layers', mirror: false } })
     ] }
   },
   {
@@ -93,6 +93,29 @@ export const STARTERS = [
       W('grain', { x: 0, y: 0, w: 1, h: 1 }, { ...BASE, opacity: 0.8 }),
       W('lissajous', { x: 0, y: 0.18, w: 1, h: 0.5 }),
       W('trace', { x: 0, y: 0.7, w: 1, h: 0.25 })
+    ] }
+  },
+  {
+    name: 'Hyperspace',
+    note: 'A tunnel flight with rings of light thrown out by every hit.',
+    scene: { aspect: '16:9', widgets: [
+      W('tunnel', { x: 0, y: 0, w: 1, h: 1 }, { ...BASE, params: { style: 'warp' } }),
+      W('halo', { x: 0.2, y: 0, w: 0.6, h: 1 }, { params: { core: 0, trails: 0.4 } })
+    ] }
+  },
+  {
+    name: 'Sunset Run',
+    note: 'A landscape grown from the spectrum, rolling towards a setting sun.',
+    scene: { aspect: '16:9', widgets: [
+      W('horizon', { x: 0, y: 0, w: 1, h: 1 }, BASE)
+    ] }
+  },
+  {
+    name: 'Stained Glass',
+    note: 'Cells of colored glass behind strings strung across a circle.',
+    scene: { aspect: '16:9', widgets: [
+      W('cells', { x: 0, y: 0, w: 1, h: 1 }, { ...BASE, opacity: 0.7, params: { style: 'mosaic' } }),
+      W('strings', { x: 0.2, y: 0, w: 0.6, h: 1 }, { params: { layout: 'star', count: 18, colorLow: '#ffffff', colorHigh: '#ffe2b0' } })
     ] }
   }
 ];

@@ -24,7 +24,7 @@ window.start = () => eng.useDemo();
 let prev = performance.now();
 function frame(now) {
   if (window.halt) return;
-  const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
+  const dt = Math.max(0.001, Math.min(0.1, (now - prev) / 1000)); prev = now;
   const F = eng.F; const saved = F.onsets; F.onsets = pending.splice(0);
   for (const x of inst) x.i.render(F, { dt, t: (now - t0) / 1000, W: 1280, H: 720, S: 2, params: x.params });
   F.onsets = saved;

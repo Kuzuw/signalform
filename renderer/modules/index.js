@@ -13,8 +13,13 @@ import oscillon from './oscillon.js';
 import stroke from './stroke.js';
 import discharge from './discharge.js';
 import familiar from './familiar.js';
+import tunnel from './tunnel.js';
+import horizon from './horizon.js';
+import strings from './strings.js';
+import halo from './halo.js';
+import cells from './cells.js';
 
-export const MODULES = [ascii, aura, ferro, flowfield, fractal, grain, lissajous, oscilloscope, spectre, trace, waveform, oscillon, stroke, discharge, familiar];
+export const MODULES = [ascii, aura, ferro, flowfield, fractal, grain, lissajous, oscilloscope, spectre, trace, waveform, oscillon, stroke, discharge, familiar, tunnel, horizon, strings, halo, cells];
 export const byId = Object.fromEntries(MODULES.map((m) => [m.id, m]));
 
 export function defaults(mod) {

@@ -31,17 +31,18 @@ const log = (...a) => console.log('•', ...a);
 
 // Module stills, with settings that show each one at its best.
 const LOOKS = {
-  ascii: { cell: 15, density: 1.5, colorB: '#ffb547', glyphs: 'classic' }, aura: { intensity: 1.1, blobs: 4, soft: 1.3 }, ferro: { size: 0.36 }, flowfield: { count: 7000 }, fractal: { mode: '2', hue: 0.5 }, grain: { contrast: 0.6, colorB: '#ffe6c4' },
+  ascii: { cell: 15, density: 1.5, colorB: '#ffb547', glyphs: 'classic' }, aura: { intensity: 1.1, blobs: 4, soft: 1.3 }, ferro: { zoom: 1.4, view: 0.45 }, flowfield: { count: 7000 }, fractal: { mode: '2', hue: 0.5 }, grain: { contrast: 0.6, colorB: '#ffe6c4' },
   lissajous: { layers: 7 }, oscilloscope: { shape: 'star', echoes: 3 }, spectre: { mode: 'bands' }, trace: { lines: 6, spread: 0.3 },
-  waveform: {}, oscillon: { form: 'torus' }, stroke: { exposure: 0.995 }, discharge: { afterglow: 0.8 }, familiar: {}
+  waveform: {}, oscillon: { form: 'torus' }, stroke: { exposure: 0.995 }, discharge: { afterglow: 0.8 }, familiar: {},
+  tunnel: {}, horizon: {}, strings: { count: 16 }, halo: { echoes: 2 }, cells: {}
 };
-const GL = ['aura', 'ferro', 'fractal'];
+const GL = ['aura', 'ferro', 'fractal', 'tunnel', 'cells'];
 const NAMES = {};
 
 async function tiles() {
   const rest = Object.keys(LOOKS).filter((m) => !GL.includes(m));
   const only = process.argv[3] ? process.argv[3].split(',') : null;
-  const batches = [[GL, true, 8]];
+  const batches = [[GL, true, 24]];
   for (let i = 0; i < rest.length; i += 3) batches.push([rest.slice(i, i + 3), false, 14]);
   for (const [all, gpu, secs] of batches) {
     const ids = only ? all.filter((x) => only.includes(x)) : all;
@@ -80,7 +81,9 @@ const META = [
   ['flowfield', 'Flow Field', 'Sound flows through motion fields'], ['fractal', 'Fractal', 'Sound transformed into recursive form'], ['grain', 'Grain', 'Dynamic grain structures and flow'],
   ['lissajous', 'Lissajous', 'Flowing harmonic line structures'], ['oscilloscope', 'Oscilloscope', 'Signal rendered through light'], ['spectre', 'Spectre', 'Harmonic frequencies as light'],
   ['trace', 'Trace', 'A living line driven by sound'], ['waveform', 'Waveform', 'Layered waveform shapes'], ['oscillon', 'Oscillon', 'A shell drawn by a phosphor beam'],
-  ['stroke', 'Stroke', 'A pen of light on a long exposure'], ['discharge', 'Discharge', 'Lightning on a photographic plate'], ['familiar', 'Familiar', 'A body made of light']
+  ['stroke', 'Stroke', 'A pen of light on a long exposure'], ['discharge', 'Discharge', 'Lightning on a photographic plate'], ['familiar', 'Familiar', 'A body made of light'],
+  ['tunnel', 'Tunnel', 'An endless flight carried by the beat'], ['horizon', 'Horizon', 'A landscape grown from the spectrum'], ['strings', 'Strings', 'Plucked by the hits, bowed by the mix'],
+  ['halo', 'Halo', 'Every hit throws a ring of light'], ['cells', 'Cells', 'A living tissue that listens cell by cell']
 ];
 const FONT = `font-family: "Inter", "Inter Display", system-ui, sans-serif;`;
 
@@ -98,7 +101,7 @@ async function gallery() {
 }
 
 async function banner(file = 'banner.png', W = 1280, H = 400, strip0 = 600) {
-  const pick = ['flowfield', 'oscillon', 'spectre', 'familiar', 'aura', 'discharge', 'waveform', 'lissajous', 'ferro', 'oscilloscope', 'fractal', 'trace'];
+  const pick = ['flowfield', 'oscillon', 'horizon', 'familiar', 'tunnel', 'discharge', 'ferro', 'lissajous', 'cells', 'halo', 'fractal', 'strings'];
   const strip = pick.map((id, i) => `<img style="--i:${i}" src="_tiles/${id}.png">`).join('');
   await shotHtml(path.join(OUT, file), `<!doctype html><meta charset="utf-8"><style>
     html{overflow:hidden}body{margin:0;width:${W}px;height:${H}px;overflow:hidden;background:#09090b;${FONT};-webkit-font-smoothing:antialiased;position:relative}
@@ -114,7 +117,7 @@ async function banner(file = 'banner.png', W = 1280, H = 400, strip0 = 600) {
   </style><div class="strip">${strip}</div><div class="fade"></div>
   <div class="t"><div class="row"><div class="mark"></div><h1>Signalform</h1></div>
   <p>Realtime audio-reactive visuals for Windows. Free and open source.</p>
-  <div class="tags"><span>15 modules</span><span>Free layering</span><span>MP4 export</span></div></div>`, W, H, file === 'banner.png' ? 2 : 1, false);
+  <div class="tags"><span>20 modules</span><span>Free layering</span><span>MP4 export</span></div></div>`, W, H, file === 'banner.png' ? 2 : 1, false);
   log(file);
 }
 

@@ -4,6 +4,12 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-17
+
+### Added
+- **Edge feather** for every layer (Inspector → Background, under Corner radius): fades the card out softly towards its edges and corners instead of a hard cut. It works with any corner radius and with Glass, Solid and Clear cards, and it shows the same in recordings, track exports and Live Output.
+
+
 ## [1.3.0] - 2026-10-17
 
 ### Changed
@@ -87,7 +93,8 @@ First public release. Free and open source under the MIT license, for Windows 10
 - Live Output dialog for Spout and NDI (the native add-ons are not bundled yet).
 - Windows installer built and published by GitHub Actions.
 
-[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Kuzuw/signalform/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Kuzuw/signalform/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Kuzuw/signalform/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Kuzuw/signalform/compare/v1.0.0...v1.1.0

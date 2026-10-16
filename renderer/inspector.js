@@ -175,6 +175,7 @@ export class Inspector {
         h('label', { class: 'swatch-pick' + (w.bg.tone === 'custom' && w.bg.mode !== 'clear' ? ' on' : ''), title: 'Custom color', style: { background: w.bg.tone === 'custom' ? w.bg.color : TONES.dark } }, custom)),
       h('p', { class: 'note' }, w.bg.mode === 'clear' ? 'Clear: the visual floats over the layers below it.' : w.bg.mode === 'glass' ? 'Glass: blurs whatever is behind the card.' : 'Solid: the widget is its own card.'),
       this.rangeField('Corner radius', 'radius', w.radius, 0, 60, 1, (v) => { for (const x of ws) { x.radius = v; st.applyStyle(x); } st.changed(); }, (v) => Math.round(v) + ''),
+      this.rangeField('Edge feather', 'feather', w.feather || 0, 0, 120, 1, (v) => { for (const x of ws) { x.feather = v; st.applyStyle(x); } st.changed(); }, (v) => (v < 0.5 ? 'Off' : Math.round(v) + ''), false, 0),
       this.rangeField('Opacity', 'opacity', w.opacity, 0, 1, 0.01, (v) => { for (const x of ws) { x.opacity = v; st.applyStyle(x); } st.changed(); }, (v) => Math.round(v * 100) + '%'),
       this.field('Blend with layers below', 'blend', h('select', { id: 'f_blend', onchange: (e) => apply((x) => { x.blend = e.target.value; }) },
         ...Object.entries(BLENDS).map(([k, b]) => h('option', { value: k, selected: k === w.blend }, b.label)))),

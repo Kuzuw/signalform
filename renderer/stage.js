@@ -114,6 +114,7 @@ export class Stage {
       group: w.group && this.group(w.group) ? w.group : null,
       bg: { mode: ['clear', 'solid', 'glass'].includes(bg.mode) ? bg.mode : 'clear', tone: ['dark', 'light', 'custom'].includes(bg.tone) ? bg.tone : 'dark', color: bg.color || '#1b2030' },
       radius: num(w.radius, 0),
+      feather: num(w.feather, 0),
       fx: Object.assign({}, FX_DEFAULTS, w.fx || {}),
       params: Object.assign(defaults(mod), w.params || {})
     };
@@ -238,6 +239,19 @@ export class Stage {
     const rad = (w.radius / 1000) * this.px.w;
     const card = r.card.style, bg = r.bgEl.style, cv = r.canvas.style;
     card.borderRadius = rad + 'px';
+    // feather: a soft alpha mask that fades the card out towards its edges and corners
+    const fpx = (w.feather / 1000) * this.px.w, ew = w.rect.w * this.px.w, eh = w.rect.h * this.px.h;
+    if (fpx > 0.5 && ew > 2 && eh > 2) {
+      const k = Math.min(1, 220 / Math.max(ew, eh));
+      const key = [Math.round(ew * k), Math.round(eh * k), Math.round(rad * k), Math.round(fpx * k * 2)].join('x');
+      if (r.maskKey !== key) {
+        r.maskKey = key;
+        const url = `url(${featherMask(Math.round(ew * k), Math.round(eh * k), rad * k, fpx * k).toDataURL()})`;
+        card.maskImage = card.webkitMaskImage = url;
+        card.maskSize = card.webkitMaskSize = '100% 100%';
+        card.maskRepeat = card.webkitMaskRepeat = 'no-repeat';
+      }
+    } else if (r.maskKey) { r.maskKey = ''; card.maskImage = card.webkitMaskImage = 'none'; }
     card.opacity = w.opacity;
     const mode = w.bg.mode, ink = isInk(w.bg);
     bg.display = mode === 'clear' ? 'none' : '';
@@ -470,7 +484,9 @@ export class Stage {
       tc.drawImage(r.canvas, 0, 0, cw, ch);
       tc.filter = 'none';
       const radPx = (w.radius / 1000) * (W / area.w);
-      if (radPx > 0.5) { tc.globalCompositeOperation = 'destination-in'; tc.fillStyle = '#000'; tc.beginPath(); tc.roundRect(0, 0, cw, ch, radPx); tc.fill(); }
+      const featherPx = (w.feather / 1000) * (W / area.w);
+      if (featherPx > 0.5) { tc.globalCompositeOperation = 'destination-in'; tc.drawImage(featherMask(cw, ch, radPx, featherPx), 0, 0); }
+      else if (radPx > 0.5) { tc.globalCompositeOperation = 'destination-in'; tc.fillStyle = '#000'; tc.beginPath(); tc.roundRect(0, 0, cw, ch, radPx); tc.fill(); }
       tc.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = w.opacity;
       ctx.globalCompositeOperation = single ? 'source-over' : BLENDS[w.blend].canvas;
@@ -492,7 +508,7 @@ export class Stage {
     return {
       app: 'signalform', version: 2, name: this.scene.name, aspect: this.scene.aspect,
       groups: this.scene.groups.map((g) => ({ id: g.id, name: g.name })),
-      widgets: this.scene.widgets.map((w) => ({ module: w.module, name: w.name, rect: w.rect, opacity: w.opacity, blend: w.blend, visible: w.visible, locked: w.locked, group: w.group, bg: w.bg, radius: w.radius, fx: w.fx, params: w.params }))
+      widgets: this.scene.widgets.map((w) => ({ module: w.module, name: w.name, rect: w.rect, opacity: w.opacity, blend: w.blend, visible: w.visible, locked: w.locked, group: w.group, bg: w.bg, radius: w.radius, feather: w.feather, fx: w.fx, params: w.params }))
     };
   }
 }
@@ -501,6 +517,23 @@ export function bbox(rects) {
   const x0 = Math.min(...rects.map((r) => r.x)), y0 = Math.min(...rects.map((r) => r.y));
   const x1 = Math.max(...rects.map((r) => r.x + r.w)), y1 = Math.max(...rects.map((r) => r.y + r.h));
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+// A white rounded rectangle whose edges fade to transparent over `f` pixels, for masking a card.
+// The shape is inset by the feather width and blurred, so the fade ends exactly at the card's border.
+const maskCache = new Map();
+function featherMask(w, h, rad, f) {
+  const key = [w, h, Math.round(rad), Math.round(f * 2)].join('x');
+  let c = maskCache.get(key);
+  if (c) return c;
+  c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h);
+  const g = c.getContext('2d');
+  const inset = Math.min(f, w / 2 - 1, h / 2 - 1);
+  g.filter = `blur(${Math.max(0.5, inset / 2)}px)`;
+  g.fillStyle = '#fff';
+  g.beginPath(); g.roundRect(inset, inset, Math.max(1, w - inset * 2), Math.max(1, h - inset * 2), Math.max(0, rad - inset / 2)); g.fill();
+  if (maskCache.size > 40) maskCache.delete(maskCache.keys().next().value);
+  maskCache.set(key, c);
+  return c;
 }
 function hexA(hex, a) { const [r, g, b] = hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; }
 function num(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }

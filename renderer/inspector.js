@@ -212,7 +212,7 @@ export class Inspector {
         h('label', { class: 'switch' }, h('input', { type: 'checkbox', id, checked: !!T[p.key], disabled, onchange: (e) => set(e.target.checked, needsRerender) }), h('i')));
     }
     if (p.type === 'text') return this.field(p.label, p.key, h('input', { type: 'text', id, value: T[p.key] ?? '', disabled, spellcheck: 'false', oninput: (e) => set(e.target.value) }));
-    if (p.type === 'action') return h('button', { class: 'btn wide', type: 'button', disabled, onclick: () => { this.stage.action(widgetId, p.key); toast('Draw on the widget now. Press Esc to cancel.'); } }, p.label);
+    if (p.type === 'action') return h('button', { class: 'btn wide', type: 'button', disabled, onclick: () => { const msg = this.stage.action(widgetId, p.key); if (typeof msg === 'string') toast(msg); } }, p.label);
     return h('div');
   }
 

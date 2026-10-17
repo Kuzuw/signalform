@@ -4,6 +4,19 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-17
+
+### Added
+- **Pictures in Oscilloscope and Oscillon.** Choose a photo or drawing and the beam traces its outlines, the way oscilloscope art is made. Settings for edge detail, shading dark areas, light-on-dark subjects, beam points and sweep; the picture wobbles with the sound and pulses on kicks. In Oscillon (*Form → Your picture*) it becomes a swaying sheet of light that swells with every sound. The picture is saved inside the scene.
+- **Render quality** at the bottom of the stage: *Auto* (lowers the resolution while the frame rate is low and raises it again when there is room), *Full quality*, *Balanced* and *Fast*.
+
+### Changed
+- **Kick detection rebuilt.** Hits are now found on the audio thread, sample-accurately and independently of the frame rate. Every rise of the low end is judged about 24 ms later by a small trained classifier that looks at its loudness against earlier kicks, the click on top, how its pitch falls and whether it lands on the beat, so bass notes no longer read as kicks. On a varied test set of synthetic mixes kick accuracy (F1) went from 64% to 90%.
+- **Snare detection rebuilt** the same way: a second small classifier judges every broadband jump by how noisy and flat it is across the mids and highs, how long it lasts and where it sits in the beat, so bass notes and kick clicks no longer read as snares. Snare accuracy (F1) on mixes it was not trained on went from 22% to 95%.
+- **Ferro** no longer turns into a giant bubble on its own. Pulling everything into one drop is now off by default (*Pull into one drop*: Never / On drops / On drops and heavy kicks), eases in and out, and keeps about the same volume as the beads.
+- **Faster** (measured against 1.4.0 on the same machine): Oscillon 2.8× (no trig per beam sample), Lissajous 3.3× (one path per colour group), Familiar 2×, Aura 1.3×; tone mapping and soft splats use lookup tables; widgets with a neutral Look are shown without an extra copy per frame; module tiles are drawn after the window opens and cached for the next launch, so the app starts much faster.
+
+
 ## [1.4.0] - 2026-10-17
 
 ### Added
@@ -93,7 +106,8 @@ First public release. Free and open source under the MIT license, for Windows 10
 - Live Output dialog for Spout and NDI (the native add-ons are not bundled yet).
 - Windows installer built and published by GitHub Actions.
 
-[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Kuzuw/signalform/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Kuzuw/signalform/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Kuzuw/signalform/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Kuzuw/signalform/compare/v1.1.0...v1.2.0

@@ -58,7 +58,27 @@ export class AudioEngine {
     this.input.connect(this.recordDest);
     this._specDb = new Float32Array(FFT / 2);
     this.F.sampleRate = ctx.sampleRate;
+    this._startOnsets(ctx);
   }
+
+  // Hits are found on the audio thread (renderer/onset-worklet.js), sample-accurate and independent
+  // of the frame rate. Until it is running (or if it can't run) the per-frame detector below is used.
+  async _startOnsets(ctx) {
+    this._hits = [];
+    try {
+      await ctx.audioWorklet.addModule(new URL('./onset-worklet.js', import.meta.url));
+      const node = new AudioWorkletNode(ctx, 'signalform-onsets', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 2, channelCountMode: 'explicit' });
+      node.port.onmessage = (e) => { for (const h of e.data) this._hits.push(h); if (this._hits.length > 64) this._hits.splice(0, this._hits.length - 64); };
+      const sink = ctx.createGain(); sink.gain.value = 0;
+      this.input.connect(node); node.connect(sink); sink.connect(ctx.destination);
+      this._onsetNode = node;
+      node.port.postMessage({ sens: this.sensitivity });
+    } catch (e) {
+      console.warn('onset worklet unavailable, using the per-frame detector', e);
+      this._onsetNode = null;
+    }
+  }
+  setSensitivity(v) { this.sensitivity = v; if (this._onsetNode) this._onsetNode.port.postMessage({ sens: v }); }
 
   async resume() { this.ensure(); if (this.ctx.state !== 'running') await this.ctx.resume(); }
 
@@ -241,9 +261,18 @@ export class AudioEngine {
 
     // onsets
     F.onsets.length = 0;
-    this._onset('kick', flux.kick * 6 / Math.max(1, 160 / hz), time, 0.11, dt);
-    this._onset('snare', flux.snare * 2.5 / Math.max(1, (4000 - 160) / hz) * 10, time, 0.1, dt);
-    this._onset('hat', flux.hat * 2 / Math.max(1, 10000 / hz) * 14, time, 0.05, dt);
+    if (this._onsetNode) {
+      // hits from the audio thread since the last frame (anything older than half a second is stale)
+      const now = this.ctx.currentTime;
+      const got = { kick: 0, snare: 0, hat: 0 };
+      for (const h of this._hits) if (now - h.t < 0.5) { F.onsets.push({ band: h.band, strength: h.strength }); got[h.band] = Math.max(got[h.band], h.strength); }
+      this._hits.length = 0;
+      for (const k of ['kick', 'snare', 'hat']) F[k] = got[k] ? Math.max(F[k], got[k]) : F[k] * Math.exp(-dt / (k === 'hat' ? 0.07 : 0.16));
+    } else {
+      this._onset('kick', flux.kick * 6 / Math.max(1, 160 / hz), time, 0.11, dt);
+      this._onset('snare', flux.snare * 2.5 / Math.max(1, (4000 - 160) / hz) * 10, time, 0.1, dt);
+      this._onset('hat', flux.hat * 2 / Math.max(1, 10000 / hz) * 14, time, 0.05, dt);
+    }
     F.beat = F.kick;
     F.hit = Math.max(F.hit * Math.exp(-dt / 0.12), F.onsets.reduce((m, o) => Math.max(m, o.band === 'hat' ? o.strength * 0.4 : o.strength), 0));
 

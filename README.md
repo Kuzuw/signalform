@@ -53,7 +53,7 @@
 | **20 visual modules** | From phosphor oscilloscopes and lightning to raymarched ferrofluid, a tunnel flight and a 100,000-point creature that can spell words. GPU-accelerated where it matters. |
 | **Free composition** | Every module is a widget. Move, resize, layer, blend, group, align, lock, hide or duplicate it. Cards can be glass, solid, dark, light or clear, with rounded corners and feathered edges. |
 | **Deep control** | Each widget has three tabs: **Module** (its own settings, eight color palettes, presets, Randomize), **Look** (color, transform, mirror and kaleidoscope, glow, trails, pixelate, vignette) and **Audio** (reactivity, which part of the mix it hears, smoothing, hit strength, speed). |
-| **Music-aware analysis** | Bass, mid and high levels; kick, snare and hi-hat detection; pitch; and build-up and drop detection, shared by every module. |
+| **Music-aware analysis** | Bass, mid and high levels; kick, snare and hi-hat detection on the audio thread (small trained classifiers tell kicks and snares apart from bass notes); pitch; and build-up and drop detection, shared by every module. |
 | **Any sound in** | What your PC is playing, a microphone or audio interface, a virtual cable, a track file, or the built-in demo beat. |
 | **Video out** | Render a track to MP4 with its audio, or record live takes of the whole stage, a group or a single widget. |
 | **Scenes and presets** | Save whole layouts as scenes (and share them as `.sfscene` files), or save module settings as presets. Ten starter scenes are included. |
@@ -72,11 +72,11 @@
 | **Fractal** | A recursive network: clusters of linked points inside clusters, filling the frame. Julia, Kali and folded-geometry fractals are also available. | Hits light up links, kicks make it breathe, drops and heavy hits rewire it. |
 | **Grain** | Dust strung along slow, wavy bands that thicken, thin out and drift. A dense grain texture is a second look. | Bass sways the bands, kicks scatter them, hats make specks glint. |
 | **Lissajous** | Dozens of fine translucent ribbons tracing a tumbling harmonic knot in 3D. | Pitch sets the ratios, mids deform the knot, or the stereo X/Y signal draws the figure. |
-| **Oscilloscope** | A green phosphor scope in stereo phase (X/Y), waveform (Y/T) or a custom shape you can draw on the widget. | The raw stereo signal, with echoes and afterglow. |
+| **Oscilloscope** | A green phosphor scope in stereo phase (X/Y), waveform (Y/T), a custom shape you draw on the widget, or **a picture you load**: the beam traces its outlines like oscilloscope art. | The raw stereo signal, with echoes and afterglow; pictures shake along their lines with the sound. |
 | **Spectre** | The spectrum as glowing emission lines in prism colors, or as bands, layers, a flowing spectrogram or a ring. | Every band lights its own lines, equalized so quiet regions still glow. |
 | **Trace** | The live signal at high gain, like a pen recorder pushed into the rails, or up to 12 lines as an open line, a loop or a spiral. | The raw waveform; or the spectrum bends the lines and hits send ripples. |
 | **Waveform** | A solid white mass of the music scrolling past, jagged with transients, or layered rings, contours and mirrored layers. | Peaks of each slice shape the edge; kicks thicken it. |
-| **Oscillon** | A phosphor beam sweeps a translucent shell (cushion, pebble, peanut, trefoil, apple, ring, clover or orb), with bright caustic folds. | Snaps to a new form on heavy hits and drops, every sound leaves a swelling on the surface, squeezes on a build and throws itself open on the drop. |
+| **Oscillon** | A phosphor beam sweeps a translucent shell (cushion, pebble, peanut, trefoil, apple, ring, clover or orb), with bright caustic folds. Or load a picture and the beam draws it as a swaying, swelling sheet of light. | Snaps to a new form on heavy hits and drops, every sound leaves a swelling on the surface, squeezes on a build and throws itself open on the drop. |
 | **Stroke** | A pen of light on a long exposure. Slow strokes burn thick, fast ones thin to a wire. | Follows the melody; hits break the line into flaring corners. |
 | **Discharge** | Lightning on a photographic plate. | Kicks tear long channels, snares throw arcs, hats crackle; it holds back through a build and breaks loose on the drop. |
 | **Familiar** | Up to 100,000 points of light that rest as one creature, or become a word you type. | Breathes in silence, scatters on hits and gathers back. |
@@ -164,7 +164,7 @@ Connect captures the **default** output device. Check that the music plays throu
 <details>
 <summary><b>The visuals stutter or the frame rate is low.</b></summary>
 
-Lower the particle or point count of Flow Field, Familiar and Oscillon, turn off **Smooth edges** in Fractal, use fewer widgets, or pick a smaller stage aspect. On laptops, make sure Signalform runs on the dedicated GPU (Windows Settings → System → Display → Graphics).
+Leave **render quality** (bottom of the stage) on *Auto*, which lowers the resolution while the frame rate is low, or pick *Balanced* or *Fast*. Lower the particle or point count of Flow Field, Familiar and Oscillon, turn off **Smooth edges** in Fractal, use fewer widgets, or pick a smaller stage aspect. On laptops, make sure Signalform runs on the dedicated GPU (Windows Settings → System → Display → Graphics).
 </details>
 
 <details>
@@ -223,7 +223,10 @@ main/                 Electron main process
   preload.js          the small, typed bridge the UI talks to (window.sf)
   outputs/            Spout and NDI adapters
 renderer/             the interface (plain ES modules, no build step)
-  audio.js            sources and analysis: levels, onsets, pitch, build and drop
+  audio.js            sources and analysis: levels, pitch, build and drop
+  onset-core.js       kick / snare / hat detection, run on the audio thread by onset-worklet.js
+  kick-net.js         the kick classifier's weights (scripts/train-kick.mjs)
+  snare-net.js        the snare classifier's weights (TARGET=snare scripts/train-kick.mjs)
   stage.js            widgets, layout, layering, groups and the compositor
   fx.js               per-widget Look and Audio controls
   inspector.js        the Module / Look / Audio panel, generated from parameter schemas

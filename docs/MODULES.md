@@ -81,7 +81,7 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Uneven beads | 0 – 1 | 0.55 |
 |  | Turbulence | 0 – 2 | 0.8 |
 |  | Drift and turn | 0 – 2 | 0.6 |
-|  | Snap into a sphere | On heavy hits and drops · Only on drops · Never | On heavy hits and drops |
+|  | Pull into one drop | Never · On drops · On drops and heavy kicks | Never |
 | **Spikes and spray** | Spikes | 0 – 2 | 1 |
 |  | Droplets | 0 – 48 | 40 |
 |  | Fling on hits | 0 – 2 | 1 |
@@ -215,7 +215,16 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Display | Waveform (Y/T) · Stereo phase (X/Y) · Custom shape | Stereo phase (X/Y) |
+| **Settings** | Display | Waveform (Y/T) · Stereo phase (X/Y) · Custom shape · A picture | Stereo phase (X/Y) |
+|  | Choose a picture…<br><sub>shown when Display: A picture</sub> | button |  |
+|  | Beam points<br><sub>shown when Display: A picture</sub> | 500 – 12000 | 4000 |
+|  | Edge detail<br><sub>shown when Display: A picture</sub> | 0 – 1 | 0.45 |
+|  | Shade dark areas<br><sub>shown when Display: A picture</sub> | 0 – 1 | 0 |
+|  | Light subject on dark<br><sub>shown when Display: A picture</sub> | on / off | off |
+|  | Picture size<br><sub>shown when Display: A picture</sub> | 0.3 – 1.4 | 1 |
+|  | Wobble with the sound<br><sub>shown when Display: A picture</sub> | 0 – 3 | 1 |
+|  | Beam sweep<br><sub>shown when Display: A picture</sub> | 0.05 – 1 | 1 |
+|  | Show beam jumps<br><sub>shown when Display: A picture</sub> | on / off | off |
 |  | Shape<br><sub>shown when Display: Custom shape</sub> | Circle · Square · Triangle · Star · Heart · Infinity · My drawing | Circle |
 |  | Draw a shape on the widget<br><sub>shown when Display: Custom shape</sub> | button |  |
 |  | Gain | 0.1 – 4 | 1 |
@@ -321,7 +330,12 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Shape** | Form | Changes with the music · Cushion · Pebble · Peanut · Trefoil · Apple · Ring · Clover · Orb | Changes with the music |
+| **Shape** | Form | Changes with the music · Cushion · Pebble · Peanut · Trefoil · Apple · Ring · Clover · Orb · Your picture | Changes with the music |
+|  | Choose a picture…<br><sub>shown when Form: Your picture</sub> | button |  |
+|  | Edge detail<br><sub>shown when Form: Your picture</sub> | 0 – 1 | 0.45 |
+|  | Shade dark areas<br><sub>shown when Form: Your picture</sub> | 0 – 1 | 0 |
+|  | Light subject on dark<br><sub>shown when Form: Your picture</sub> | on / off | off |
+|  | Sway in 3D<br><sub>shown when Form: Your picture</sub> | 0 – 1.5 | 0.5 |
 |  | Snap to a new form<br><sub>shown when Form: Changes with the music</sub> | On heavy hits and drops · Only on drops · Never | On heavy hits and drops |
 |  | Snap speed<br><sub>shown when Form: Changes with the music</sub> | 0.5 – 10 | 5 |
 |  | Scale | 0.3 – 1.6 | 1 |
@@ -392,7 +406,7 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |---|---|---|---|
 | **Body** | Body | Creature · Orb · Your word | Creature |
 |  | Word<br><sub>shown when Body: Your word</sub> | text | `SIGNAL` |
-|  | Points of light | 5000 – 100000 | 45000 |
+|  | Points of light | 5000 – 100000 | 32000 |
 |  | Size | 0.3 – 1.6 | 1.1 |
 | **Behavior** | Breathing | 0 – 2 | 1 |
 |  | Scatter on hits | 0 – 2 | 1 |

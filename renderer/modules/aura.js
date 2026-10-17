@@ -172,7 +172,8 @@ export default {
             const k = ((th / TAU) % 1 + 1) % 1, fold = Math.abs(k * 2 - 1);  // mirrored left/right
             const sw = swellA[Math.min(31, Math.floor((1 - fold) * 31))];
             const nz = noise3(c * 1.3, sn * 1.3, tt) * wob + noise3(c * 3.1 + 7, sn * 3.1, tt * 1.7) * wob * 0.4;
-            let rr = Math.max(R * 0.15, R * (1 + nz + sw * 0.08) + RHO[i] * T * (1 + sw * 0.4));
+            let rr = R * (1 + nz + sw * 0.08) + RHO[i] * T * (1 + sw * 0.4);
+            if (rr < R * 0.12) continue;                 // the ring's hollow middle stays empty
             if (p.shape === 'double' && i % 2) rr = rr * 0.62;
             x = c * rr; y = sn * rr;
           }

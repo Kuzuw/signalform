@@ -88,6 +88,15 @@ export const TAU = Math.PI * 2;
 
 // ---- additive light buffer: splat points into a float buffer, then tone-map to a color ramp.
 // Used by the particle modules so thousands of faint points build up into glowing bodies.
+const KERNELS = [];
+function makeKernel(r) {
+  const R = Math.min(5, Math.ceil(r)), side = 2 * R + 1, w = new Float32Array(side * side);
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { const d2 = (dx * dx + dy * dy) / (r * r); if (d2 < 1) w[(dy + R) * side + dx + R] = 1 - d2; }
+  for (let i = 0; i < w.length; i++) w[i] /= r * r * 3.1;   // same energy as the original per-pixel formula
+  return { R, w };
+}
+const TONE_RES = 64, TONE = new Uint8Array(10 * TONE_RES);
+for (let i = 0; i < TONE.length; i++) TONE[i] = Math.min(255, ((1 - Math.exp(-i / TONE_RES)) * 255) | 0);
 export class Accum {
   constructor() {
     this.off = document.createElement('canvas');
@@ -112,17 +121,18 @@ export class Accum {
     b[i] += v * (1 - fx) * (1 - fy); b[i + 1] += v * fx * (1 - fy);
     b[i + this.w] += v * (1 - fx) * fy; b[i + this.w + 1] += v * fx * fy;
   }
-  // soft disc of radius r (in buffer pixels), total energy v
+  // soft disc of radius r (in buffer pixels), total energy v. Kernels are cached per quarter pixel of radius.
   splatSoft(x, y, v, r) {
     if (r < 0.75) return this.splat(x, y, v);
-    const R = Math.min(6, Math.ceil(r)), w = this.w, h = this.h, b = this.buf;
+    const q = Math.min(20, Math.round(r * 4));
+    let K = KERNELS[q];
+    if (!K) K = KERNELS[q] = makeKernel(q / 4);
+    const R = K.R, w = this.w, b = this.buf, kw = K.w;
     const xi = Math.round(x), yi = Math.round(y);
-    if (xi < R || yi < R || xi >= w - R || yi >= h - R) return;
-    const k = v / (r * r * 3.1);
-    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
-      const d2 = (dx * dx + dy * dy) / (r * r);
-      if (d2 < 1) b[(yi + dy) * w + xi + dx] += k * (1 - d2);
-    }
+    if (xi < R || yi < R || xi >= w - R || yi >= this.h - R) return;
+    const side = 2 * R + 1;
+    let o = (yi - R) * w + xi - R, k = 0;
+    for (let dy = 0; dy < side; dy++, o += w) for (let dx = 0; dx < side; dx++, k++) { const c = kw[k]; if (c) b[o + dx] += v * c; }
   }
   ramp(stops) {
     const key = stops.join('|');
@@ -131,12 +141,13 @@ export class Accum {
     const cols = stops.map(hexToRgb);
     for (let i = 0; i < 256; i++) { const c = gradient(cols, i / 255); this.lut[i * 3] = c[0]; this.lut[i * 3 + 1] = c[1]; this.lut[i * 3 + 2] = c[2]; }
   }
-  // tone-map and draw scaled onto ctx
+  // tone-map and draw scaled onto ctx (1 - e^-x through a lookup table: no exp per pixel)
   blit(ctx, W, H, exposure, bloom = 0) {
-    const b = this.buf, d = this.img.data, L = this.lut;
+    const b = this.buf, d = this.img.data, L = this.lut, T = TONE, k = exposure * TONE_RES, top = T.length - 1;
     for (let i = 0, j = 0; i < b.length; i++, j += 4) {
-      const t = ((1 - Math.exp(-b[i] * exposure)) * 255) | 0;
-      d[j] = L[t * 3]; d[j + 1] = L[t * 3 + 1]; d[j + 2] = L[t * 3 + 2]; d[j + 3] = 255;
+      let x = (b[i] * k) | 0; if (x > top) x = top; else if (x < 0) x = 0;
+      const t = T[x] * 3;
+      d[j] = L[t]; d[j + 1] = L[t + 1]; d[j + 2] = L[t + 2]; d[j + 3] = 255;
     }
     this.octx.putImageData(this.img, 0, 0);
     ctx.globalCompositeOperation = 'source-over';

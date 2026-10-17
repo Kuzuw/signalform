@@ -105,6 +105,7 @@ window.signalform = app;
 /* ---------------- boot ---------------- */
 (async function boot() {
   const info = await window.sf.info();
+  app.version = info.version;
   if (info.platform === 'darwin') document.body.classList.add('mac');
   await lib.load();
   app.settings = (await window.sf.store.get('settings')) || {};
@@ -118,7 +119,7 @@ window.signalform = app;
     onDropModule: (id, rect) => addModule(id, rect),
     onContext: (x, y) => openContextMenu(x, y)
   });
-  app.stage.renderScale = app.settings.renderScale || 1;
+  setQuality(app.settings.quality || 'auto', false);
   app.inspector = new Inspector($('inspector'), app.stage, {});
   app.recorder = new Recorder(app.stage, app.audio);
   app.outputs = new Outputs(app.stage);
@@ -144,6 +145,7 @@ window.signalform = app;
   updateSource();
   requestAnimationFrame(loop);
   window.__ready = true;
+  fillThumbs();
 })();
 
 function addModule(id, rect) {
@@ -196,12 +198,39 @@ function updateStatus(now) {
   $('sbSize').textContent = `${st.scene.aspect} · ${W}×${H}`;
   $('sbFps').textContent = `${fps} fps`;
   $('sbFps').classList.toggle('warn', fps < 40);
+  autoQuality(fps);
   $('sbWidgets').textContent = `${st.widgets.length} widget${st.widgets.length === 1 ? '' : 's'}${st.groups.length ? ` · ${st.groups.length} group${st.groups.length === 1 ? '' : 's'}` : ''}`;
   $('sbSource').textContent = app.audio.sourceLabel;
   for (const c of document.querySelectorAll('canvas[data-thumb]')) {
     const r = st.rt.get(c.dataset.thumb);
-    if (r && r.size[0]) c.getContext('2d').drawImage(r.canvas, 0, 0, c.width, c.height);
+    if (r && r.size[0]) c.getContext('2d').drawImage(r.out(), 0, 0, c.width, c.height);
   }
+}
+
+/* ---------------- render quality ---------------- */
+// Full / Balanced / Fast render the widgets at 100 / 75 / 50 % of their size on screen.
+// Auto starts at full and steps down while the frame rate stays low, then back up when there is room.
+const QUALITY = { full: 1, balanced: 0.75, fast: 0.5 };
+let autoGood = 0, autoBad = 0;
+const bootT = performance.now();
+function setQuality(q, save = true) {
+  app.quality = QUALITY[q] || q === 'auto' ? q : 'auto';
+  app.stage.renderScale = app.quality === 'auto' ? (app.stage.renderScale || 1) : QUALITY[app.quality];
+  const sel = $('sbQuality'); if (sel) sel.value = app.quality;
+  if (save) { app.settings.quality = app.quality; app.saveSettings(); }
+  showQuality();
+}
+function showQuality() {
+  const o = $('sbQuality') && $('sbQuality').querySelector('option[value="auto"]');
+  if (o) o.textContent = app.quality === 'auto' ? `Auto · ${Math.round(app.stage.renderScale * 100)}%` : 'Auto';
+}
+function autoQuality(fps) {
+  if (app.quality !== 'auto' || document.hidden || app.recorder.recording || performance.now() - bootT < 5000) return;
+  const st = app.stage;
+  if (fps < 48 && st.renderScale > 0.5) { if (++autoBad >= 2) { st.renderScale = Math.max(0.5, +(st.renderScale - 0.1).toFixed(2)); autoBad = 0; showQuality(); } autoGood = 0; return; }
+  autoBad = 0;
+  if (fps >= 57 && st.renderScale < 1) { if (++autoGood >= 6) { st.renderScale = Math.min(1, +(st.renderScale + 0.05).toFixed(2)); autoGood = 0; showQuality(); } }
+  else autoGood = 0;
 }
 
 /* ---------------- right-click menu on widgets ---------------- */
@@ -249,7 +278,7 @@ function renderModuleList() {
   box.innerHTML = '';
   $('modCount').textContent = MODULES.length;
   for (const m of MODULES) {
-    if (!thumbs.has(m.id)) thumbs.set(m.id, makeThumb(m));
+    if (!thumbs.has(m.id)) thumbs.set(m.id, h('canvas', { width: 192, height: 108 }));
     const tile = h('button', {
       class: 'tile', type: 'button', draggable: 'true', 'data-mod': m.id,
       title: `${m.name}: ${m.tagline}`,
@@ -259,6 +288,31 @@ function renderModuleList() {
     tile.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/x-module', m.id); e.dataTransfer.effectAllowed = 'copy'; });
     box.append(tile);
   }
+}
+
+// Tile pictures are drawn after the window is up, one module per idle moment, and kept in
+// localStorage (per app version) so the next launch shows them at once.
+function fillThumbs() {
+  const ver = app.version || 'dev';
+  let cache = {};
+  try { cache = JSON.parse(localStorage.getItem('sf.thumbs') || '{}'); } catch {}
+  if (cache.v !== ver) cache = { v: ver, img: {} };
+  const todo = [];
+  for (const m of MODULES) {
+    const c = thumbs.get(m.id); if (!c) continue;
+    const url = cache.img[m.id];
+    if (url) { const im = new Image(); im.onload = () => c.getContext('2d').drawImage(im, 0, 0); im.src = url; }
+    else todo.push(m);
+  }
+  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 30));
+  const next = () => {
+    const m = todo.shift(); if (!m) return;
+    const src = makeThumb(m), c = thumbs.get(m.id);
+    if (c) c.getContext('2d').drawImage(src, 0, 0);
+    try { cache.img[m.id] = src.toDataURL('image/jpeg', 0.8); localStorage.setItem('sf.thumbs', JSON.stringify(cache)); } catch {}
+    idle(next, { timeout: 500 });
+  };
+  idle(next, { timeout: 800 });
 }
 
 // Render each module for a moment on a small canvas to make its tile picture.
@@ -357,11 +411,12 @@ function wireSource() {
   $('exportBtn').addEventListener('click', () => D.renderDialog(app));
   $('trackSeek').addEventListener('input', () => { seeking = true; paintRange($('trackSeek')); const m = app.audio.media; if (m && m.duration) $('trackTime').textContent = fmtTime(($('trackSeek').value / 1000) * m.duration); });
   $('trackSeek').addEventListener('change', () => { const m = app.audio.media; if (m && m.duration) m.currentTime = ($('trackSeek').value / 1000) * m.duration; seeking = false; });
-  $('gainIn').addEventListener('input', (e) => { paintRange(e.target); app.audio.sensitivity = +e.target.value; app.settings.gain = app.audio.sensitivity; app.saveSettings(); });
+  $('gainIn').addEventListener('input', (e) => { paintRange(e.target); app.audio.setSensitivity(+e.target.value); app.settings.gain = app.audio.sensitivity; app.saveSettings(); });
   navigator.mediaDevices?.addEventListener?.('devicechange', async () => { app.devices = await app.audio.listInputs(); });
 }
 
 function wireTopbar() {
+  $('sbQuality').addEventListener('change', (e) => setQuality(e.target.value));
   $('sceneName').addEventListener('change', (e) => { app.stage.scene.name = e.target.value.trim() || 'Untitled'; e.target.value = app.stage.scene.name; autosave(); });
   $('aspectSel').addEventListener('change', (e) => app.stage.setAspect(e.target.value));
   $('scenesBtn').addEventListener('click', () => D.scenesDialog(app));

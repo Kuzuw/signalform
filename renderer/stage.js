@@ -258,8 +258,8 @@ export class Stage {
     bg.background = mode === 'glass' ? hexA(bgColor(w.bg), ink ? 0.45 : 0.38) : bgColor(w.bg);
     bg.backdropFilter = mode === 'glass' ? 'blur(18px) saturate(1.25)' : 'none';
     r.card.classList.toggle('isolate', mode !== 'clear');
-    cv.mixBlendMode = mode === 'clear' ? 'normal' : ink ? 'multiply' : 'screen';
-    cv.filter = ink ? INK_FILTER : 'none';
+    cv.mixBlendMode = r.src.style.mixBlendMode = mode === 'clear' ? 'normal' : ink ? 'multiply' : 'screen';
+    cv.filter = r.src.style.filter = ink ? INK_FILTER : 'none';
     r.el.classList.toggle('pinned', w.locked);
     r.el.querySelector('.label').textContent = w.name + (w.group ? '  ·  ' + (this.group(w.group)?.name || '') : '');
     r.el.dataset.name = byId[w.module].name;
@@ -274,8 +274,12 @@ export class Stage {
     const el = h('div', { class: 'widget', 'data-id': w.id },
       card, h('div', { class: 'chrome' }), h('div', { class: 'label' }, w.name),
       ...['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map((d) => h('div', { class: 'h ' + d, 'data-h': d })));
+    // the module draws into `src`; with a neutral Look that canvas is shown directly (no copy per frame),
+    // otherwise the Look pass draws it into `canvas`
     const src = document.createElement('canvas');
-    const r = { el, card, bgEl, canvas, src, dctx: canvas.getContext('2d'), fxState: {}, inst: null, size: [0, 0], failed: false };
+    src.style.display = 'none'; card.append(src);
+    const r = { el, card, bgEl, canvas, src, dctx: canvas.getContext('2d'), fxState: {}, inst: null, size: [0, 0], failed: false, direct: false };
+    r.out = () => (r.direct ? r.src : r.canvas);
     try { r.inst = mod.create(src, w.params); }
     catch (e) { console.error(e); r.failed = true; toast(`${mod.name} could not start: ${e.message}`, true); }
     this.rt.set(w.id, r);
@@ -417,7 +421,8 @@ export class Stage {
 
   action(id, key) {
     const w = this.get(id), r = this.rt.get(id);
-    if (w && r && r.inst && r.inst.action) { r.inst.action(key, w.params); this.changed(true); }
+    // a module may finish later (e.g. after a file picker); `done` saves and refreshes the panel then
+    if (w && r && r.inst && r.inst.action) { const msg = r.inst.action(key, w.params, () => this.changed(true)); this.changed(true); return msg; }
   }
 
   /* ---------- per-frame ---------- */
@@ -439,8 +444,9 @@ export class Stage {
       st.t = (st.t ?? t) + mdt;
       try {
         r.inst.render(shapeFrame(F, fx, st), { dt: mdt, t: st.t, W: cw, H: ch, S: Math.max(0.5, cw / Math.max(1, w.rect.w * this.px.w)), params: w.params });
-        if (isNeutralLook(fx)) { r.dctx.globalCompositeOperation = 'source-over'; r.dctx.filter = 'none'; r.dctx.globalAlpha = 1; r.dctx.drawImage(r.src, 0, 0); }
-        else post(r.canvas, r.dctx, r.src, fx, st, dt);
+        const neutral = isNeutralLook(fx);
+        if (neutral !== r.direct) { r.direct = neutral; r.src.style.display = neutral ? '' : 'none'; r.canvas.style.display = neutral ? 'none' : ''; }
+        if (!neutral) post(r.canvas, r.dctx, r.src, fx, st, dt);
       } catch (e) { console.error(e); r.failed = true; toast(`${w.name} stopped: ${e.message}`, true); }
     }
   }
@@ -481,7 +487,7 @@ export class Stage {
       } else if (mode === 'solid') { tc.fillStyle = bgColor(w.bg); tc.fillRect(0, 0, cw, ch); }
       tc.globalCompositeOperation = mode === 'clear' ? 'source-over' : ink ? 'multiply' : 'screen';
       if (ink) tc.filter = INK_FILTER;
-      tc.drawImage(r.canvas, 0, 0, cw, ch);
+      tc.drawImage(r.out(), 0, 0, cw, ch);
       tc.filter = 'none';
       const radPx = (w.radius / 1000) * (W / area.w);
       const featherPx = (w.feather / 1000) * (W / area.w);

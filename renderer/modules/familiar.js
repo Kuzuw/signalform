@@ -29,7 +29,7 @@ export default {
   params: [
     { key: 'shape', label: 'Body', type: 'select', default: 'creature', section: 'Body', options: [['creature', 'Creature'], ['orb', 'Orb'], ['text', 'Your word']] },
     { key: 'text', label: 'Word', type: 'text', default: 'SIGNAL', showIf: { shape: 'text' } },
-    { key: 'count', label: 'Points of light', type: 'range', min: 5000, max: 100000, step: 1000, default: 45000 },
+    { key: 'count', label: 'Points of light', type: 'range', min: 5000, max: 100000, step: 1000, default: 32000 },
     { key: 'size', label: 'Size', type: 'range', min: 0.3, max: 1.6, step: 0.01, default: 1.1 },
     { key: 'breath', label: 'Breathing', type: 'range', min: 0, max: 2, step: 0.05, default: 1, section: 'Behavior' },
     { key: 'scatter', label: 'Scatter on hits', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
@@ -47,10 +47,11 @@ export default {
   create(canvas) {
     const ctx = canvas.getContext('2d');
     const acc = new Accum();
-    let n = 0, HX, HY, HZ, HL, PX, PY, PZ, VX, VY, VZ, key = '', time = 0, yaw = 0;
+    let n = 0, HX, HY, HZ, HL, HS, HC, PX, PY, PZ, VX, VY, VZ, key = '', time = 0, yaw = 0;
     function build(p) {
       n = Math.round(p.count);
       HX = new Float32Array(n); HY = new Float32Array(n); HZ = new Float32Array(n); HL = new Float32Array(n);
+      HS = new Float32Array(n); HC = new Float32Array(n);   // sin/cos of each point's sway phase, so the frame loop needs no trig
       PX = new Float32Array(n); PY = new Float32Array(n); PZ = new Float32Array(n);
       VX = new Float32Array(n); VY = new Float32Array(n); VZ = new Float32Array(n);
       let pts = null;
@@ -85,7 +86,7 @@ export default {
           x = c[0] + b[0] * r * k; y = c[1] + b[1] * r * k; z = c[2] + b[2] * r * k;
           lit = (b[0] * light[0] + b[1] * light[1] + b[2] * light[2]) * k;
         }
-        HX[i] = x; HY[i] = y; HZ[i] = z; HL[i] = Math.max(-1, Math.min(1, lit));
+        HX[i] = x; HY[i] = y; HZ[i] = z; HL[i] = Math.max(-1, Math.min(1, lit)); HS[i] = Math.sin(y * 3.2); HC[i] = Math.cos(y * 3.2);
         PX[i] = x + (Math.random() - 0.5); PY[i] = y + (Math.random() - 0.5); PZ[i] = z;
       }
     }
@@ -113,9 +114,10 @@ export default {
         const energy = 0.55 * (acc.w * acc.h) / 200000 * 45000 / n * 1.6;
         const dof = p.dof * 5, shadow = p.shadow;
         const sw = p.sway * 0.04;
+        const swS = Math.sin(time * 0.9), swC = Math.cos(time * 0.9), swA = sw * (0.4 + quiet);
         for (let i = 0; i < n; i++) {
           const hy = HY[i];
-          const tx = (HX[i] + Math.sin(time * 0.9 + hy * 3.2) * sw * (0.4 + quiet)) * breathe * gatherTight;
+          const tx = (HX[i] + (swS * HC[i] + swC * HS[i]) * swA) * breathe * gatherTight;
           const ty = hy * breathe * gatherTight;
           const tz = HZ[i] * breathe;
           let vx = VX[i] + (tx - PX[i]) * spring * dt, vy = VY[i] + (ty - PY[i]) * spring * dt, vz = VZ[i] + (tz - PZ[i]) * spring * dt;

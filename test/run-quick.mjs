@@ -20,5 +20,6 @@ for (const s of steps) {
   if (s.wait) await page.waitForTimeout(s.wait);
   if (s.shot) await page.screenshot({ path: path.join(out, s.shot + '.png') });
 }
-console.log('problems:', problems.length ? problems : 'none');
+console.log("title:", await page.title());
+console.log("problems:", problems.length ? problems : "none");
 await browser.close(); server.close();

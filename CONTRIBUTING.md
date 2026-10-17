@@ -133,6 +133,9 @@ node test/run-modules.mjs out/modules.png      # renders every module into one c
 ONLY=pulse node test/run-modules.mjs out/pulse.png
 node test/run-app.mjs out/                     # clicks through the interface, saves screenshots
 node test/run-render.mjs out/render.webm       # renders the 5-second fixture track (WebM or MP4, as the browser records)
+node test/onsets-varied.mjs 2001 40            # kick / snare / hat precision and recall on varied synthetic mixes
+node scripts/train-kick.mjs                    # refit the kick classifier (WRITE=1 saves renderer/kick-net.js)
+TARGET=snare node scripts/train-kick.mjs       # refit the snare classifier (WRITE=1 saves renderer/snare-net.js)
 ```
 
 Check the images, and make sure the interface and render runs end with `problems: none`.

@@ -109,7 +109,7 @@ export default {
     { key: 'beads', label: 'Uneven beads', type: 'range', min: 0, max: 1, step: 0.01, default: 0.55 },
     { key: 'turb', label: 'Turbulence', type: 'range', min: 0, max: 2, step: 0.05, default: 0.8 },
     { key: 'drift', label: 'Drift and turn', type: 'range', min: 0, max: 2, step: 0.05, default: 0.6 },
-    { key: 'snap', label: 'Snap into a sphere', type: 'select', default: 'hits', options: [['hits', 'On heavy hits and drops'], ['drops', 'Only on drops'], ['never', 'Never']] },
+    { key: 'snap', label: 'Pull into one drop', type: 'select', default: 'never', options: [['never', 'Never'], ['drops', 'On drops'], ['hits', 'On drops and heavy kicks']] },
     { key: 'spikes', label: 'Spikes', type: 'range', min: 0, max: 2, step: 0.05, default: 1, section: 'Spikes and spray' },
     { key: 'spray', label: 'Droplets', type: 'range', min: 0, max: ND, step: 1, default: 40 },
     { key: 'fling', label: 'Fling on hits', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
@@ -125,7 +125,7 @@ export default {
     let s;
     try { s = createShader(canvas, FRAG); } catch (e) { s = null; }
     if (!s) return glUnavailable(canvas);
-    let time = 0, axis = -0.85, merged = 0.3, sphere = 0, lastSnap = -9, kick = 0;
+    let time = 0, axis = -0.85, merged = 0.3, sphere = 0, lastSnap = -9, snapHold = 0, kick = 0;
     const seg = Array.from({ length: MAIN }, (_, i) => ({ ph: i * 1.7, k: [1.15, 0.85, 1.05, 0.78, 0.95, 0.88][i] }));
     const buds = Array.from({ length: NB - MAIN }, (_, i) => ({ seg: i % MAIN, a: i * 2.1, z: 0.3 + (i % 3) * 0.2, s: 0, ph: i * 0.9 }));
     const spikes = Array.from({ length: NS }, (_, i) => ({ seg: i % NB, a: (i * 2.399) % TAU, len: 0, el: ((i * 7) % 5) / 20 - 0.1 }));
@@ -162,9 +162,13 @@ export default {
         // the beads swell and fuse on the beat, then part again
         merged += ((p.merge * 0.6 + kick * 0.7 + F.bass * 0.3) - merged) * (1 - Math.exp(-dt / (kick > merged ? 0.05 : 0.35)));
         // heavy hits and drops pull everything into one round drop for a moment
-        const heavy = p.snap === 'hits' && F.onsets.some((o) => o.band === 'kick' && o.strength > 0.97);
-        if ((heavy || (p.snap !== 'never' && F.drop > 0.95)) && time - lastSnap > 4) { lastSnap = time; sphere = 1; }
-        sphere *= Math.exp(-dt / 0.4);
+        // only when asked for: a real drop (or, if chosen, a heavy kick) pulls everything into one drop
+        const heavy = p.snap === 'hits' && F.onsets.some((o) => o.band === 'kick' && o.strength > 0.97) && F.bass > 0.75;
+        const drop = (p.snap === 'drops' || p.snap === 'hits') && F.drop > 0.95;
+        if ((heavy || drop) && time - lastSnap > 6) { lastSnap = time; snapHold = 0.35; }
+        snapHold -= dt;
+        const want = snapHold > 0 ? 1 : 0;
+        sphere += (want - sphere) * (1 - Math.exp(-dt / (want > sphere ? 0.12 : 0.5)));   // eases in and out, never pops
         const sph = sphere * sphere * (3 - 2 * sphere);
         axis += dt * p.drift * 0.08 * Math.sin(time * 0.13);
 
@@ -183,7 +187,7 @@ export default {
           const bead = 1 + p.beads * (g.k - 1) * 1.6 + band * 0.15 * p.beads;
           let r = size * (0.12 + merged * 0.03) * bead * (n === 1 ? 2 : 1);
           // collapse into one sphere
-          x += (cx0 - x) * sph; y += (cy0 - y) * sph; r += (size * 0.3 - r) * sph;
+          x += (cx0 - x) * sph; y += (cy0 - y) * sph; r += (size * 0.2 * Math.cbrt(n / 4) - r) * sph;   // about the same volume as the beads
           B[i * 4] = x; B[i * 4 + 1] = y; B[i * 4 + 2] = 0; B[i * 4 + 3] = r;
           centers.push([x, y, r]);
         }

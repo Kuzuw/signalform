@@ -1,4 +1,5 @@
 import { hexToRgb, rgba, fade, scaleRgb, TAU } from './util.js';
+import { tracePicture, loadPicture, pictureGray } from './picture-trace.js';
 
 function presetShape(name) {
   const pts = [];
@@ -52,7 +53,17 @@ export default {
   name: 'Oscilloscope',
   tagline: 'Signal rendered through light.',
   params: [
-    { key: 'mode', label: 'Display', type: 'select', default: 'xy', options: [['yt', 'Waveform (Y/T)'], ['xy', 'Stereo phase (X/Y)'], ['shape', 'Custom shape']] },
+    { key: 'mode', label: 'Display', type: 'select', default: 'xy', options: [['yt', 'Waveform (Y/T)'], ['xy', 'Stereo phase (X/Y)'], ['shape', 'Custom shape'], ['picture', 'A picture']] },
+    { key: 'loadPicture', label: 'Choose a picture…', type: 'action', showIf: { mode: 'picture' } },
+    { key: 'picture', type: 'hidden', default: null },
+    { key: 'picDetail', label: 'Beam points', type: 'range', min: 500, max: 12000, step: 100, default: 4000, showIf: { mode: 'picture' } },
+    { key: 'picEdges', label: 'Edge detail', type: 'range', min: 0, max: 1, step: 0.01, default: 0.45, showIf: { mode: 'picture' } },
+    { key: 'picShade', label: 'Shade dark areas', type: 'range', min: 0, max: 1, step: 0.01, default: 0, showIf: { mode: 'picture' } },
+    { key: 'picInvert', label: 'Light subject on dark', type: 'toggle', default: false, showIf: { mode: 'picture' } },
+    { key: 'picSize', label: 'Picture size', type: 'range', min: 0.3, max: 1.4, step: 0.01, default: 1, showIf: { mode: 'picture' } },
+    { key: 'picReact', label: 'Wobble with the sound', type: 'range', min: 0, max: 3, step: 0.05, default: 1, showIf: { mode: 'picture' } },
+    { key: 'picSweep', label: 'Beam sweep', type: 'range', min: 0.05, max: 1, step: 0.01, default: 1, showIf: { mode: 'picture' } },
+    { key: 'picJumps', label: 'Show beam jumps', type: 'toggle', default: false, showIf: { mode: 'picture' } },
     { key: 'shape', label: 'Shape', type: 'select', default: 'circle', showIf: { mode: 'shape' }, options: [['circle', 'Circle'], ['square', 'Square'], ['triangle', 'Triangle'], ['star', 'Star'], ['heart', 'Heart'], ['infinity', 'Infinity'], ['custom', 'My drawing']] },
     { key: 'draw', label: 'Draw a shape on the widget', type: 'action', showIf: { mode: 'shape' } },
     { key: 'customShape', type: 'hidden', default: null },
@@ -72,6 +83,36 @@ export default {
     const ctx = canvas.getContext('2d');
     let shapeKey = '', shape = [], normals = [], rot = 0;
     let drawing = false, stroke = [];
+    // picture mode: the traced path is cached and rebuilt only when the picture or its settings change
+    const pic = { key: '', path: null, busy: false, error: '', gray: null, graySrc: '', head: 0 };
+    function picturePath(p) {
+      if (!p.picture) return null;
+      const key = [p.picture.length, p.picture.slice(-24), p.picDetail, p.picEdges, p.picShade, p.picInvert].join('|');
+      if (key === pic.key) return pic.path;
+      if (pic.busy) return pic.path;
+      if (pic.graySrc !== p.picture) {
+        pic.busy = true;
+        pictureGray(p.picture).then((g) => { pic.gray = g; pic.graySrc = p.picture; pic.error = ''; })
+          .catch((e) => { pic.error = e.message; pic.graySrc = p.picture; pic.gray = null; })
+          .finally(() => { pic.busy = false; });
+        return pic.path;
+      }
+      pic.key = key;
+      if (!pic.gray) { pic.path = null; return null; }
+      const { gray, w, h } = pic.gray;
+      const src = p.picInvert ? gray.map((v) => 1 - v) : gray;
+      const t = tracePicture(src, w, h, { detail: p.picDetail, edges: p.picEdges, shade: p.picShade });
+      if (!t.count) { pic.path = null; pic.error = 'No lines found in this picture. Try more edge detail.'; return null; }
+      // normals for the sound to push the beam sideways along each line
+      const n = t.count, nrm = new Float32Array(n * 2), P = t.pts;
+      for (let i = 0; i < n; i++) {
+        const a = i > 0 && !P[i * 3 + 2] ? i - 1 : i, b = i + 1 < n && !P[(i + 1) * 3 + 2] ? i + 1 : i;
+        const tx = P[b * 3] - P[a * 3], ty = P[b * 3 + 1] - P[a * 3 + 1], l = Math.hypot(tx, ty) || 1;
+        nrm[i * 2] = ty / l; nrm[i * 2 + 1] = -tx / l;
+      }
+      pic.path = { pts: P, count: n, nrm }; pic.head = 0;
+      return pic.path;
+    }
     const self = {
       capturing: false,
       render(F, { dt, W, H, S, params: p }) {
@@ -102,6 +143,36 @@ export default {
             pts.push([cx + (l - r) * 0.7071 * R * 1.4, cy - (l + r) * 0.7071 * R * 1.4]);
           }
           traces.push(pts);
+        } else if (p.mode === 'picture') {
+          const P = picturePath(p);
+          if (!P) {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = rgba(col, 0.75); ctx.font = `${13 * S}px system-ui, sans-serif`; ctx.textAlign = 'center';
+            ctx.fillText(pic.busy ? 'Tracing the picture…' : pic.error || 'Choose a picture in the panel on the right.', cx, cy);
+          } else {
+            // the beam traces the picture; the sound shakes it along each line, kicks pulse it
+            const n = P.count, pts = P.pts, nrm = P.nrm;
+            const k = Math.min(W, H) * 0.47 * p.picSize * (1 + F.kick * 0.05 * p.picReact + F.drop * 0.1);
+            const amp = 0.035 * p.gain * p.picReact, jit = F.hat * 0.004 * p.picReact;
+            const sweep = Math.min(n, Math.max(2, Math.round(n * p.picSweep)));
+            pic.head = p.picSweep >= 1 ? 0 : (pic.head + Math.max(1, Math.round(sweep * dt * 4))) % n;
+            const line = [], jumps = [];
+            let prev = null;
+            for (let q = 0; q < sweep; q++) {
+              const i = (pic.head + q) % n, o = i * 3;
+              const d = F.wave[(i * 7) % 2048] * amp;
+              const x = cx + (pts[o] + nrm[i * 2] * d + (Math.random() - 0.5) * jit) * k;
+              const y = cy + (pts[o + 1] + nrm[i * 2 + 1] * d + (Math.random() - 0.5) * jit) * k;
+              if (pts[o + 2] || q === 0 || i === 0) { if (prev && p.picJumps) jumps.push(prev, [x, y]); line.push(null); }
+              line.push([x, y]); prev = [x, y];
+            }
+            traces.push(line);
+            if (jumps.length) {
+              ctx.globalCompositeOperation = 'lighter';
+              ctx.strokeStyle = rgba(col, 0.06); ctx.lineWidth = Math.max(0.5, p.width * S * 0.5);
+              ctx.beginPath(); for (let j = 0; j < jumps.length; j += 2) { ctx.moveTo(jumps[j][0], jumps[j][1]); ctx.lineTo(jumps[j + 1][0], jumps[j + 1][1]); } ctx.stroke();
+            }
+          }
         } else {
           const key = p.shape + (p.shape === 'custom' ? JSON.stringify(p.customShape || []).length : '');
           if (key !== shapeKey) {
@@ -136,15 +207,17 @@ export default {
         if (e) { ctx.translate(cx, cy); ctx.rotate((p.echoTwist * e * Math.PI) / 180); const sc = Math.max(0.05, 1 + p.echoScale * e); ctx.scale(sc, sc); ctx.translate(-cx, -cy); }
         for (const pts of traces) {
           // bloom pass along the whole trace
+          // (a null entry breaks the line: the beam is blanked while it jumps)
           if (p.glow > 0) {
             ctx.lineWidth = p.width * S * (5 + p.glow * 5);
             ctx.strokeStyle = rgba(col, 0.045 * p.glow * bright);
-            ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+            ctx.beginPath(); let pen = false; for (const pt of pts) { if (!pt) { pen = false; continue; } pen ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1]); pen = true; } ctx.stroke();
           }
           // phosphor: a slow beam burns brighter than a fast one
           const buckets = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
-          const ref = Math.max(1, (W + H) / pts.length);
+          const ref = p.mode === 'picture' ? Math.max(1, Math.min(W, H) / 120) : Math.max(1, (W + H) / pts.length);
           for (let i = 1; i < pts.length; i++) {
+            if (!pts[i] || !pts[i - 1]) continue;
             const len = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
             const b = len < ref * 0.6 ? 3 : len < ref * 1.5 ? 2 : len < ref * 4 ? 1 : 0;
             buckets[b].moveTo(pts[i - 1][0], pts[i - 1][1]); buckets[b].lineTo(pts[i][0], pts[i][1]);
@@ -170,7 +243,21 @@ export default {
         }
         ctx.globalCompositeOperation = 'source-over';
       },
-      action(key, p) { if (key === 'draw') { self.capturing = true; stroke = []; p.mode = 'shape'; } },
+      action(key, p, done) {
+        if (key === 'draw') { self.capturing = true; stroke = []; p.mode = 'shape'; return 'Draw on the widget now. Press Esc to cancel.'; }
+        if (key === 'loadPicture') {
+          const input = document.createElement('input');
+          input.type = 'file'; input.accept = 'image/png,image/jpeg,image/webp,image/gif,image/bmp,image/svg+xml';
+          input.onchange = async () => {
+            const f = input.files && input.files[0];
+            if (!f) return;
+            try { p.picture = await loadPicture(f); p.mode = 'picture'; pic.error = ''; }
+            catch (e) { pic.error = e.message; }
+            if (done) done();
+          };
+          input.click();
+        }
+      },
       // x, y are 0..1 within the widget
       pointer(type, x, y, p) {
         if (!self.capturing) return false;

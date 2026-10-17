@@ -64,7 +64,7 @@
 
   <main class="stage-wrap" id="stageWrap">
     <div class="stage" id="stage"></div>
-    <div class="statusbar" id="statusBar"><span id="sbSize"></span><span id="sbFps"></span><span id="sbWidgets"></span><span id="sbSource"></span></div>
+    <div class="statusbar" id="statusBar"><span id="sbSize"></span><span id="sbFps"></span><label class="sb-q" title="Render quality: lower it if the frame rate drops"><select id="sbQuality" aria-label="Render quality"><option value="auto">Auto</option><option value="full">Full quality</option><option value="balanced">Balanced</option><option value="fast">Fast</option></select></label><span id="sbWidgets"></span><span id="sbSource"></span></div>
     <div class="empty" id="emptyState" hidden>
       <p>The stage is empty.</p>
       <p class="muted">Drag a module here, or open a starter scene from <b>Scenes</b>.</p>

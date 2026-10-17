@@ -6,10 +6,13 @@
 import { MODULES, defaults } from '../../renderer/modules/index.js';
 import { AudioEngine } from '../../renderer/audio.js';
 const q = new URLSearchParams(location.search);
-const list = q.get('m').split('|').map((spec) => {
+// settings can be inline JSON, or @path to a JSON file served next to the app (for large values such as pictures)
+const list = await Promise.all(q.get('m').split('|').map(async (spec) => {
   const [id, json] = spec.split('~');
-  return { mod: MODULES.find((m) => m.id === id), over: json ? JSON.parse(decodeURIComponent(json)) : {} };
-});
+  const raw = json ? decodeURIComponent(json) : '';
+  const over = !raw ? {} : raw[0] === '@' ? await (await fetch(raw.slice(1))).json() : JSON.parse(raw);
+  return { mod: MODULES.find((m) => m.id === id), over };
+}));
 const eng = new AudioEngine();
 const pending = [];
 let last = performance.now(), t0 = last;

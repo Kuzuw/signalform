@@ -97,6 +97,23 @@ step('selected bg + fx: ' + JSON.stringify(await page.evaluate(() => { const s =
 await page.waitForTimeout(2500);
 await shot('ui-composition');
 
+// effect rack: add two effects to the selected widget, turn one off, reorder, and add a stage effect
+await page.click('#tab-effects');
+const wid = await page.evaluate(() => window.signalform.stage.selected);
+await page.selectOption(`#fxAdd-${wid}`, 'glow'); await page.waitForTimeout(200);
+await page.selectOption(`#fxAdd-${wid}`, 'feedback'); await page.waitForTimeout(200);
+await page.locator('.fx-card >> nth=1').getByTitle('Move up').click(); await page.waitForTimeout(200);
+await page.locator('.fx-card >> nth=0 >> input[type=checkbox]').first().uncheck(); await page.waitForTimeout(200);
+step('widget rack: ' + JSON.stringify(await page.evaluate(() => { const s = window.signalform.stage; return s.get(s.selected).rack.map((r) => [r.type, r.on]); })));
+await page.waitForTimeout(1500);
+await shot('ui-effects');
+await page.evaluate(() => window.signalform.stage.select(null)); await page.waitForTimeout(300);
+await page.selectOption('#fxAdd-stage', 'vignette'); await page.waitForTimeout(1500);
+step('stage rack: ' + JSON.stringify(await page.evaluate(() => window.signalform.stage.scene.rack.map((r) => r.type))) + ' saved: ' + JSON.stringify(await page.evaluate(() => window.signalform.stage.serialize().rack.length)));
+await shot('ui-stage-effects');
+await page.evaluate(() => { window.signalform.stage.scene.rack.length = 0; const s = window.signalform.stage; s.select(s.widgets[2].id); });
+await page.click('#tab-module');
+
 // record a group via the widget picker
 await page.click('#recBtn'); await page.waitForTimeout(200);
 await shot('ui-record-dialog');

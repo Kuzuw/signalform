@@ -5,6 +5,7 @@ import { FX_PARAMS, FX_DEFAULTS } from './fx.js';
 import { h, icon, toast } from './ui.js';
 import { hexToRgb } from './modules/util.js';
 import * as lib from './library.js';
+import { EFFECTS, EFFECT_CATS, MOD_SOURCES, newItem, engineError, fxEngine, normalizeRack } from './rack.js';
 
 const SWATCHES = ['#ffffff', '#e8eeff', '#ffd166', '#ff8a3d', '#ff5c8a', '#b28dff', '#5ab8ff', '#7fe3d6', '#8dffb0'];
 
@@ -41,7 +42,11 @@ export class Inspector {
     const sel = st.selection;
     if (sel.length === 1) this.el.append(...this.single(sel[0]));
     else if (sel.length > 1) this.el.append(...this.multi(sel));
-    else this.el.append(h('section', { class: 'sec' }, h('p', { class: 'note' }, 'Select a widget to edit it. Shift-click to select several, then group, align or arrange them.')));
+    else {
+      this.el.append(h('section', { class: 'sec' }, h('p', { class: 'note' }, 'Select a widget to edit it. Shift-click to select several, then group, align or arrange them.')));
+      this.el.append(h('section', { class: 'sec head' }, h('h3', {}, 'Stage effects'), h('p', { class: 'note' }, 'Effects here apply to the whole stage, and to recordings and Live Output of the whole stage.')),
+        ...this.rackSections(st.scene.rack, 'stage'));
+    }
     this.el.append(this.layers());
     this.el.scrollTop = keepScroll;
   }
@@ -58,10 +63,13 @@ export class Inspector {
         h('button', { class: 'icon-btn', type: 'button', title: 'Duplicate (Ctrl+D)', html: icon.copy, onclick: () => this.stage.duplicate([w.id]) }),
         h('button', { class: 'icon-btn danger', type: 'button', title: 'Remove widget (Delete)', html: icon.close, onclick: () => this.stage.remove(w.id) })),
       h('small', { class: 'muted' }, `${mod.name} · ${mod.tagline}`),
-      h('div', { class: 'tabs', role: 'tablist' }, ...[['module', 'Module'], ['look', 'Look'], ['audio', 'Audio']].map(([k, l]) =>
+      h('div', { class: 'tabs four', role: 'tablist' }, ...[['module', 'Module'], ['look', 'Look'], ['effects', 'Effects'], ['audio', 'Audio']].map(([k, l]) =>
         h('button', { type: 'button', role: 'tab', class: k === tab ? 'on' : '', 'aria-selected': String(k === tab), id: 'tab-' + k, onclick: () => { this.tab = k; this.render(); } }, l,
           k === 'look' && !lookIsDefault(w) ? h('i', { class: 'dotmark', title: 'Changed' }) : '',
-          k === 'audio' && !audioIsDefault(w) ? h('i', { class: 'dotmark', title: 'Changed' }) : ''))));
+          k === 'audio' && !audioIsDefault(w) ? h('i', { class: 'dotmark', title: 'Changed' }) : '',
+          k === 'effects' && w.rack.length ? h('i', { class: 'dotmark', title: `${w.rack.length} effect${w.rack.length > 1 ? 's' : ''}` }) : ''))));
+
+    if (tab === 'effects') return [head, ...this.rackSections(w.rack, w.id)];
 
     if (tab === 'look') {
       return [head, this.backgroundSec([w]), ...this.schemaSections(w.fx, FX_PARAMS.look, w.id + ':look'),
@@ -90,20 +98,21 @@ export class Inspector {
       const p = presets.find((x) => x.name === pick.value); if (!p) return;
       for (const k of Object.keys(w.params)) if (k in p.params) w.params[k] = JSON.parse(JSON.stringify(p.params[k]));
       if (p.fx) Object.assign(w.fx, p.fx);
+      if (p.rack) w.rack = normalizeRack(p.rack);
       this.lastPreset = p.name; changed(); this.render(); toast(`Preset “${p.name}” applied`);
     };
     const presetSec = h('section', { class: 'sec' }, h('h3', {}, 'Presets', h('span', { class: 'count' }, presets.length ? String(presets.length) : '')),
       h('div', { class: 'preset-row' }, nameIn,
         h('button', { class: 'btn', type: 'button', id: 'presetSave', onclick: async () => {
           const n = nameIn.value.trim(); if (!n) { nameIn.focus(); return toast('Type a name for the preset.'); }
-          await lib.savePreset(w.module, n, w.params, w.fx); this.lastPreset = n; this.render(); toast(`Preset “${n}” saved`);
+          await lib.savePreset(w.module, n, w.params, w.fx, w.rack); this.lastPreset = n; this.render(); toast(`Preset “${n}” saved`);
         } }, 'Save'),
         h('button', { class: 'icon-btn boxed', type: 'button', title: 'Delete this preset', html: icon.close, onclick: async () => {
           const n = nameIn.value.trim() || this.lastPreset; if (!presets.some((p) => p.name === n)) return toast(presets.length ? 'Apply a preset with ▾ first, then press × to delete it.' : 'No saved presets yet.');
           await lib.deletePreset(w.module, n); this.lastPreset = ''; this.render(); toast(`Preset “${n}” deleted`);
         } }),
         pick),
-      h('p', { class: 'note' }, 'Presets keep this module’s settings plus its Look and Audio.'));
+      h('p', { class: 'note' }, 'Presets keep this module’s settings plus its Look, Audio and Effects.'));
     return [head, actions, ...this.schemaSections(w.params, mod.params, w.id + ':mod', w.id), presetSec];
   }
 
@@ -130,6 +139,72 @@ export class Inspector {
       if (!cur._closed) cur.append(this.control(target, list, p, false, widgetId));
     }
     flush();
+    return out;
+  }
+
+  /* ---------- effect rack (a widget's, or the stage's) ---------- */
+  rackSections(rack, owner) {
+    const st = this.stage, changed = () => st.changed();
+    this.rackOpen = this.rackOpen || new Set();
+    const add = h('select', { class: 'fx-add', id: 'fxAdd-' + owner, 'aria-label': 'Add an effect', onchange: (e) => {
+      const t = e.target.value; if (!t) return;
+      const it = newItem(t); rack.push(it); this.rackOpen.add(it.id); changed(); this.render();
+      if (!fxEngine()) toast('Effects need WebGL 2: ' + engineError(), true);
+    } }, h('option', { value: '' }, '+ Add an effect…'),
+      ...EFFECT_CATS.map((c) => h('optgroup', { label: c }, ...Object.entries(EFFECTS).filter(([, E]) => E.cat === c).map(([k, E]) => h('option', { value: k }, E.name)))));
+    const out = [h('section', { class: 'sec fx-head' },
+      h('div', { class: 'row' }, add,
+        rack.length ? h('button', { class: 'btn ghost', type: 'button', title: 'Remove every effect', onclick: () => { rack.length = 0; changed(); this.render(); toast('Effects cleared'); } }, 'Clear') : ''),
+      rack.length ? h('p', { class: 'note' }, 'Effects run top to bottom. Drag a card to reorder it.') : h('p', { class: 'note' }, 'No effects yet. Add glow, blur, feedback, colour grading, glitch and more; each one can follow the music.'))];
+    let dragId = null;
+    rack.forEach((it, i) => {
+      const E = EFFECTS[it.type]; if (!E) return;
+      const open = this.rackOpen.has(it.id);
+      const move = (d) => { const j = i + d; if (j < 0 || j >= rack.length) return; rack.splice(i, 1); rack.splice(j, 0, it); changed(); this.render(); };
+      const card = h('section', { class: 'sec fx-card' + (it.on ? '' : ' off') + (open ? '' : ' closed'), draggable: 'true', 'data-fx': it.id },
+        h('div', { class: 'fx-top' },
+          h('span', { class: 'fx-grip', title: 'Drag to reorder', 'aria-hidden': 'true' }, '⋮⋮'),
+          h('button', { class: 'sec-toggle', type: 'button', 'aria-expanded': String(open), onclick: () => { open ? this.rackOpen.delete(it.id) : this.rackOpen.add(it.id); this.render(); } },
+            h('h3', {}, E.name, it.mod.src !== 'none' && E.main !== 'none' ? h('span', { class: 'fx-mod', title: 'Driven by the music' }, '♪ ' + (MOD_SOURCES.find((m) => m[0] === it.mod.src) || [0, ''])[1]) : ''), h('span', { class: 'chev', html: icon.chevron })),
+          h('label', { class: 'switch', title: it.on ? 'Turn off' : 'Turn on' }, h('input', { type: 'checkbox', checked: it.on, 'aria-label': (it.on ? 'Turn off ' : 'Turn on ') + E.name, onchange: (e) => { it.on = e.target.checked; changed(); this.render(); } }), h('i')),
+          h('button', { class: 'icon-btn', type: 'button', title: 'Move up', html: icon.up, disabled: i === 0, onclick: () => move(-1) }),
+          h('button', { class: 'icon-btn', type: 'button', title: 'Move down', html: icon.down, disabled: i === rack.length - 1, onclick: () => move(1) }),
+          h('button', { class: 'icon-btn danger', type: 'button', title: 'Remove ' + E.name, html: icon.close, onclick: () => { rack.splice(i, 1); changed(); this.render(); } })));
+      if (open) {
+        const idp = it.id + '_';
+        for (const q of E.params) {
+          if (q.showIf && !Object.entries(q.showIf).every(([k, v]) => (Array.isArray(v) ? v.includes(it.p[k]) : it.p[k] === v))) continue;
+          card.append(this.control(it.p, E.params, q, false, null, idp));
+        }
+        if (E.main !== 'none') {
+          const mainP = E.params.find((q) => q.key === E.main);
+          card.append(h('div', { class: 'fx-modrow' },
+            this.field(`Music drives ${mainP ? mainP.label.toLowerCase() : 'it'}`, idp + 'modsrc', h('select', { id: 'p_' + idp + 'modsrc', onchange: (e) => { it.mod.src = e.target.value; changed(); this.render(); } },
+              ...MOD_SOURCES.map(([v, l]) => h('option', { value: v, selected: v === it.mod.src }, l)))),
+            it.mod.src !== 'none' ? this.rangeField('Amount', idp + 'modamt', it.mod.amt, -1, 1, 0.01, (v) => { it.mod.amt = v; changed(); }, (v) => Math.round(v * 100) + '%', false, 0.5) : ''));
+        }
+        card.append(h('div', { class: 'row' },
+          h('button', { class: 'btn ghost', type: 'button', onclick: () => { const d = newItem(it.type); it.p = d.p; it.mod = d.mod; changed(); this.render(); } }, 'Reset'),
+          h('button', { class: 'btn ghost', type: 'button', onclick: () => { const c = JSON.parse(JSON.stringify(it)); c.id = newItem(it.type).id; rack.splice(i + 1, 0, c); this.rackOpen.add(c.id); changed(); this.render(); } }, 'Duplicate')));
+      }
+      // drag to reorder
+      card.addEventListener('dragstart', (e) => { if (!e.target.classList || !e.target.classList.contains('fx-card')) return; dragId = it.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-fx', it.id); card.classList.add('dragging'); });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+      card.addEventListener('dragover', (e) => { if (!dragId || dragId === it.id) return; e.preventDefault(); const b = card.getBoundingClientRect(); card.classList.toggle('drop-above', e.clientY < b.top + b.height / 2); card.classList.toggle('drop-below', e.clientY >= b.top + b.height / 2); });
+      card.addEventListener('dragleave', () => card.classList.remove('drop-above', 'drop-below'));
+      card.addEventListener('drop', (e) => {
+        e.preventDefault(); card.classList.remove('drop-above', 'drop-below');
+        if (!dragId || dragId === it.id) return;
+        const from = rack.findIndex((x) => x.id === dragId); if (from < 0) return;
+        const [m] = rack.splice(from, 1);
+        const b = card.getBoundingClientRect(); let to = rack.findIndex((x) => x.id === it.id);
+        if (e.clientY >= b.top + b.height / 2) to++;
+        rack.splice(to, 0, m); dragId = null; changed(); this.render();
+      });
+      // inputs inside a card should not start a card drag
+      card.querySelectorAll('input, select, button, output').forEach((el) => { el.draggable = false; el.addEventListener('dragstart', (e) => e.preventDefault()); });
+      out.push(card);
+    });
     return out;
   }
 
@@ -184,16 +259,16 @@ export class Inspector {
         h('button', { class: 'btn', type: 'button', onclick: () => st.duplicate([w.id]) }, 'Duplicate')) : '');
   }
 
-  control(T, list, p, disabled, widgetId) {
+  control(T, list, p, disabled, widgetId, idp = '') {
     const set = (v, rerender) => { T[p.key] = v; this.stage.changed(); if (rerender) this.render(); };
     const needsRerender = list.some((q) => q.showIf && p.key in q.showIf);
-    const id = 'p_' + p.key;
+    const id = 'p_' + idp + p.key;
     const def = p.default ?? FX_DEFAULTS[p.key];
     if (p.type === 'range') {
-      const dec = p.step >= 1 ? 0 : p.step >= 0.1 ? 1 : 2;
+      const dec = p.step >= 1 ? 0 : p.step >= 0.1 ? 1 : p.step >= 0.01 ? 2 : 3;
       const fmt = p.pct || (p.max === 1 && p.min === 0 && /amount|follow|corner|shadow|sensitiv/i.test(p.label)) ? (v) => Math.round(v * 100) + '%'
         : p.unit ? (v) => Number(v).toFixed(dec) + p.unit : (v) => Number(v).toFixed(dec);
-      return this.rangeField(p.label, p.key, T[p.key], p.min, p.max, p.step, (v) => set(v), fmt, disabled, def);
+      return this.rangeField(p.label, idp + p.key, T[p.key], p.min, p.max, p.step, (v) => set(v), fmt, disabled, def);
     }
     if (p.type === 'select') {
       return this.field(p.label, p.key, h('select', { id, disabled, onchange: (e) => set(e.target.value, needsRerender) },

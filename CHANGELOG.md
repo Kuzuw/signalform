@@ -4,6 +4,32 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-17
+
+### Added
+- **Effect rack.** A new **Effects** tab on every widget holds a chain of GPU effects you add from a menu, reorder (drag, or the arrows), switch off, duplicate, reset or remove. With nothing selected, the inspector shows the **stage's own rack**, which applies to the whole picture and to recordings and Live Output of the whole stage. 23 effects:
+  - Light: Glow, Light streaks (anamorphic, vertical or cross)
+  - Blur: Blur, Motion blur, Zoom blur
+  - Colour: Colour grade, Gradient map, Ink threshold
+  - Stylize: Pixelate (squares or LED dots), Halftone, Posterize (with dither), Edge glow
+  - Space: Kaleidoscope, Mirror, Warp (waves, ripples, swirl, bulge)
+  - Lens: RGB split, Vignette, Sharpen
+  - Texture: Film grain, CRT screen, Glitch
+  - Time: Feedback echo, Strobe
+- Every effect's main setting can **follow the music**: loudness, bass, mids, highs, kicks, snares, hi-hats, build-ups or drops, with an amount from −100% to 100%. Strobe flashes on kicks out of the box.
+- Effects are saved with scenes and with presets. All effects share one GPU context, however many widgets use them.
+
+### Changed
+- **Oscilloscope, more realistic:**
+  - The tube face sits in a bezel, with a rounded screen the beam can't leave (*Tube frame*; *Screen only* removes it).
+  - The spot defocuses towards the corners (*Corner defocus*) and grows with the beam intensity.
+  - A fine phosphor grain (*Phosphor grain*).
+  - Two kinds of halation: a near glow from light scattered in the phosphor, and a wider halo from light reflected inside the faceplate.
+  - The graticule is lit from the bottom edge of the faceplate.
+  - Optional trace noise.
+- **Oscilloscope, faster:** it renders straight to its own canvas (no full-size copy per frame); the readout is redrawn only when its text changes; samples are read straight from the stream; each trace keeps its own beam history instead of copying arrays for every sample. About 0.3 ms of CPU time per frame on the test machine.
+
+
 ## [1.6.0] - 2026-10-17
 
 ### Changed
@@ -119,7 +145,8 @@ First public release. Free and open source under the MIT license, for Windows 10
 - Live Output dialog for Spout and NDI (the native add-ons are not bundled yet).
 - Windows installer built and published by GitHub Actions.
 
-[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/Kuzuw/signalform/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/Kuzuw/signalform/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/Kuzuw/signalform/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Kuzuw/signalform/compare/v1.3.0...v1.4.0

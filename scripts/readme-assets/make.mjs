@@ -32,7 +32,7 @@ const log = (...a) => console.log('•', ...a);
 // Module stills, with settings that show each one at its best.
 const LOOKS = {
   ascii: {}, aura: {}, ferro: { snap: 'never' }, flowfield: {}, fractal: {}, grain: {},
-  lissajous: { size: 0.8 }, oscilloscope: { mode: 'yt', channels: 'both', tdiv: '0.002', vdiv: '0.1' }, spectre: {}, trace: {},
+  lissajous: { size: 0.8 }, oscilloscope: { mode: 'yt', channels: 'both', tdiv: '0.005', vdiv: '0.2' }, spectre: {}, trace: {},
   waveform: {}, oscillon: { form: 'trefoil', spin: 0 }, stroke: {}, discharge: { afterglow: 0.8 }, familiar: {},
   tunnel: {}, horizon: {}, strings: { count: 16 }, halo: { echoes: 2 }, cells: {}
 };

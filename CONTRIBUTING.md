@@ -121,6 +121,10 @@ Every value is already smoothed and normalized to about 0–1 unless noted. The 
 - **Never throw from `render`.** A broken frame stops the whole stage.
 - Keep `id` and parameter `key`s stable once released: scenes and presets store them.
 
+## Writing an effect
+
+Effects live in `renderer/rack.js`. A one-pass effect is a name, a category, its `main` parameter (the one the music can drive), a parameter list in the same format as modules, and a GLSL fragment shader body: the input picture is `uIn` (`tx(uv)` samples it, `UV` is the pixel's position), and every range or toggle parameter arrives as a uniform `u_<key>`. Effects that need several passes or keep state between frames (Glow, Feedback echo) use `run(E, src, dst, item, state)` with the engine's `pass()` and `tmp()` helpers instead.
+
 ## Tests
 
 The tests drive the interface and the modules in headless Chromium, with a browser stand-in (`renderer/shim.js`) instead of Electron. They need Playwright:

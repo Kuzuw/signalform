@@ -4,6 +4,7 @@ import { byId, defaults } from './modules/index.js';
 import { h, uid, toast } from './ui.js';
 import { hexToRgb } from './modules/util.js';
 import { FX_DEFAULTS, shapeFrame, post, isNeutralLook } from './fx.js';
+import { fxEngine, normalizeRack, rackActive } from './rack.js';
 
 export const BLENDS = {
   normal: { label: 'Normal', css: 'normal', canvas: 'source-over' },
@@ -30,8 +31,9 @@ export function isInk(bg) {
 export class Stage {
   constructor(el, wrap, hooks) {
     this.el = el; this.wrap = wrap; this.hooks = hooks;
-    this.scene = { name: 'Untitled', aspect: '16:9', widgets: [], groups: [] };
+    this.scene = { name: 'Untitled', aspect: '16:9', widgets: [], groups: [], rack: [] };
     this.rt = new Map();
+    this.masterState = {}; this.lastF = null; this.lastT = 0;
     this.sel = new Set();
     this.renderScale = 1;
     this.forceRender = new Set();
@@ -87,8 +89,10 @@ export class Stage {
       name: scene.name || 'Untitled',
       aspect: ASPECTS[scene.aspect] ? scene.aspect : '16:9',
       widgets: [],
-      groups: (scene.groups || []).map((g) => ({ id: g.id || uid(), name: g.name || 'Group' }))
+      groups: (scene.groups || []).map((g) => ({ id: g.id || uid(), name: g.name || 'Group' })),
+      rack: normalizeRack(scene.rack)
     };
+    this.masterState = {};
     this.fit();
     for (const w of scene.widgets || []) if (byId[w.module]) this._build(this._normalize(w));
     // drop groups that lost their members
@@ -115,6 +119,7 @@ export class Stage {
       bg: { mode: ['clear', 'solid', 'glass'].includes(bg.mode) ? bg.mode : 'clear', tone: ['dark', 'light', 'custom'].includes(bg.tone) ? bg.tone : 'dark', color: bg.color || '#1b2030' },
       radius: num(w.radius, 0),
       feather: num(w.feather, 0),
+      rack: normalizeRack(w.rack),
       fx: Object.assign({}, FX_DEFAULTS, w.fx || {}),
       params: Object.assign(defaults(mod), w.params || {})
     };
@@ -443,12 +448,18 @@ export class Stage {
       const mdt = dt * fx.speed;
       st.t = (st.t ?? t) + mdt;
       try {
-        r.inst.render(shapeFrame(F, fx, st), { dt: mdt, t: st.t, W: cw, H: ch, S: Math.max(0.5, cw / Math.max(1, w.rect.w * this.px.w)), params: w.params });
-        const neutral = isNeutralLook(fx);
+        const WF = shapeFrame(F, fx, st);
+        r.inst.render(WF, { dt: mdt, t: st.t, W: cw, H: ch, S: Math.max(0.5, cw / Math.max(1, w.rect.w * this.px.w)), params: w.params });
+        const look = !isNeutralLook(fx), E = rackActive(w.rack) ? fxEngine() : null;
+        const neutral = !look && !E;
         if (neutral !== r.direct) { r.direct = neutral; r.src.style.display = neutral ? '' : 'none'; r.canvas.style.display = neutral ? 'none' : ''; }
-        if (!neutral) post(r.canvas, r.dctx, r.src, fx, st, dt);
+        if (look) post(r.canvas, r.dctx, r.src, fx, st, dt);
+        // the widget's effect rack runs after its Look
+        if (E) E.run(look ? r.canvas : r.src, r.dctx, cw, ch, w.rack, r.rackState || (r.rackState = {}), WF, st.t);
       } catch (e) { console.error(e); r.failed = true; toast(`${w.name} stopped: ${e.message}`, true); }
     }
+    this.lastF = F; this.lastT = t;
+    try { this._master(dpr); } catch (e) { console.error(e); }
   }
 
   // Source: 'stage', a widget id, or a group id.
@@ -499,6 +510,28 @@ export class Stage {
       ctx.drawImage(t, x, y);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    // the stage's own effect rack applies to the whole picture
+    if (source === 'stage' && rackActive(this.scene.rack) && this.lastF) {
+      const E = fxEngine();
+      if (E) { const k = W + 'x' + H, st = this.masterState[k] || (this.masterState[k] = {}); E.run(ctx.canvas, ctx, W, H, this.scene.rack, st, this.lastF, this.lastT); }
+    }
+  }
+
+  // With effects on the stage rack, the stage is shown as one composited picture on an overlay
+  // (the widgets keep their frames and handles for editing on top of it).
+  _master(dpr) {
+    const on = rackActive(this.scene.rack) && !!fxEngine();
+    this.el.classList.toggle('mastered', on);
+    if (!on) { if (this.masterCv) this.masterCv.style.display = 'none'; return; }
+    if (!this.masterCv) {
+      this.masterCv = h('canvas', { class: 'master-out' });
+      this.masterCtx = this.masterCv.getContext('2d');
+      this.el.prepend(this.masterCv);
+    }
+    const S = dpr * this.renderScale, W = Math.max(16, Math.round(this.px.w * S)), H = Math.max(16, Math.round(this.px.h * S));
+    if (this.masterCv.width !== W || this.masterCv.height !== H) { this.masterCv.width = W; this.masterCv.height = H; }
+    this.masterCv.style.display = '';
+    this.compose(this.masterCtx, W, H, 'stage');
   }
 
   // Output size for a source at a target height, keeping its aspect ratio (even numbers for encoders).
@@ -514,7 +547,8 @@ export class Stage {
     return {
       app: 'signalform', version: 2, name: this.scene.name, aspect: this.scene.aspect,
       groups: this.scene.groups.map((g) => ({ id: g.id, name: g.name })),
-      widgets: this.scene.widgets.map((w) => ({ module: w.module, name: w.name, rect: w.rect, opacity: w.opacity, blend: w.blend, visible: w.visible, locked: w.locked, group: w.group, bg: w.bg, radius: w.radius, feather: w.feather, fx: w.fx, params: w.params }))
+      widgets: this.scene.widgets.map((w) => ({ module: w.module, name: w.name, rect: w.rect, opacity: w.opacity, blend: w.blend, visible: w.visible, locked: w.locked, group: w.group, bg: w.bg, radius: w.radius, feather: w.feather, rack: w.rack, fx: w.fx, params: w.params })),
+      rack: this.scene.rack
     };
   }
 }

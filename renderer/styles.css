@@ -343,3 +343,25 @@ dialog::backdrop { background: #000a; backdrop-filter: blur(3px); }
 
 .track-top { gap: 0; }
 .track-top .track-name { padding: 0 2px; }
+
+/* stage effect rack: the composited picture sits under the widgets' frames and handles */
+.stage .master-out { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.stage.mastered .widget .card { visibility: hidden; }
+
+/* effect rack */
+.tabs.four button { padding-left: 4px; padding-right: 4px; }
+.fx-head .row { gap: 8px; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.fx-add { width: 100%; min-width: 0; }
+.fx-card { border-left: 2px solid var(--accent); }
+.fx-card.off { border-left-color: var(--line-2); }
+.fx-card.off .fx-top h3 { color: var(--dim); text-decoration: line-through; }
+.fx-top { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto auto auto; align-items: center; gap: 4px; }
+.fx-top .sec-toggle h3 { display: flex; gap: 8px; align-items: center; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-top .icon-btn { width: 26px; height: 26px; }
+.fx-top .icon-btn:disabled { opacity: .3; cursor: default; }
+.fx-grip { color: var(--dim); cursor: grab; font-size: 11px; letter-spacing: -2px; user-select: none; }
+.fx-mod { font: 600 10px/1 var(--mono); color: var(--accent); letter-spacing: .02em; text-transform: none; }
+.fx-modrow { display: grid; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.fx-card.dragging { opacity: .45; }
+.fx-card.drop-above { box-shadow: inset 0 2px 0 var(--accent); }
+.fx-card.drop-below { box-shadow: inset 0 -2px 0 var(--accent); }

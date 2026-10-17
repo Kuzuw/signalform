@@ -68,29 +68,30 @@ void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)
 const SEG_VERT = `#version 300 es
 layout(location = 0) in vec4 aSeg;     // x0 y0 x1 y1 (pixels)
 layout(location = 1) in vec2 aE;       // energy into the fast and slow phosphor
-uniform vec2 uRes; uniform float uSig;
-out vec2 vP; flat out vec2 vA; flat out vec2 vDir; flat out float vL; flat out vec2 vE;
+uniform vec2 uRes, uCenter; uniform float uSig, uDiv, uEdge;
+out vec2 vP; flat out vec2 vA; flat out vec2 vDir; flat out float vL; flat out vec2 vE; flat out float vSig;
 void main() {
   vec2 a = aSeg.xy, b = aSeg.zw, d = b - a;
   float L = length(d);
   vec2 dir = L > 1e-4 ? d / L : vec2(1.0, 0.0), nrm = vec2(-dir.y, dir.x);
-  float r = uSig * 3.5;
+  vec2 m = ((a + b) * 0.5 - uCenter) / (uDiv * 5.0);
+  float sig = uSig * (1.0 + uEdge * dot(m, m));       // the spot defocuses away from the centre of the tube
+  float r = sig * 3.5;
   vec2 c = vec2[6](vec2(0, 0), vec2(1, 0), vec2(0, 1), vec2(1, 0), vec2(1, 1), vec2(0, 1))[gl_VertexID];
   vec2 p = a + dir * (-r + c.x * (L + 2.0 * r)) + nrm * (-r + c.y * 2.0 * r);
-  vP = p; vA = a; vDir = dir; vL = L; vE = aE;
+  vP = p; vA = a; vDir = dir; vL = L; vE = aE; vSig = sig;
   gl_Position = vec4(p / uRes * 2.0 - 1.0, 0.0, 1.0);
 }`;
 const SEG_FRAG = `#version 300 es
 precision highp float;
-in vec2 vP; flat in vec2 vA; flat in vec2 vDir; flat in float vL; flat in vec2 vE;
-uniform float uSig;
+in vec2 vP; flat in vec2 vA; flat in vec2 vDir; flat in float vL; flat in vec2 vE; flat in float vSig;
 out vec4 o;
 float erf_(float x) { float s = sign(x), a = abs(x); float t = 1.0 / (1.0 + 0.3275911 * a);
   return s * (1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * exp(-a * a)); }
 void main() {
   vec2 q = vP - vA;
   float u = dot(q, vDir), v = dot(q, vec2(-vDir.y, vDir.x));
-  float s2 = uSig * 1.41421356, norm = 1.0 / (6.2831853 * uSig * uSig);
+  float uSig = vSig, s2 = uSig * 1.41421356, norm = 1.0 / (6.2831853 * uSig * uSig);
   float I;
   // a gaussian spot integrated along the segment; a (near) standing beam is just the spot
   if (vL < uSig * 0.05) I = norm * exp(-(u * u + v * v) / (2.0 * uSig * uSig));
@@ -112,44 +113,56 @@ void main() { vec2 uv = gl_FragCoord.xy / uSize;
   o = s; }`;
 const COMP_FRAG = `#version 300 es
 precision highp float;
-uniform sampler2D uPhos, uBloom;
-uniform vec2 uRes, uCenter;
-uniform float uDiv, uExpo, uBloomAmt, uGrid, uGlass, uWhite, uT;
+uniform sampler2D uPhos, uNear, uWide, uOver;
+uniform vec2 uRes, uCenter, uScreen;
+uniform float uDiv, uBloomAmt, uGrid, uGlass, uT, uGrain, uFrame, uRad, uOverOn, uDim;
 uniform vec3 uColF, uColS, uGridCol, uBack;
-uniform vec2 uMix;
 out vec4 o;
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float line(float d, float w) { return 1.0 - smoothstep(w * 0.5, w * 0.5 + 1.0, abs(d)); }
+float sdBox(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+vec3 light(vec4 v) { return uColF * v.r + uColS * v.g; }
 void main() {
-  vec2 uv = gl_FragCoord.xy / uRes;
-  vec4 p = texture(uPhos, uv), b = texture(uBloom, uv);
-  vec3 beam = (uColF * p.r * uMix.x + uColS * p.g * uMix.y) * uExpo;
-  vec3 halo = (uColF * b.r * uMix.x + uColS * b.g * uMix.y) * uExpo * uBloomAmt;
-  // phosphor glow saturates towards a white-hot core, like an overdriven trace
+  vec2 uv = gl_FragCoord.xy / uRes, pc = gl_FragCoord.xy - uCenter;
+  // the phosphor layer is grainy: a fixed fine texture modulates the light it gives off
+  float grain = 1.0 + uGrain * (hash(floor(gl_FragCoord.xy)) - 0.5) * 0.9;
+  vec3 beam = light(texture(uPhos, uv)) * grain;
+  // light scattered in the phosphor (near glow) and reflected inside the faceplate (a wider halo ring)
+  vec3 near = light(texture(uNear, uv)), wide = light(texture(uWide, uv));
+  vec3 halo = (near * 0.7 + max(wide * 1.3 - near * 0.45, 0.0)) * uBloomAmt;
   vec3 c = 1.0 - exp(-beam);
   float pk = max(c.r, max(c.g, c.b));
-  c = mix(c, vec3(1.0, 1.0, 0.97) * pk, smoothstep(0.6, 1.0, pk) * 0.55 * uWhite);
+  c = mix(c, vec3(1.0, 1.0, 0.97) * pk, smoothstep(0.6, 1.0, pk) * 0.55);   // an overdriven trace runs white-hot
   c += (1.0 - exp(-halo)) * 0.9;
-  // the unlit screen and the etched graticule (10 × 8 divisions, centre axes with minor ticks)
-  vec2 g = (gl_FragCoord.xy - uCenter) / uDiv;
+  vec2 g = pc / uDiv;
   float px = 1.0 / uDiv;
   vec3 base = uBack;
   if (uGrid > 0.0 && abs(g.x) <= 5.0 + px && abs(g.y) <= 4.0 + px) {
-    vec2 fd = (g - floor(g + 0.5)) * uDiv;                       // distance to the nearest division line, in pixels
+    vec2 fd = (g - floor(g + 0.5)) * uDiv;
     float L = max(line(fd.x, 1.0) * step(abs(g.x), 5.0 + px), line(fd.y, 1.0));
-    vec2 ft = (g * 5.0 - floor(g * 5.0 + 0.5)) * uDiv / 5.0;      // minor ticks on the centre axes
+    vec2 ft = (g * 5.0 - floor(g * 5.0 + 0.5)) * uDiv / 5.0;
     float T = max(line(ft.x, 1.0) * step(abs(g.y), 0.1), line(ft.y, 1.0) * step(abs(g.x), 0.1));
     float edge = max(line((abs(g.x) - 5.0) * uDiv, 1.6) * step(abs(g.y), 4.0), line((abs(g.y) - 4.0) * uDiv, 1.6) * step(abs(g.x), 5.0));
-    float dots = max(L, T) * 0.55 + edge * 0.8;
-    // the scale is lit from its edge and catches the trace's light
-    base += uGridCol * dots * (uGrid + dot(c, vec3(0.3)) * 0.5);
+    // the scale is lit from the bottom edge of the faceplate and catches the trace's light
+    float lit = uGrid * (0.65 + 0.35 * smoothstep(4.0, -4.0, g.y));
+    base += uGridCol * (max(L, T) * 0.55 + edge * 0.8) * (lit + dot(c + near * 0.2, vec3(0.3)) * 0.5);
   }
   vec3 col = base + c;
   if (uGlass > 0.0) {
-    vec2 q = uv - 0.5;
-    col *= 1.0 - dot(q, q) * 0.55 * uGlass;                        // the tube is darker towards its corners
-    col += vec3(0.012, 0.014, 0.016) * uGlass * smoothstep(0.75, 0.0, length(uv - vec2(0.25, 0.85)));   // a soft reflection on the glass
+    vec2 q = uFrame > 0.5 ? pc / uScreen * 0.5 : uv - 0.5;
+    col *= 1.0 - dot(q, q) * 0.55 * uGlass;
+    col += vec3(0.012, 0.014, 0.016) * uGlass * smoothstep(0.75, 0.0, length(q - vec2(-0.25, 0.35)));
     col += (hash(gl_FragCoord.xy + fract(uT) * 91.0) - 0.5) * 0.012 * uGlass;
+  }
+  if (uOverOn > 0.0) { vec4 ov = texture(uOver, uv); col = col * (1.0 - uDim) + ov.rgb; }
+  if (uFrame > 0.5) {
+    // the tube face is a rounded rectangle set in a dark bezel
+    float d = sdBox(pc, uScreen, uRad);
+    float inside = 1.0 - smoothstep(-1.0, 1.0, d);
+    vec3 bez = vec3(0.055, 0.057, 0.06) * (0.75 + 0.25 * smoothstep(uRes.y * 0.5, -uRes.y * 0.5, pc.y));
+    bez *= 1.0 - 0.6 * exp(-max(d, 0.0) / (uDiv * 0.12));                       // shadow where the bezel meets the glass
+    bez += vec3(0.08) * exp(-abs(d - uDiv * 0.05) / 1.5) * 0.6;                     // a thin highlight on the bezel lip
+    col = mix(bez, col, inside);
   }
   o = vec4(col, 1.0);
 }`;
@@ -229,24 +242,39 @@ export default {
     { key: 'afterglow', label: 'Afterglow', type: 'range', min: 0.05, max: 10, step: 0.05, default: 1, unit: '×' },
     { key: 'glow', label: 'Halation', type: 'range', min: 0, max: 2, step: 0.05, default: 0.6 },
     { key: 'smooth', label: 'Beam interpolation', type: 'select', default: '4', options: [['1', 'Off (straight lines)'], ['2', '2×'], ['4', '4×'], ['8', '8× (smoothest)']] },
+    { key: 'edgeFocus', label: 'Corner defocus', type: 'range', min: 0, max: 2, step: 0.01, default: 0.35 },
+    { key: 'grain', label: 'Phosphor grain', type: 'range', min: 0, max: 1, step: 0.01, default: 0.3 },
+    { key: 'noise', label: 'Trace noise', type: 'range', min: 0, max: 0.05, step: 0.0005, default: 0.002, unit: ' div' },
+    { key: 'frame', label: 'Tube frame', type: 'select', default: 'bezel', options: [['bezel', 'Screen in its bezel'], ['none', 'Screen only']] },
     { key: 'grid', label: 'Graticule', type: 'toggle', default: true },
     { key: 'gridLight', label: 'Scale illumination', type: 'range', min: 0, max: 1, step: 0.01, default: 0.3, showIf: { grid: true } },
     { key: 'readout', label: 'Readout', type: 'toggle', default: true },
     { key: 'glass', label: 'Tube glass', type: 'range', min: 0, max: 1, step: 0.01, default: 0.7 }
   ],
   create(canvas) {
-    const ctx = canvas.getContext('2d');
-    const glc = document.createElement('canvas');
     let G = null, err = '';
-    try { G = makeGL(glc); if (!G) err = 'This oscilloscope needs WebGL 2, which this GPU did not provide.'; } catch (e) { err = 'The oscilloscope could not start: ' + e.message; G = null; }
-    let phos = null, bloomA = null, bloomB = null, size = [0, 0];
+    try { G = makeGL(canvas); if (!G) err = 'This oscilloscope needs WebGL 2, which this GPU did not provide.'; } catch (e) { err = 'The oscilloscope could not start: ' + e.message; G = null; }
+    if (!G) {
+      const ctx = canvas.getContext('2d');
+      return { render(F, { W, H, S }) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#8a93a6'; ctx.font = `${12 * S}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.fillText(err, W / 2, H / 2); }, resize() {}, dispose() {} };
+    }
+    const gl = G.gl;
+    let phos = null, near = null, wide = null, tmpB = null, size = [0, 0];
     let inst = new Float32Array(6 * 4096), n = 0;
     let lastPos = -1, lastMode = '', time = 0, rot = 0;
-    // a short history of the beam's signal (x, y in divisions, z = beam on) for Catmull-Rom upsampling
-    const hx = new Float32Array(4), hy = new Float32Array(4), hz = new Uint8Array(4);
-    let hn = 0;
+    // overlay (readout, messages, drawing guide): a small 2D canvas, uploaded only when it changes
+    const ov = document.createElement('canvas'), octx = ov.getContext('2d');
+    const ovTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, ovTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    let ovKey = '', ovOn = false;
+    // beam history (x, y in divisions, z = beam on) for Catmull-Rom upsampling; one per trace
+    const mkBeam = () => ({ x: new Float32Array(4), y: new Float32Array(4), z: new Uint8Array(4), n: 0 });
+    const resetBeam = (b) => { b.n = 0; b.z.fill(0); };
+    const B0 = mkBeam();
     // Y/T sweep state
-    const sw = { state: 'wait', x: 0, wait: 0, hold: 0, prevTrig: 0, armed: false, prev: [null, null], last: '' };
+    const sw = { state: 'wait', x: 0, wait: 0, hold: 0, armed: false, key: '', beams: [] };
     // shapes and pictures
     let shapeKey = '', shape = [], normals = [], phase = 0, drawing = false, stroke = [];
     const pic = { key: '', path: null, busy: false, error: '', gray: null, graySrc: '' };
@@ -293,20 +321,34 @@ export default {
       }
       return shape;
     }
-
     function ensure(W, H) {
       if (size[0] === W && size[1] === H) return;
-      size = [W, H]; glc.width = W; glc.height = H;
-      const gl = G.gl;
-      for (const t of [phos, bloomA, bloomB]) if (t) { gl.deleteTexture(t.t); gl.deleteFramebuffer(t.fb); }
+      size = [W, H];
+      for (const t of [phos, near, wide, tmpB]) if (t) { gl.deleteTexture(t.t); gl.deleteFramebuffer(t.fb); }
       phos = G.target(W, H);
       const bw = Math.max(1, Math.ceil(W / 4)), bh = Math.max(1, Math.ceil(H / 4));
-      bloomA = G.target(bw, bh); bloomB = G.target(bw, bh);
-      hn = 0; hz.fill(0);
+      near = G.target(bw, bh); wide = G.target(bw, bh); tmpB = G.target(bw, bh);
+      ov.width = W; ov.height = H; ovKey = '';
+      resetBeam(B0); for (const b of sw.beams) resetBeam(b);
     }
     function push(x0, y0, x1, y1, eF, eS) {
       if (n * 6 + 6 > inst.length) { const b = new Float32Array(inst.length * 2); b.set(inst); inst = b; }
       const o = n * 6; inst[o] = x0; inst[o + 1] = y0; inst[o + 2] = x1; inst[o + 3] = y1; inst[o + 4] = eF; inst[o + 5] = eS; n++;
+    }
+    // redraw the overlay only when what it shows has changed
+    function overlay(key, W, H, draw) {
+      if (key === ovKey) return;
+      ovKey = key;
+      octx.clearRect(0, 0, W, H);
+      ovOn = !!key;
+      if (!ovOn) return;
+      draw(octx);
+      gl.bindTexture(gl.TEXTURE_2D, ovTex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, ov);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     }
 
     const self = {
@@ -314,117 +356,117 @@ export default {
       render(F, { dt, W, H, S, params: p }) {
         dt = Math.max(0, Math.min(0.25, dt));
         time += dt;
-        if (!G) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#8a93a6'; ctx.font = `${12 * S}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.fillText(err, W / 2, H / 2); return; }
         ensure(W, H);
-        const gl = G.gl, sr = F.sampleRate || 48000;
+        const sr = F.sampleRate || 48000;
         const ph = p.phosphor === 'custom' ? (() => { const c = hexToVec(p.color); return { f: c, s: c.map((v) => v * 0.8), tf: 0.025, ts: 0.15, mf: 1, ms: 0.3 }; })() : PHOSPHORS[p.phosphor] || PHOSPHORS.p31;
         const tauF = ph.tf, tauS = ph.ts * p.afterglow;
-        const div = Math.min(W / 10, H / 8) * 0.92, cx = W / 2, cy = H / 2;
+        const bez = p.frame === 'bezel';
+        const div = Math.min(W / 10, H / 8) * (bez ? 0.86 : 0.92), cx = W / 2, cy = H / 2;
         const vd = (+p.vdiv || 0.2) / p.gain;                    // volts per division
         const U = p.mode === 'picture' ? 1 : Math.max(1, +p.smooth || 4);
-        if (p.mode !== lastMode) { lastMode = p.mode; hn = 0; hz.fill(0); sw.state = 'wait'; sw.prev = [null, null]; gl.bindFramebuffer(gl.FRAMEBUFFER, phos.fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); }
+        if (p.mode !== lastMode) { lastMode = p.mode; resetBeam(B0); sw.state = 'wait'; sw.key = ''; gl.bindFramebuffer(gl.FRAMEBUFFER, phos.fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); }
 
-        // ---- the samples that arrived since the last frame
+        // ---- the samples that arrived since the last frame (straight from the ring, no per-sample closures)
         const SC = F.scope, live = SC && SC.live;
-        let N, getL, getR;
+        let N, bufL, bufR, start, mask;
         if (live) {
           if (lastPos < 0 || SC.pos - lastPos > SC.mask || SC.pos < lastPos) lastPos = SC.pos - Math.min(SC.mask, Math.round(sr * dt));
           N = Math.min(MAX_SAMPLES, SC.pos - lastPos);
-          const start = SC.pos - N, m = SC.mask;
-          getL = (i) => SC.L[(start + i) & m]; getR = (i) => SC.R[(start + i) & m];
+          bufL = SC.L; bufR = SC.R; start = SC.pos - N; mask = SC.mask;
           lastPos = SC.pos;
         } else {
           // no stream (no source yet, or a preview): the newest stretch of the analyser buffer
           lastPos = -1;
           N = Math.max(256, Math.min(F.waveL.length, Math.round(sr * Math.max(dt, 1 / 60))));
-          const off = F.waveL.length - N;
-          getL = (i) => F.waveL[off + i]; getR = (i) => F.waveR[off + i];
+          bufL = F.waveL; bufR = F.waveR; start = F.waveL.length - N; mask = 0x7fffffff;
         }
 
         n = 0;
-        const sig = Math.max(0.6, p.width * 0.75 * S);
-        // energy per sample interval; the newest light is fresh, earlier light in this frame has already faded a little
+        // a brighter beam carries more current and its spot grows
+        const sig = Math.max(0.6, p.width * 0.75 * S) * (1 + 0.3 * Math.max(0, p.intensity - 1));
+        // energy per sample interval; light drawn earlier in this frame has already faded a little
         const E0 = p.intensity * 1.4 * div * (48000 / sr);
-        const fadeF = Math.exp(-1 / (sr * tauF)), fadeS = Math.exp(-1 / (sr * tauS));
+        const fadeF = Math.exp(-1 / (sr * tauF)), fadeS = Math.exp(-1 / (sr * tauS)), ifF = 1 / fadeF, ifS = 1 / fadeS;
         let wF = Math.pow(fadeF, N), wS = Math.pow(fadeS, N);
         // the afterglow's share is set as a steady brightness next to the flash; a longer afterglow then builds up more light, as on a real tube
-        const slowMix = ph.ms * ph.tf / ph.ts;   // weight of the oldest sample, rises to 1 for the newest
-        // divisions → GL pixels (y points up): cx + x * div, cy + y * div
-        // beam path in divisions; z = 0 blanks the beam (retrace, jumps)
-        const beam = (x, y, z, dE) => {
-          hx[0] = hx[1]; hy[0] = hy[1]; hz[0] = hz[1];
-          hx[1] = hx[2]; hy[1] = hy[2]; hz[1] = hz[2];
-          hx[2] = hx[3]; hy[2] = hy[3]; hz[2] = hz[3];
-          hx[3] = x; hy[3] = y; hz[3] = z;
-          if (hn < 4) { hn++; if (hn < 3) return; }
+        const slowMix = ph.ms * ph.tf / ph.ts;
+        const noise = p.noise;
+        // beam path in divisions; z = 0 blanks the beam (retrace, jumps), z = 2 draws a faint jump
+        const beam = (b, x, y, z, dE) => {
+          const X = b.x, Y = b.y, Z = b.z;
+          if (noise > 0) { x += (Math.random() + Math.random() - 1) * noise; y += (Math.random() + Math.random() - 1) * noise; }
+          X[0] = X[1]; Y[0] = Y[1]; Z[0] = Z[1];
+          X[1] = X[2]; Y[1] = Y[2]; Z[1] = Z[2];
+          X[2] = X[3]; Y[2] = Y[3]; Z[2] = Z[3];
+          X[3] = x; Y[3] = y; Z[3] = z;
+          if (b.n < 4) { b.n++; if (b.n < 3) return; }
           // segment from point 1 to point 2 (one sample late, so the curve can look ahead)
-          if (hz[1] === 0 || hz[2] === 0) return;                                   // beam blanked
-          if (hz[2] === 2) { push(cx + hx[1] * div, cy + hy[1] * div, cx + hx[2] * div, cy + hy[2] * div, E0 * 0.03 * dE * wF, E0 * 0.03 * dE * wS); return; }   // a visible jump
-          let px0 = hx[1], py0 = hy[1];
+          if (Z[1] === 0 || Z[2] === 0) return;
+          if (Z[2] === 2) { push(cx + X[1] * div, cy + Y[1] * div, cx + X[2] * div, cy + Y[2] * div, E0 * 0.03 * dE * wF, E0 * 0.03 * dE * wS); return; }
+          const eF = E0 * dE / U * wF * ph.mf, eS = E0 * dE / U * wS * slowMix;
+          if (U === 1) { push(cx + X[1] * div, cy + Y[1] * div, cx + X[2] * div, cy + Y[2] * div, eF, eS); return; }
+          const ax = Z[0] ? X[0] : X[1], ay = Z[0] ? Y[0] : Y[1], dx = Z[3] ? X[3] : X[2], dy = Z[3] ? Y[3] : Y[2];
+          // Catmull-Rom between points 1 and 2 as a cubic in t
+          const c1x = -ax + X[2], c2x = 2 * ax - 5 * X[1] + 4 * X[2] - dx, c3x = -ax + 3 * X[1] - 3 * X[2] + dx;
+          const c1y = -ay + Y[2], c2y = 2 * ay - 5 * Y[1] + 4 * Y[2] - dy, c3y = -ay + 3 * Y[1] - 3 * Y[2] + dy;
+          let px0 = cx + X[1] * div, py0 = cy + Y[1] * div;
           for (let k = 1; k <= U; k++) {
             const t = k / U, t2 = t * t, t3 = t2 * t;
-            // Catmull-Rom through points 0..3, evaluated between 1 and 2
-            const ax = hz[0] ? hx[0] : hx[1], ay = hz[0] ? hy[0] : hy[1], dx = hz[3] ? hx[3] : hx[2], dy = hz[3] ? hy[3] : hy[2];
-            const qx = 0.5 * (2 * hx[1] + (-ax + hx[2]) * t + (2 * ax - 5 * hx[1] + 4 * hx[2] - dx) * t2 + (-ax + 3 * hx[1] - 3 * hx[2] + dx) * t3);
-            const qy = 0.5 * (2 * hy[1] + (-ay + hy[2]) * t + (2 * ay - 5 * hy[1] + 4 * hy[2] - dy) * t2 + (-ay + 3 * hy[1] - 3 * hy[2] + dy) * t3);
-            push(cx + px0 * div, cy + py0 * div, cx + qx * div, cy + qy * div, E0 * dE / U * wF * ph.mf, E0 * dE / U * wS * slowMix);
+            const qx = cx + 0.5 * (2 * X[1] + c1x * t + c2x * t2 + c3x * t3) * div, qy = cy + 0.5 * (2 * Y[1] + c1y * t + c2y * t2 + c3y * t3) * div;
+            push(px0, py0, qx, qy, eF, eS);
             px0 = qx; py0 = qy;
           }
         };
 
         // ---- what drives the beam
         let info = '';
+        const vlab = VDIV.find((q) => q[0] === +p.vdiv)?.[1] || '';
         if (p.mode === 'xy') {
-          const k = 1 / vd, c = 0.70710678;
+          const k = 1 / vd, c = 0.70710678, rotate = p.rotate, ox = p.posX, oy = p.posY;
           for (let i = 0; i < N; i++) {
-            const l = getL(i), r = getR(i);
-            const x = p.rotate ? (l - r) * c : l, y = p.rotate ? (l + r) * c : r;
-            beam(x * k + p.posX, y * k + p.posY, 1, 1);
-            wF /= fadeF; wS /= fadeS;
+            const j = (start + i) & mask, l = bufL[j], r = bufR[j];
+            beam(B0, (rotate ? (l - r) * c : l) * k + ox, (rotate ? (l + r) * c : r) * k + oy, 1, 1);
+            wF *= ifF; wS *= ifS;
           }
-          info = `X ${VDIV.find((v) => v[0] === +p.vdiv)?.[1] || ''}  Y ${VDIV.find((v) => v[0] === +p.vdiv)?.[1] || ''}${p.gain !== 1 ? '  VAR' : ''}`;
+          info = `X ${vlab}  Y ${vlab}${p.gain !== 1 ? '  VAR' : ''}`;
         } else if (p.mode === 'yt') {
           // a real time base: wait for the trigger, sweep left to right at the chosen speed, blank the retrace, hold off
           const tdiv = +p.tdiv || 0.002, sweepN = tdiv * 10 * sr, k = 1 / vd;
           const src = p.trigSrc, lvl = p.level, rise = p.slope !== 'fall', hyst = 0.004 + vd * 0.02;
           const autoN = Math.max(sweepN * 1.5, sr * 0.05), holdN = p.holdoff / 1000 * sr;
           const showL = p.channels === 'both' || p.channels === 'l', showR = p.channels === 'both' || p.channels === 'r', add = p.channels === 'mix';
-          // each displayed channel keeps its own short beam history
           // dual trace splits the screen: CH1 two divisions up, CH2 two down, plus each channel's position
-          const dual = p.channels === 'both', chans = [];
-          if (showL) chans.push({ v: getL, pos: p.pos1 + (dual ? 2 : 0) });
-          if (showR) chans.push({ v: getR, pos: p.pos2 - (dual ? 2 : 0) });
-          if (add) chans.push({ v: (i) => getL(i) + getR(i), pos: p.pos1 });
-          if (sw.last !== p.channels + chans.length) { sw.last = p.channels + chans.length; sw.hist = chans.map(() => ({ hx: new Float32Array(4), hy: new Float32Array(4), hz: new Uint8Array(4), hn: 0 })); }
-          const H0 = sw.hist;
-          const tv = src === 'r' ? getR : src === 'mix' ? (i) => getL(i) + getR(i) : getL;
+          const dual = p.channels === 'both';
+          const chans = [];
+          if (showL) chans.push({ w: 0, pos: p.pos1 + (dual ? 2 : 0) });
+          if (showR) chans.push({ w: 1, pos: p.pos2 - (dual ? 2 : 0) });
+          if (add) chans.push({ w: 2, pos: p.pos1 });
+          const key = p.channels;
+          if (sw.key !== key) { sw.key = key; sw.beams = chans.map(mkBeam); }
+          const nc = chans.length, beams = sw.beams;
           for (let i = 0; i < N; i++) {
-            const v = tv(i);
+            const j = (start + i) & mask, l = bufL[j], r = bufR[j];
+            const v = src === 'r' ? r : src === 'mix' ? l + r : l;
             if (sw.state === 'hold') { if (--sw.hold <= 0) { sw.state = 'wait'; sw.wait = 0; } }
             else if (sw.state === 'wait') {
               sw.wait++;
-              const crossed = rise ? (sw.armed && v >= lvl) : (sw.armed && v <= lvl);
+              const crossed = sw.armed && (rise ? v >= lvl : v <= lvl);
               if (rise ? v < lvl - hyst : v > lvl + hyst) sw.armed = true;
-              if (p.trigMode === 'free' || crossed || (p.trigMode === 'auto' && sw.wait > autoN)) { sw.state = 'sweep'; sw.x = 0; sw.armed = false; for (const h of H0) { h.hn = 0; h.hz.fill(0); } }
+              if (p.trigMode === 'free' || crossed || (p.trigMode === 'auto' && sw.wait > autoN)) { sw.state = 'sweep'; sw.x = 0; sw.armed = false; for (const b of beams) resetBeam(b); }
             }
             if (sw.state === 'sweep') {
               const x = -5 + 10 * (sw.x / sweepN);
-              chans.forEach((c, j) => {
-                const h = H0[j];
-                hx.set(h.hx); hy.set(h.hy); hz.set(h.hz); hn = h.hn;
-                beam(x, c.v(i) * k + c.pos, 1, 1);
-                h.hx.set(hx); h.hy.set(hy); h.hz.set(hz); h.hn = hn;
-              });
+              for (let c = 0; c < nc; c++) { const ch = chans[c], s = ch.w === 0 ? l : ch.w === 1 ? r : l + r; beam(beams[c], x, s * k + ch.pos, 1, 1); }
               if (++sw.x >= sweepN) {
-                // retrace: finish each trace and blank the return
-                chans.forEach((c, j) => { const h = H0[j]; hx.set(h.hx); hy.set(h.hy); hz.set(h.hz); hn = h.hn; beam(5, c.v(i) * k + c.pos, 0, 1); h.hn = 0; h.hz.fill(0); });
+                // retrace: blank the return and hold off before the next trigger
+                for (let c = 0; c < nc; c++) { const ch = chans[c], s = ch.w === 0 ? l : ch.w === 1 ? r : l + r; beam(beams[c], 5, s * k + ch.pos, 0, 1); resetBeam(beams[c]); }
                 sw.state = holdN > 0 ? 'hold' : 'wait'; sw.hold = holdN; sw.wait = 0; sw.armed = false;
               }
             }
-            wF /= fadeF; wS /= fadeS;
+            wF *= ifF; wS *= ifS;
           }
-          const vl = VDIV.find((q) => q[0] === +p.vdiv)?.[1] || '', tl = TDIV.find((q) => q[0] === +p.tdiv)?.[1] || '';
-          info = `${showL || add ? 'CH1 ' + vl + '  ' : ''}${showR || add ? 'CH2 ' + vl + '  ' : ''}M ${tl}  ${p.trigMode === 'free' ? 'FREE' : (p.trigSrc === 'r' ? 'CH2' : p.trigSrc === 'mix' ? 'ADD' : 'CH1') + (rise ? ' ↗ ' : ' ↘ ') + (p.level * 1000).toFixed(0) + ' mV'}${p.trigMode === 'normal' ? '  NORM' : ''}`;
+          const tl = TDIV.find((q) => q[0] === +p.tdiv)?.[1] || '';
+          info = `${showL || add ? 'CH1 ' + vlab + '  ' : ''}${showR || add ? 'CH2 ' + vlab + '  ' : ''}M ${tl}  ${p.trigMode === 'free' ? 'FREE' : (p.trigSrc === 'r' ? 'CH2' : p.trigSrc === 'mix' ? 'ADD' : 'CH1') + (rise ? ' ↗ ' : ' ↘ ') + (p.level * 1000).toFixed(0) + ' mV'}${p.trigMode === 'normal' ? '  NORM' : ''}`;
         } else {
           // the beam draws a shape or a picture at the redraw rate; the signal pushes it sideways along its lines
           rot += dt * p.spin * (0.5 + F.mid);
@@ -438,7 +480,7 @@ export default {
               const cnt = P.count, pts = P.pts, nrm = P.nrm, jc = P.jc, adv = cnt * p.rate / sr;
               const sub = Math.max(1, Math.ceil(adv / 0.8)), st = adv / sub;
               for (let i = 0; i < N; i++) {
-                const d = (getL(i) + getR(i)) * 0.5 * amp;
+                const j0 = (start + i) & mask, d = (bufL[j0] + bufR[j0]) * 0.5 * amp;
                 for (let q = 0; q < sub; q++) {
                   const prev = phase | 0;
                   phase += st;
@@ -446,30 +488,53 @@ export default {
                   if (phase >= cnt) { phase -= cnt; wrapped = true; }
                   const j = phase | 0, j2 = (j + 1) % cnt, f = phase - j, o = j * 3, o2 = j2 * 3;
                   const jumped = wrapped || jc[j] !== jc[prev];
-                  const hold = pts[o2 + 2];                     // the next point starts a new stroke: stay at the end of this one
+                  const hold = pts[o2 + 2];
                   const x0 = hold ? pts[o] : pts[o] + (pts[o2] - pts[o]) * f, y0 = hold ? pts[o + 1] : pts[o + 1] + (pts[o2 + 1] - pts[o + 1]) * f;
                   const x = (x0 + nrm[j * 2] * d) * span, y = -(y0 + nrm[j * 2 + 1] * d) * span;
-                  beam(x * cr - y * sr2 + p.posX, x * sr2 + y * cr + p.posY, jumped ? (p.picJumps ? 2 : 0) : 1, 1 / sub);
+                  beam(B0, x * cr - y * sr2 + p.posX, x * sr2 + y * cr + p.posY, jumped ? (p.picJumps ? 2 : 0) : 1, 1 / sub);
                 }
-                wF /= fadeF; wS /= fadeS;
+                wF *= ifF; wS *= ifS;
               }
             }
           } else {
             const sh2 = shapePath(p), M = sh2.length, adv = M * p.rate / sr;
             for (let i = 0; i < N; i++) {
               phase = (phase + adv) % M;
-              const j = phase | 0, j2 = (j + 1) % M, f = phase - j;
+              const j = phase | 0, j2 = (j + 1) % M, f = phase - j, j0 = (start + i) & mask;
               const x0 = sh2[j][0] + (sh2[j2][0] - sh2[j][0]) * f, y0 = sh2[j][1] + (sh2[j2][1] - sh2[j][1]) * f;
-              const d = (getL(i) + getR(i)) * 0.5 * amp * 3;
+              const d = (bufL[j0] + bufR[j0]) * 0.5 * amp * 3;
               const x = (x0 + normals[j][0] * d) * span, y = -(y0 + normals[j][1] * d) * span;
-              beam(x * cr - y * sr2 + p.posX, x * sr2 + y * cr + p.posY, 1, 1);
-              wF /= fadeF; wS /= fadeS;
+              beam(B0, x * cr - y * sr2 + p.posX, x * sr2 + y * cr + p.posY, 1, 1);
+              wF *= ifF; wS *= ifS;
             }
           }
           info = `X-Y  ${Math.round(p.rate)} Hz`;
         }
 
-        // ---- GPU: fade the phosphor, add this frame's beam, bloom, show
+        // ---- overlay: readout, picture messages, the drawing guide
+        const txt = [0, 1, 2].map((i) => Math.round(255 * Math.min(1, ph.f[i] * 0.55 + 0.45)));
+        const msg = p.mode === 'picture' && !pic.path ? (pic.busy ? 'Tracing the picture…' : pic.error || 'Choose a picture in the panel on the right.') : '';
+        const capKey = self.capturing ? 'cap' + stroke.length + drawing : '';
+        const fs = Math.max(9, Math.round(div * 0.22));
+        const ovk = (p.readout ? info : '') + '|' + msg + '|' + capKey;
+        overlay(ovk === '||' ? '' : ovk + '|' + txt + W + 'x' + H, W, H, (o) => {
+          o.textBaseline = 'alphabetic';
+          if (p.readout && info) {
+            o.font = `600 ${fs}px ui-monospace, Consolas, monospace`; o.textAlign = 'left';
+            o.shadowColor = rgba(txt, 0.8); o.shadowBlur = 6 * S; o.fillStyle = rgba(txt, 0.82);
+            o.fillText(info, cx - 5 * div + div * 0.12, cy + 4 * div - div * 0.14);
+            o.shadowBlur = 0;
+          }
+          if (msg) { o.fillStyle = rgba(txt, 0.8); o.font = `${13 * S}px system-ui, sans-serif`; o.textAlign = 'center'; o.fillText(msg, cx, cy); }
+          if (self.capturing) {
+            o.fillStyle = rgba(txt, 0.9); o.font = `${13 * S}px system-ui, sans-serif`; o.textAlign = 'center';
+            o.fillText(drawing ? 'Release to finish' : 'Draw one continuous line. Press Esc to cancel.', cx, 24 * S);
+            if (stroke.length > 1) { o.strokeStyle = rgba(txt, 1); o.lineWidth = 2 * S; o.beginPath(); stroke.forEach(([x, y], i) => (i ? o.lineTo(x * W, y * H) : o.moveTo(x * W, y * H))); o.stroke(); }
+          }
+        });
+        if (self.capturing) { self._WH = [W, H]; self._div = div; }
+
+        // ---- GPU: fade the phosphor, add this frame's beam, scatter, show
         gl.disable(gl.DEPTH_TEST);
         gl.bindFramebuffer(gl.FRAMEBUFFER, phos.fb); gl.viewport(0, 0, W, H);
         gl.enable(gl.BLEND);
@@ -478,8 +543,10 @@ export default {
         gl.useProgram(G.P.decay.p); gl.bindVertexArray(G.empty); gl.drawArrays(gl.TRIANGLES, 0, 3);
         if (n) {
           gl.blendFunc(gl.ONE, gl.ONE);
-          gl.useProgram(G.P.seg.p);
-          gl.uniform2f(G.P.seg.u('uRes'), W, H); gl.uniform1f(G.P.seg.u('uSig'), sig);
+          const SP = G.P.seg;
+          gl.useProgram(SP.p);
+          gl.uniform2f(SP.u('uRes'), W, H); gl.uniform1f(SP.u('uSig'), sig);
+          gl.uniform2f(SP.u('uCenter'), cx, cy); gl.uniform1f(SP.u('uDiv'), div); gl.uniform1f(SP.u('uEdge'), p.edgeFocus);
           gl.bindVertexArray(G.vao); gl.bindBuffer(gl.ARRAY_BUFFER, G.buf);
           if (inst.length > G.cap) { gl.bufferData(gl.ARRAY_BUFFER, inst.byteLength, gl.DYNAMIC_DRAW); G.cap = inst.length; }
           gl.bufferSubData(gl.ARRAY_BUFFER, 0, inst, 0, n * 6);
@@ -488,7 +555,7 @@ export default {
         gl.disable(gl.BLEND);
         gl.bindVertexArray(G.empty);
         if (p.glow > 0) {
-          gl.useProgram(G.P.down.p); gl.bindFramebuffer(gl.FRAMEBUFFER, bloomA.fb); gl.viewport(0, 0, bloomA.w, bloomA.h);
+          gl.useProgram(G.P.down.p); gl.bindFramebuffer(gl.FRAMEBUFFER, near.fb); gl.viewport(0, 0, near.w, near.h);
           gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, phos.t); gl.uniform1i(G.P.down.u('uTex'), 0); gl.uniform2f(G.P.down.u('uTexel'), 1 / W, 1 / H);
           gl.drawArrays(gl.TRIANGLES, 0, 3);
           const blur = (from, to, sx, sy) => {
@@ -497,44 +564,25 @@ export default {
             gl.uniform2f(G.P.blur.u('uStep'), sx / from.w, sy / from.h); gl.uniform2f(G.P.blur.u('uSize'), to.w, to.h);
             gl.drawArrays(gl.TRIANGLES, 0, 3);
           };
-          blur(bloomA, bloomB, 1, 0); blur(bloomB, bloomA, 0, 1); blur(bloomA, bloomB, 2, 0); blur(bloomB, bloomA, 0, 2);
+          // near glow (light scattered in the phosphor), then a much wider halo (light bouncing inside the faceplate)
+          blur(near, tmpB, 1, 0); blur(tmpB, near, 0, 1);
+          blur(near, tmpB, 3, 0); blur(tmpB, wide, 0, 3);
         }
         const C = G.P.comp;
         gl.useProgram(C.p); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
-        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, phos.t); gl.uniform1i(C.u('uPhos'), 0);
-        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, bloomA.t); gl.uniform1i(C.u('uBloom'), 1);
+        const tex = (unit, name, t) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(C.u(name), unit); };
+        tex(0, 'uPhos', phos.t); tex(1, 'uNear', near.t); tex(2, 'uWide', wide.t); tex(3, 'uOver', ovTex);
         gl.uniform2f(C.u('uRes'), W, H); gl.uniform2f(C.u('uCenter'), cx, cy); gl.uniform1f(C.u('uDiv'), div);
-        gl.uniform1f(C.u('uExpo'), 1); gl.uniform1f(C.u("uBloomAmt"), p.glow > 0 ? p.glow * 0.35 : 0);
-        gl.uniform1f(C.u('uGrid'), p.grid ? 0.05 + p.gridLight * 0.35 : 0); gl.uniform1f(C.u('uGlass'), p.glass); gl.uniform1f(C.u('uWhite'), 1); gl.uniform1f(C.u('uT'), time);
-        gl.uniform3fv(C.u('uColF'), ph.f); gl.uniform3fv(C.u('uColS'), ph.s); gl.uniform2f(C.u('uMix'), 1, 1);
+        gl.uniform1f(C.u('uBloomAmt'), p.glow > 0 ? p.glow * 0.35 : 0);
+        gl.uniform1f(C.u('uGrid'), p.grid ? 0.05 + p.gridLight * 0.35 : 0); gl.uniform1f(C.u('uGlass'), p.glass); gl.uniform1f(C.u('uT'), time);
+        gl.uniform1f(C.u('uGrain'), p.grain); gl.uniform1f(C.u('uFrame'), bez ? 1 : 0);
+        gl.uniform2f(C.u('uScreen'), 5.35 * div, 4.35 * div); gl.uniform1f(C.u('uRad'), div * 0.55);
+        gl.uniform1f(C.u('uOverOn'), ovOn ? 1 : 0); gl.uniform1f(C.u('uDim'), self.capturing ? 0.35 : 0);
+        gl.uniform3fv(C.u('uColF'), ph.f); gl.uniform3fv(C.u('uColS'), ph.s);
         const gc = ph.f; gl.uniform3f(C.u('uGridCol'), 0.55 + gc[0] * 0.25, 0.6 + gc[1] * 0.25, 0.6 + gc[2] * 0.25);
         gl.uniform3f(C.u('uBack'), 0.018 + ph.s[0] * 0.006, 0.02 + ph.s[1] * 0.008, 0.02 + ph.s[2] * 0.006);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
         gl.activeTexture(gl.TEXTURE0);
-
-        // ---- the picture on the 2D canvas, plus readout and drawing overlays
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(glc, 0, 0, W, H);
-        const txt = hexToRgb('#ffffff').map((v, i) => Math.round(255 * Math.min(1, ph.f[i] * 0.55 + 0.45)));
-        if (p.readout && info) {
-          ctx.font = `600 ${Math.max(9, Math.round(div * 0.22))}px ui-monospace, Consolas, monospace`;
-          ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-          ctx.shadowColor = rgba(txt, 0.8); ctx.shadowBlur = 6 * S;
-          ctx.fillStyle = rgba(txt, 0.82);
-          ctx.fillText(info, cx - 5 * div + div * 0.12, cy + 4 * div - div * 0.14);
-          ctx.shadowBlur = 0;
-        }
-        if (p.mode === 'picture' && !pic.path) {
-          ctx.fillStyle = rgba(txt, 0.8); ctx.font = `${13 * S}px system-ui, sans-serif`; ctx.textAlign = 'center';
-          ctx.fillText(pic.busy ? 'Tracing the picture…' : pic.error || 'Choose a picture in the panel on the right.', cx, cy);
-        }
-        if (self.capturing) {
-          ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, W, H);
-          ctx.fillStyle = rgba(txt, 0.9); ctx.font = `${13 * S}px system-ui, sans-serif`; ctx.textAlign = 'center';
-          ctx.fillText(drawing ? 'Release to finish' : 'Draw one continuous line. Press Esc to cancel.', cx, 24 * S);
-          if (stroke.length > 1) { ctx.strokeStyle = rgba(txt, 1); ctx.lineWidth = 2 * S; ctx.beginPath(); stroke.forEach(([x, y], i) => (i ? ctx.lineTo(x * W, y * H) : ctx.moveTo(x * W, y * H))); ctx.stroke(); }
-          self._WH = [W, H]; self._div = div;
-        }
       },
       action(key, p, done) {
         if (key === 'draw') { self.capturing = true; stroke = []; p.mode = 'shape'; return 'Draw on the widget now. Press Esc to cancel.'; }
@@ -570,9 +618,8 @@ export default {
       },
       resize() {},
       dispose() {
-        if (!G) return;
-        const gl = G.gl;
-        for (const t of [phos, bloomA, bloomB]) if (t) { gl.deleteTexture(t.t); gl.deleteFramebuffer(t.fb); }
+        for (const t of [phos, near, wide, tmpB]) if (t) { gl.deleteTexture(t.t); gl.deleteFramebuffer(t.fb); }
+        gl.deleteTexture(ovTex);
         const ext = gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext();
       }
     };

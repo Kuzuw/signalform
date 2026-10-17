@@ -2,7 +2,7 @@
 
 > Generated from the code by `npm run docs:modules`. Do not edit by hand.
 
-Signalform ships with 20 modules. Every widget also has the shared [Look](#look-every-widget) and [Audio](#audio-every-widget) controls, whatever its module.
+Signalform ships with 20 modules. Every widget also has the shared [Look](#look-every-widget), [Audio](#audio-every-widget) and [Effects](#effects-every-widget-and-the-stage) controls, whatever its module.
 
 [ASCII](#ascii) · [Aura](#aura) · [Ferro](#ferro) · [Flow Field](#flow-field) · [Fractal](#fractal) · [Grain](#grain) · [Lissajous](#lissajous) · [Oscilloscope](#oscilloscope) · [Spectre](#spectre) · [Trace](#trace) · [Waveform](#waveform) · [Oscillon](#oscillon) · [Stroke](#stroke) · [Discharge](#discharge) · [Familiar](#familiar) · [Tunnel](#tunnel) · [Horizon](#horizon) · [Strings](#strings) · [Halo](#halo) · [Cells](#cells)
 
@@ -249,6 +249,10 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Afterglow | 0.05 – 10 × | 1 × |
 |  | Halation | 0 – 2 | 0.6 |
 |  | Beam interpolation | Off (straight lines) · 2× · 4× · 8× (smoothest) | 4× |
+|  | Corner defocus | 0 – 2 | 0.35 |
+|  | Phosphor grain | 0 – 1 | 0.3 |
+|  | Trace noise | 0 – 0.05  div | 0.002  div |
+|  | Tube frame | Screen in its bezel · Screen only | Screen in its bezel |
 |  | Graticule | on / off | on |
 |  | Scale illumination<br><sub>shown when Graticule: true</sub> | 0 – 1 | 0.3 |
 |  | Readout | on / off | on |
@@ -605,3 +609,250 @@ How this widget hears the music. Two widgets can react to the same track differe
 |  | Smoothing | 0 – 0.95 | 0 |
 |  | Hit strength | 0 – 2.5 | 1 |
 | **Time** | Motion speed | 0 – 4 | 1 |
+
+## Effects (every widget, and the stage)
+
+The Effects tab holds an ordered rack of effects; with nothing selected, the inspector shows the stage's own rack, which applies to the whole picture, recordings and Live Output. Every effect except Mirror has a main setting the music can drive (Loudness, Bass, Mids, Highs, Kicks, Snares, Hi-hats, Build-ups, Drops), with an amount from −100% to 100%.
+
+### Glow
+
+*Light.* The music drives **intensity**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Intensity | 0 – 4 | 1.2 |
+|  | Threshold | 0 – 1 | 0.4 |
+|  | Radius | 1 – 80 | 24 |
+|  | Tint | color | `#ffffff` |
+
+### Light streaks
+
+*Light.* The music drives **intensity**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Intensity | 0 – 4 | 1 |
+|  | Threshold | 0 – 1 | 0.55 |
+|  | Length | 4 – 200 | 70 |
+|  | Direction | Horizontal (anamorphic) · Vertical · Cross | Horizontal (anamorphic) |
+|  | Tint | color | `#7fb8ff` |
+
+### Blur
+
+*Blur.* The music drives **radius**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Radius | 0 – 60 px | 12 px |
+
+### Motion blur
+
+*Blur.* The music drives **length**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Length | 0 – 0.2 | 0.04 |
+|  | Angle | 0 – 180 ° | 0 ° |
+
+### Zoom blur
+
+*Blur.* The music drives **amount**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Amount | 0 – 0.5 | 0.12 |
+|  | Centre X | 0 – 1 | 0.5 |
+|  | Centre Y | 0 – 1 | 0.5 |
+
+### Colour grade
+
+*Colour.* The music drives **exposure**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Exposure | -3 – 3  EV | 0  EV |
+|  | Contrast | 0 – 3 | 1 |
+|  | Saturation | 0 – 3 | 1 |
+|  | Hue shift | -180 – 180 ° | 0 ° |
+|  | Gamma | 0.3 – 3 | 1 |
+|  | Tint | color | `#ff9a3d` |
+|  | Tint amount | 0 – 1 | 0 |
+|  | Invert | on / off | off |
+
+### Gradient map
+
+*Colour.* The music drives **amount**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Amount | 0 – 1 | 1 |
+|  | Shadows | color | `#10061f` |
+|  | Mid-tones | color | `#d6336c` |
+|  | Highlights | color | `#ffe8a3` |
+
+### Ink threshold
+
+*Colour.* The music drives **level**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Level | 0 – 1 | 0.35 |
+|  | Softness | 0 – 0.5 | 0.04 |
+|  | Ink | color | `#ffffff` |
+|  | Paper | color | `#000000` |
+
+### Pixelate
+
+*Stylize.* The music drives **pixel size**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Pixel size | 1 – 80 px | 10 px |
+|  | Shape | Squares · LED dots | Squares |
+
+### Halftone
+
+*Stylize.* The music drives **dot size**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Dot size | 3 – 40 px | 9 px |
+|  | Screen angle | 0 – 90 ° | 45 ° |
+|  | Colour | Picture colours · Single colour | Picture colours |
+|  | Ink<br><sub>shown when Colour: Single colour</sub> | color | `#ffffff` |
+
+### Posterize
+
+*Stylize.* The music drives **levels**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Levels | 2 – 16 | 4 |
+|  | Dither | on / off | on |
+
+### Edge glow
+
+*Stylize.* The music drives **strength**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Strength | 0 – 6 | 2 |
+|  | Keep the picture | 0 – 1 | 0.2 |
+|  | Edge colour | Picture colours · Single colour | Picture colours |
+|  | Colour<br><sub>shown when Edge colour: Single colour</sub> | color | `#5ad1ff` |
+
+### Kaleidoscope
+
+*Space.* The music drives **turn**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Segments | 2 – 24 | 6 |
+|  | Turn | 0 – 360 ° | 0 ° |
+|  | Spin | -90 – 90 °/s | 0 °/s |
+|  | Zoom | 0.3 – 3 | 1 |
+
+### Mirror
+
+*Space.*
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Mirror | Left ↔ right · Top ↕ bottom · Four quadrants · Flip right side | Left ↔ right |
+
+### Warp
+
+*Space.* The music drives **amount**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Shape | Waves · Ripples · Swirl · Bulge | Waves |
+|  | Amount | -1 – 1 | 0.25 |
+|  | Frequency | 0.5 – 30 | 6 |
+|  | Speed | -4 – 4 | 1 |
+
+### RGB split
+
+*Lens.* The music drives **amount**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Amount | 0 – 0.05 | 0.006 |
+|  | Direction | From the centre (lens) · Sideways | From the centre (lens) |
+|  | Angle<br><sub>shown when Direction: Sideways</sub> | 0 – 360 ° | 0 ° |
+
+### Vignette
+
+*Lens.* The music drives **amount**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Amount | 0 – 1 | 0.5 |
+|  | Softness | 0.05 – 1 | 0.45 |
+|  | Colour | color | `#000000` |
+
+### Sharpen
+
+*Lens.* The music drives **amount**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Amount | 0 – 3 | 0.8 |
+
+### Film grain
+
+*Texture.* The music drives **amount**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Amount | 0 – 0.6 | 0.12 |
+|  | Grain size | 1 – 4 | 1.4 |
+|  | Colour grain | on / off | off |
+
+### CRT screen
+
+*Texture.* The music drives **scanlines**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Scanlines | 0 – 1 | 0.45 |
+|  | Line count | 120 – 1080 | 360 |
+|  | RGB mask | 0 – 1 | 0.3 |
+|  | Curvature | 0 – 0.4 | 0.12 |
+|  | Vignette | 0 – 1 | 0.4 |
+|  | Flicker | 0 – 0.3 | 0.03 |
+
+### Glitch
+
+*Texture.* The music drives **amount**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Amount | 0 – 1 | 0.3 |
+|  | Block size | 4 – 80 px | 24 px |
+|  | Colour tear | 0 – 1 | 0.5 |
+|  | Change rate | 1 – 60 /s | 12 /s |
+
+### Feedback echo
+
+*Time.* The music drives **echo length**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Echo length | 0 – 0.98 | 0.82 |
+|  | Zoom per echo | 0.9 – 1.1 | 1.012 |
+|  | Turn per echo | -6 – 6 ° | 0.4 ° |
+|  | Drift X | -0.02 – 0.02 | 0 |
+|  | Drift Y | -0.02 – 0.02 | 0 |
+|  | Colour shift per echo | -30 – 30 ° | 0 ° |
+|  | Blend | Lighten · Add · Behind | Lighten |
+
+### Strobe
+
+*Time.* The music drives **flash**.
+
+| Section | Control | Range / options | Default |
+|---|---|---|---|
+| **Settings** | Flash | 0 – 1 | 0 |
+|  | Flash with | White · Inverted picture · Blackout · A colour | White |
+|  | Colour<br><sub>shown when Flash with: A colour</sub> | color | `#ff3d6e` |

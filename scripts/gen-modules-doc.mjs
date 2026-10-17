@@ -7,6 +7,7 @@ import { pathToFileURL } from 'url';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const { MODULES } = await import(pathToFileURL(path.join(root, 'renderer/modules/index.js')));
 const { FX_PARAMS, FX_DEFAULTS } = await import(pathToFileURL(path.join(root, 'renderer/fx.js')));
+const { EFFECTS, EFFECT_CATS, MOD_SOURCES } = await import(pathToFileURL(path.join(root, 'renderer/rack.js')));
 
 const esc = (s) => String(s).replace(/\|/g, '\\|');
 const num = (v) => (typeof v === 'number' ? +v.toFixed(3) : v);
@@ -66,7 +67,7 @@ function table(params, defaults) {
 const out = [];
 out.push('# Module reference', '');
 out.push('> Generated from the code by `npm run docs:modules`. Do not edit by hand.', '');
-out.push(`Signalform ships with ${MODULES.length} modules. Every widget also has the shared [Look](#look-every-widget) and [Audio](#audio-every-widget) controls, whatever its module.`, '');
+out.push(`Signalform ships with ${MODULES.length} modules. Every widget also has the shared [Look](#look-every-widget), [Audio](#audio-every-widget) and [Effects](#effects-every-widget-and-the-stage) controls, whatever its module.`, '');
 out.push(MODULES.map((m) => `[${m.name}](#${m.name.toLowerCase().replace(/\s+/g, '-')})`).join(' · '), '');
 for (const m of MODULES) {
   out.push(`## ${m.name}`, '');
@@ -77,6 +78,13 @@ for (const m of MODULES) {
 out.push('## Look (every widget)', '', 'A post pass over the module\'s picture.', '', table(FX_PARAMS.look, FX_DEFAULTS), '');
 out.push('## Audio (every widget)', '', 'How this widget hears the music. Two widgets can react to the same track differently.', '', table(FX_PARAMS.audio, FX_DEFAULTS), '');
 
+out.push('## Effects (every widget, and the stage)', '', `The Effects tab holds an ordered rack of effects; with nothing selected, the inspector shows the stage's own rack, which applies to the whole picture, recordings and Live Output. Every effect except Mirror has a main setting the music can drive (${MOD_SOURCES.slice(1).map((m) => m[1]).join(', ')}), with an amount from −100% to 100%.`, '');
+for (const c of EFFECT_CATS) {
+  for (const [, E] of Object.entries(EFFECTS).filter(([, e]) => e.cat === c)) {
+    const main = E.params.find((q) => q.key === E.main);
+    out.push(`### ${E.name}`, '', `*${c}.*${main ? ` The music drives **${main.label.toLowerCase()}**.` : ''}`, '', table(E.params), '');
+  }
+}
 const file = path.join(root, 'docs/MODULES.md');
 fs.writeFileSync(file, out.join('\n'));
 console.log('wrote', path.relative(root, file));

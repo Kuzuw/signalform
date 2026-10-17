@@ -53,6 +53,7 @@
 | **20 visual modules** | From phosphor oscilloscopes and lightning to raymarched ferrofluid, a tunnel flight and a 100,000-point creature that can spell words. GPU-accelerated where it matters. |
 | **Free composition** | Every module is a widget. Move, resize, layer, blend, group, align, lock, hide or duplicate it. Cards can be glass, solid, dark, light or clear, with rounded corners and feathered edges. |
 | **Deep control** | Each widget has three tabs: **Module** (its own settings, eight color palettes, presets, Randomize), **Look** (color, transform, mirror and kaleidoscope, glow, trails, pixelate, vignette) and **Audio** (reactivity, which part of the mix it hears, smoothing, hit strength, speed). |
+| **Effect rack** | Chain GPU effects on any widget, or on the whole stage: glow, light streaks, blur, motion and zoom blur, colour grade, gradient map, halftone, pixelate, posterize, edge glow, kaleidoscope, mirror, warp, RGB split, film grain, CRT screen, glitch, feedback echo, strobe and more. Any effect can follow the music. |
 | **Music-aware analysis** | Bass, mid and high levels; kick, snare and hi-hat detection on the audio thread (small trained classifiers tell kicks and snares apart from bass notes); pitch; and build-up and drop detection, shared by every module. |
 | **Any sound in** | What your PC is playing, a microphone or audio interface, a virtual cable, a track file, or the built-in demo beat. |
 | **Video out** | Render a track to MP4 with its audio, or record live takes of the whole stage, a group or a single widget. |
@@ -72,7 +73,7 @@
 | **Fractal** | A recursive network: clusters of linked points inside clusters, filling the frame. Julia, Kali and folded-geometry fractals are also available. | Hits light up links, kicks make it breathe, drops and heavy hits rewire it. |
 | **Grain** | Dust strung along slow, wavy bands that thicken, thin out and drift. A dense grain texture is a second look. | Bass sways the bands, kicks scatter them, hats make specks glint. |
 | **Lissajous** | Dozens of fine translucent ribbons tracing a tumbling harmonic knot in 3D. | Pitch sets the ratios, mids deform the knot, or the stereo X/Y signal draws the figure. |
-| **Oscilloscope** | A real analog oscilloscope simulated from the electron beam up: X/Y, a triggered Y/T time base with dual trace, P31/P1/P7/P4/P11/P3 phosphors with true afterglow, graticule and readout. The beam can also draw a shape or **a picture you load**. | Every sample of the stereo signal; a slow beam burns bright, a fast one fades, like a CRT. |
+| **Oscilloscope** | A real analog oscilloscope simulated from the electron beam up: X/Y, a triggered Y/T time base with dual trace, P31/P1/P7/P4/P11/P3 phosphors with true afterglow, a bezelled tube with corner defocus, phosphor grain and halation, graticule and readout. The beam can also draw a shape or **a picture you load**. | Every sample of the stereo signal; a slow beam burns bright, a fast one fades, like a CRT. |
 | **Spectre** | The spectrum as glowing emission lines in prism colors, or as bands, layers, a flowing spectrogram or a ring. | Every band lights its own lines, equalized so quiet regions still glow. |
 | **Trace** | The live signal at high gain, like a pen recorder pushed into the rails, or up to 12 lines as an open line, a loop or a spiral. | The raw waveform; or the spectrum bends the lines and hits send ripples. |
 | **Waveform** | A solid white mass of the music scrolling past, jagged with transients, or layered rings, contours and mirrored layers. | Peaks of each slice shape the edge; kicks thicken it. |
@@ -229,6 +230,7 @@ renderer/             the interface (plain ES modules, no build step)
   snare-net.js        the snare classifier's weights (TARGET=snare scripts/train-kick.mjs)
   stage.js            widgets, layout, layering, groups and the compositor
   fx.js               per-widget Look and Audio controls
+  rack.js             the effect rack: effects and the shared GPU engine that runs them
   inspector.js        the Module / Look / Audio panel, generated from parameter schemas
   modules/            the 20 visual modules (WebGL 2 for Ferro, Tunnel, Cells, Oscilloscope and the shader looks of Aura and Fractal; Canvas 2D for the rest)
 docs/                 module reference and README images

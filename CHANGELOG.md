@@ -4,6 +4,25 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-17
+
+### Changed
+- **CRT screen rebuilt as a full CRT simulation.** The picture goes through the same stages as on a real set, each at the resolution it really has:
+  - **The signal.** RGB, S-Video, composite or an aerial (RF). Composite is a real NTSC encode and decode: colour rides on a subcarrier, so fine detail turns into rainbows, colour edges bleed and crawl, and the set's sharpness control rings around edges. Snow, ghosting, line wobble and a rolling hum bar for a tired signal.
+  - **The TV's knobs.** Brightness, contrast, colour, tint and colour temperature (6500 K studio white to a cool 9300 K).
+  - **The beam.** Each scan line is drawn as a gaussian spot that widens on bright parts of the picture, so scan lines show in the dark and bloom shut in the highlights. Scan lines are filtered to the pixel, so they don't shimmer or alias when the layer is resized. Red and blue can land slightly off the green (misconvergence, stronger towards the corners). Phosphor persistence, with green fading slowest like real colour phosphors, flicker and an interlaced mode.
+  - **The phosphor mask.** Aperture grille (Trinitron), slot mask or shadow mask with round dots, filtered to the pixel so it doesn't make moiré, with an adjustable pitch.
+  - **The glass.** Spherical, cylindrical or flat curvature, rounded corners, halation, glow diffused in the faceplate, edge falloff, the faint grey of the glass and a window reflection, and a plastic bezel that reflects the picture.
+  - **Degauss wobble on drops:** after a drop the colours swim and the picture wobbles for a second, like switching an old set on.
+  - **Six monitors to start from** (*Model*): living-room TV, arcade monitor, studio monitor (PVM), computer monitor, black-and-white TV, and an old TV on an aerial. Choosing one sets every other setting.
+  - Its settings are grouped in collapsible sections (Monitor, Signal, Picture, Beam, Phosphor mask, Glass).
+  - Built to be light: only one pass runs per screen pixel; the signal is decoded at its own resolution (240 lines by default) and the glow on a buffer a sixth of the size.
+  - Scenes saved with the old CRT screen keep their scan line, mask, curvature, vignette and flicker settings.
+
+### Added
+- **Late Night TV** starter scene: a sunset landscape on an old living-room TV.
+
+
 ## [1.7.0] - 2026-10-17
 
 ### Added

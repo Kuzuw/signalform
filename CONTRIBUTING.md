@@ -123,7 +123,7 @@ Every value is already smoothed and normalized to about 0–1 unless noted. The 
 
 ## Writing an effect
 
-Effects live in `renderer/rack.js`. A one-pass effect is a name, a category, its `main` parameter (the one the music can drive), a parameter list in the same format as modules, and a GLSL fragment shader body: the input picture is `uIn` (`tx(uv)` samples it, `UV` is the pixel's position), and every range or toggle parameter arrives as a uniform `u_<key>`. Effects that need several passes or keep state between frames (Glow, Feedback echo) use `run(E, src, dst, item, state)` with the engine's `pass()` and `tmp()` helpers instead.
+Effects live in `renderer/rack.js`. A one-pass effect is a name, a category, its `main` parameter (the one the music can drive), a parameter list in the same format as modules, and a GLSL fragment shader body: the input picture is `uIn` (`tx(uv)` samples it, `UV` is the pixel's position), and every range or toggle parameter arrives as a uniform `u_<key>`. Effects that need several passes or keep state between frames (Glow, Feedback echo) use `run(E, src, dst, item, state)` with the engine's `pass()` and `tmp()` helpers instead. Larger effects can live in their own file (CRT screen is `renderer/crt.js`). In an effect's parameter list, `section` starts a collapsible group inside its card, and a `select` with `apply(params, value)` acts as a preset that fills in the other settings.
 
 ## Tests
 

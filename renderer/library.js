@@ -110,6 +110,13 @@ export const STARTERS = [
     ] }
   },
   {
+    name: 'Late Night TV',
+    note: 'A sunset landscape on an old living-room TV, with the CRT on the whole stage.',
+    scene: { aspect: '4:3', rack: [{ type: 'crt', p: { preset: 'tv' } }], widgets: [
+      W('horizon', { x: 0, y: 0, w: 1, h: 1 }, BASE)
+    ] }
+  },
+  {
     name: 'Stained Glass',
     note: 'Cells of colored glass behind strings strung across a circle.',
     scene: { aspect: '16:9', widgets: [

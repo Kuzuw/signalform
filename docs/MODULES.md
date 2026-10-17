@@ -815,12 +815,39 @@ The Effects tab holds an ordered rack of effects; with nothing selected, the ins
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Scanlines | 0 – 1 | 0.45 |
-|  | Line count | 120 – 1080 | 360 |
-|  | RGB mask | 0 – 1 | 0.3 |
-|  | Curvature | 0 – 0.4 | 0.12 |
-|  | Vignette | 0 – 1 | 0.4 |
-|  | Flicker | 0 – 0.3 | 0.03 |
+| **Monitor** | Model | Living-room TV (composite) · Arcade monitor (RGB) · Studio monitor (PVM) · Computer monitor (VGA) · Black-and-white TV · Old TV on an aerial | Living-room TV (composite) |
+|  | Bezel | Plastic bezel · Screen fills the layer | Plastic bezel |
+|  | Bezel colour<br><sub>shown when Bezel: Plastic bezel</sub> | color | `#1a1a1c` |
+| **Signal** | Signal | RGB (sharpest) · S-Video · Composite · Aerial (RF) | Composite |
+|  | Scan lines | 120 – 1080 | 240 |
+|  | Interlaced | on / off | off |
+|  | Sharpness | 0 – 1 | 0.5 |
+|  | Edge ringing | 0 – 1 | 0.35 |
+|  | Snow | 0 – 1 | 0.03 |
+|  | Ghosting | 0 – 1 | 0.06 |
+|  | Line wobble | 0 – 1 | 0.12 |
+|  | Hum bar | 0 – 1 | 0 |
+| **Picture** | Brightness | -0.3 – 0.3 | 0 |
+|  | Contrast | 0.5 – 1.6 | 1 |
+|  | Colour | 0 – 2 | 1.05 |
+|  | Tint | -30 – 30 ° | 0 ° |
+|  | Colour temperature | 5000 – 11000  K | 7800  K |
+| **Beam** | Scanlines | 0 – 1 | 0.55 |
+|  | Beam bloom | 0 – 1 | 0.7 |
+|  | Misconvergence | 0 – 1 | 0.35 |
+|  | Phosphor persistence | 0 – 1 | 0.25 |
+|  | Flicker | 0 – 0.3 | 0.015 |
+|  | Degauss wobble on drops | on / off | on |
+| **Phosphor mask** | Phosphor mask | Aperture grille (Trinitron) · Slot mask · Shadow mask (dots) · None | Slot mask |
+|  | Mask strength | 0 – 1 | 0.6 |
+|  | Mask pitch | 2 – 12  px | 3  px |
+| **Glass** | Curvature | 0 – 0.4 | 0.14 |
+|  | Tube shape | Spherical · Cylindrical (flat vertically) · Flat | Spherical |
+|  | Corner rounding | 0 – 0.25 | 0.07 |
+|  | Edge falloff | 0 – 1 | 0.45 |
+|  | Halation | 0 – 1 | 0.45 |
+|  | Glass diffusion | 0 – 1 | 0.25 |
+|  | Room reflections | 0 – 1 | 0.2 |
 
 ### Glitch
 

@@ -172,7 +172,17 @@ export class Inspector {
           h('button', { class: 'icon-btn danger', type: 'button', title: 'Remove ' + E.name, html: icon.close, onclick: () => { rack.splice(i, 1); changed(); this.render(); } })));
       if (open) {
         const idp = it.id + '_';
+        // long effects (CRT screen) group their settings in sub-sections; the first one starts open
+        this.fxSecOpen = this.fxSecOpen || new Map();
+        let secOpen = true, secN = 0;
         for (const q of E.params) {
+          if (q.section) {
+            const key = it.id + ':' + q.section, isOpen = this.fxSecOpen.has(key) ? this.fxSecOpen.get(key) : secN === 0;
+            secN++; secOpen = isOpen;
+            card.append(h('button', { class: 'fx-sub' + (isOpen ? '' : ' closed'), type: 'button', 'aria-expanded': String(isOpen), onclick: () => { this.fxSecOpen.set(key, !isOpen); this.render(); } },
+              h('span', {}, q.section), h('span', { class: 'chev', html: icon.chevron })));
+          }
+          if (!secOpen) continue;
           if (q.showIf && !Object.entries(q.showIf).every(([k, v]) => (Array.isArray(v) ? v.includes(it.p[k]) : it.p[k] === v))) continue;
           card.append(this.control(it.p, E.params, q, false, null, idp));
         }
@@ -271,7 +281,8 @@ export class Inspector {
       return this.rangeField(p.label, idp + p.key, T[p.key], p.min, p.max, p.step, (v) => set(v), fmt, disabled, def);
     }
     if (p.type === 'select') {
-      return this.field(p.label, p.key, h('select', { id, disabled, onchange: (e) => set(e.target.value, needsRerender) },
+      // a select with apply() is a preset: it fills in the other settings too
+      return this.field(p.label, p.key, h('select', { id, disabled, onchange: (e) => { if (p.apply) { p.apply(T, e.target.value); set(e.target.value, true); toast('Settings set for ' + e.target.selectedOptions[0].textContent); } else set(e.target.value, needsRerender); } },
         ...p.options.map(([v, l]) => h('option', { value: v, selected: String(T[p.key]) === String(v) }, l))));
     }
     if (p.type === 'color') {

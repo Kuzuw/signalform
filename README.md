@@ -54,11 +54,14 @@
 | **Free composition** | Every module is a widget. Move, resize, layer, blend, group, align, lock, hide or duplicate it. Cards can be glass, solid, dark, light or clear, with rounded corners and feathered edges. |
 | **Deep control** | Each widget has three tabs: **Module** (its own settings, eight color palettes, presets, Randomize), **Look** (color, transform, mirror and kaleidoscope, glow, trails, pixelate, vignette) and **Audio** (reactivity, which part of the mix it hears, smoothing, hit strength, speed). |
 | **Effect rack** | Chain GPU effects on any widget, or on the whole stage: glow, light streaks, blur, motion and zoom blur, colour grade, gradient map, halftone, pixelate, posterize, edge glow, kaleidoscope, mirror, warp, RGB split, film grain, CRT screen, glitch, feedback echo, strobe and more. Any effect can follow the music. |
+| **CRT simulation** | The CRT screen effect simulates a tube from the signal up: RGB, S-Video, composite (with real NTSC dot crawl and colour bleed) or an aerial; scan lines whose width grows with brightness; aperture grille, slot or shadow mask; halation, curved glass and a bezel that reflects the picture. Six monitors to start from, and it degausses on drops. |
 | **Music-aware analysis** | Bass, mid and high levels; kick, snare and hi-hat detection on the audio thread (small trained classifiers tell kicks and snares apart from bass notes); pitch; and build-up and drop detection, shared by every module. |
 | **Any sound in** | What your PC is playing, a microphone or audio interface, a virtual cable, a track file, or the built-in demo beat. |
 | **Video out** | Render a track to MP4 with its audio, or record live takes of the whole stage, a group or a single widget. |
-| **Scenes and presets** | Save whole layouts as scenes (and share them as `.sfscene` files), or save module settings as presets. Ten starter scenes are included. |
+| **Scenes and presets** | Save whole layouts as scenes (and share them as `.sfscene` files), or save module settings as presets. Eleven starter scenes are included. |
 | **Free and open source** | MIT licensed. No account, no license key, no telemetry. |
+
+<p align="center"><img src="docs/images/crt.jpg" alt="Modules through the CRT screen effect: a tunnel on a living-room TV, a spectrum on an arcade monitor, the oscilloscope on a studio monitor and Aura on a black-and-white set" width="100%"></p>
 
 ## Modules
 
@@ -231,6 +234,7 @@ renderer/             the interface (plain ES modules, no build step)
   stage.js            widgets, layout, layering, groups and the compositor
   fx.js               per-widget Look and Audio controls
   rack.js             the effect rack: effects and the shared GPU engine that runs them
+  crt.js              the CRT screen effect: signal encode/decode, beam, mask, glass
   inspector.js        the Module / Look / Audio panel, generated from parameter schemas
   modules/            the 20 visual modules (WebGL 2 for Ferro, Tunnel, Cells, Oscilloscope and the shader looks of Aura and Fractal; Canvas 2D for the rest)
 docs/                 module reference and README images

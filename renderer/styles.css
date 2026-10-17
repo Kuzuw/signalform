@@ -361,6 +361,11 @@ dialog::backdrop { background: #000a; backdrop-filter: blur(3px); }
 .fx-top .icon-btn:disabled { opacity: .3; cursor: default; }
 .fx-grip { color: var(--dim); cursor: grab; font-size: 11px; letter-spacing: -2px; user-select: none; }
 .fx-mod { font: 600 10px/1 var(--mono); color: var(--accent); letter-spacing: .02em; text-transform: none; }
+.fx-sub { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 4px; padding: 7px 0 3px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--dim); font-family: inherit; font-size: 10.5px; font-weight: 600; line-height: 1; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+.fx-sub:hover { color: var(--fg); }
+.fx-sub .chev { display: grid; transition: transform .15s; }
+.fx-sub .chev svg { width: 12px; height: 12px; }
+.fx-sub.closed .chev { transform: rotate(-90deg); }
 .fx-modrow { display: grid; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
 .fx-card.dragging { opacity: .45; }
 .fx-card.drop-above { box-shadow: inset 0 2px 0 var(--accent); }

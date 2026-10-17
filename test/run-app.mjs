@@ -111,6 +111,14 @@ await page.evaluate(() => window.signalform.stage.select(null)); await page.wait
 await page.selectOption('#fxAdd-stage', 'vignette'); await page.waitForTimeout(1500);
 step('stage rack: ' + JSON.stringify(await page.evaluate(() => window.signalform.stage.scene.rack.map((r) => r.type))) + ' saved: ' + JSON.stringify(await page.evaluate(() => window.signalform.stage.serialize().rack.length)));
 await shot('ui-stage-effects');
+// CRT screen on the stage: choose a monitor preset, open a settings sub-section
+await page.selectOption('#fxAdd-stage', 'crt'); await page.waitForTimeout(500);
+const crtId = await page.evaluate(() => window.signalform.stage.scene.rack.at(-1).id);
+await page.selectOption(`#p_${crtId}_preset`, 'pvm'); await page.waitForTimeout(300);
+await page.locator('.fx-sub', { hasText: 'Phosphor mask' }).click(); await page.waitForTimeout(300);
+step('crt: ' + JSON.stringify(await page.evaluate(() => { const r = window.signalform.stage.scene.rack.at(-1).p; return [r.preset, r.signal, r.maskType, r.scan]; })) + ' mask control shown: ' + await page.locator(`#p_${crtId}_maskType`).count());
+await page.waitForTimeout(2000);
+await shot('ui-crt');
 await page.evaluate(() => { window.signalform.stage.scene.rack.length = 0; const s = window.signalform.stage; s.select(s.widgets[2].id); });
 await page.click('#tab-module');
 

@@ -17,6 +17,8 @@ float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 vec3 hue(vec3 c, float a) { const vec3 k = vec3(0.57735); float ca = cos(a); return c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca); }
 `;
+import { CRT, CRT_PASSES } from './crt.js';
+
 const hexv = (h) => { const s = String(h || '#ffffff').replace('#', ''); return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16) / 255); };
 
 // separable gaussian used by blur, glow and streaks: 9 taps with linear-filtered spacing
@@ -291,26 +293,7 @@ void main() { vec4 v = tx(UV); vec2 p = floor(gl_FragCoord.xy / u_size) + floor(
   float l = luma(v.rgb); o = vec4(v.rgb + n * u_amount * (0.35 + 0.65 * (1.0 - abs(l - 0.5) * 2.0)), 1.0); }`,
     uniforms: (p) => ({ u_colour: p.colour ? 1 : 0 })
   },
-  crt: {
-    name: 'CRT screen', cat: 'Texture', main: 'scan',
-    params: [
-      { key: 'scan', label: 'Scanlines', type: 'range', min: 0, max: 1, step: 0.01, default: 0.45 },
-      { key: 'lines', label: 'Line count', type: 'range', min: 120, max: 1080, step: 10, default: 360 },
-      { key: 'mask', label: 'RGB mask', type: 'range', min: 0, max: 1, step: 0.01, default: 0.3 },
-      { key: 'curve', label: 'Curvature', type: 'range', min: 0, max: 0.4, step: 0.005, default: 0.12 },
-      { key: 'vig', label: 'Vignette', type: 'range', min: 0, max: 1, step: 0.01, default: 0.4 },
-      { key: 'flicker', label: 'Flicker', type: 'range', min: 0, max: 0.3, step: 0.005, default: 0.03 }
-    ],
-    frag: `uniform float u_scan, u_lines, u_mask, u_curve, u_vig, u_flicker;
-void main() { vec2 q = UV * 2.0 - 1.0; q *= 1.0 + u_curve * dot(q, q) * 0.5; vec2 uv = q * 0.5 + 0.5;
-  if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) { o = vec4(0, 0, 0, 1); return; }
-  vec3 c = tx(uv).rgb;
-  float s = 0.5 + 0.5 * cos(uv.y * u_lines * 6.2831853); c *= 1.0 - u_scan * (1.0 - s) * 0.85;
-  float m = mod(gl_FragCoord.x, 3.0); vec3 mk = m < 1.0 ? vec3(1.0, 0.35, 0.35) : m < 2.0 ? vec3(0.35, 1.0, 0.35) : vec3(0.35, 0.35, 1.0);
-  c *= mix(vec3(1.0), mk * 1.35, u_mask);
-  c *= 1.0 - u_vig * dot(q, q) * 0.45; c *= 1.0 - u_flicker * hash(vec2(floor(uT * 60.0), 1.0));
-  o = vec4(c, 1.0); }`
-  },
+  crt: CRT,
   glitch: {
     name: 'Glitch', cat: 'Texture', main: 'amount',
     params: [
@@ -374,6 +357,7 @@ void main() { vec3 c = tx(UV).rgb; float l = max(c.r, max(c.g, c.b)); o = vec4(c
   glowAdd: `uniform sampler2D uB; uniform float u_intensity; uniform vec3 u_tint;
 void main() { vec3 c = tx(UV).rgb, g = texture(uB, UV).rgb * u_tint * u_intensity; o = vec4(c + g - c * g * 0.25, 1.0); }`,
   addTex: `uniform sampler2D uB; uniform float uK; void main() { o = tx(UV) + texture(uB, UV) * uK; }`,
+  ...CRT_PASSES,
   feedback: `uniform sampler2D uB; uniform float u_decay, u_zoom, u_rotate, u_hue, u_blend; uniform vec2 u_shift;
 void main() { vec2 a = uRes / min(uRes.x, uRes.y); vec2 q = (UV - 0.5) * a; float r = radians(u_rotate);
   q = mat2(cos(r), sin(r), -sin(r), cos(r)) * q / u_zoom; vec2 uv = q / a + 0.5 - u_shift;
@@ -458,6 +442,7 @@ class Engine {
       const v = uniforms[k], l = P.u(k);
       if (l === null || v === undefined) continue;
       if (typeof v === 'number') gl.uniform1f(l, v);
+      else if (v instanceof Float32Array) gl.uniform1fv(l, v);
       else if (typeof v === 'boolean') gl.uniform1f(l, v ? 1 : 0);
       else if (v.t) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, v.t); gl.uniform1i(l, unit); unit++; }
       else if (v.length === 2) gl.uniform2f(l, v[0], v[1]);
@@ -471,7 +456,7 @@ class Engine {
     const gl = this.gl;
     this.frame++;
     this.t = t;
-    this.audio = { kick: F.kick || 0, bass: F.bass || 0, level: F.level || 0, hat: F.hat || 0 };
+    this.audio = { kick: F.kick || 0, bass: F.bass || 0, level: F.level || 0, hat: F.hat || 0, drop: F.drop || 0 };
     if (this.canvas.width < W || this.canvas.height < H) { this.canvas.width = Math.max(this.canvas.width, W); this.canvas.height = Math.max(this.canvas.height, H); }
     this.outW = W; this.outH = H;
     const inp = this.tmp('in', W, H);
@@ -506,7 +491,10 @@ class Engine {
     outCtx.globalCompositeOperation = 'source-over'; outCtx.globalAlpha = 1; outCtx.filter = 'none';
     outCtx.drawImage(this.canvas, 0, this.canvas.height - H, W, H, 0, 0, W, H);
     // forget state of effects that were removed
-    for (const k in state) if (state[k].used !== this.frame && this.frame - (state[k].used || 0) > 120) { if (state[k].prev) this.free(state[k].prev); delete state[k]; }
+    for (const k in state) if (state[k].used !== this.frame && this.frame - (state[k].used || 0) > 120) {
+      for (const v of Object.values(state[k])) for (const x of [].concat(v)) if (x && x.fb) this.free(x);
+      delete state[k];
+    }
     if (this.frame % 600 === 0) for (const [k, x] of this.tmps) if (this.frame - (x.used || 0) > 600) { this.free(x); this.tmps.delete(k); }
   }
 }

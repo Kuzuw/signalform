@@ -43,7 +43,7 @@ export const STARTERS = [
     note: 'Oscilloscope drawing a shape over a field of glyphs.',
     scene: { aspect: '16:9', widgets: [
       W('ascii', { x: 0, y: 0, w: 1, h: 1 }, { ...BASE, opacity: 0.55, params: { source: 'field', colorA: '#3a4a3f', colorB: '#8dffb0', cell: 11 } }),
-      W('oscilloscope', { x: 0.2, y: 0.05, w: 0.6, h: 0.9 }, { params: { mode: 'shape', shape: 'star' } })
+      W('oscilloscope', { x: 0.2, y: 0.05, w: 0.6, h: 0.9 }, { params: { mode: 'shape', shape: 'star', grid: false, readout: false, glass: 0 } })
     ] }
   },
   {

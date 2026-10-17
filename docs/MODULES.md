@@ -215,29 +215,44 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
-| **Settings** | Display | Waveform (Y/T) · Stereo phase (X/Y) · Custom shape · A picture | Stereo phase (X/Y) |
-|  | Choose a picture…<br><sub>shown when Display: A picture</sub> | button |  |
-|  | Beam points<br><sub>shown when Display: A picture</sub> | 500 – 12000 | 4000 |
-|  | Edge detail<br><sub>shown when Display: A picture</sub> | 0 – 1 | 0.45 |
-|  | Shade dark areas<br><sub>shown when Display: A picture</sub> | 0 – 1 | 0 |
-|  | Light subject on dark<br><sub>shown when Display: A picture</sub> | on / off | off |
-|  | Picture size<br><sub>shown when Display: A picture</sub> | 0.3 – 1.4 | 1 |
-|  | Wobble with the sound<br><sub>shown when Display: A picture</sub> | 0 – 3 | 1 |
-|  | Beam sweep<br><sub>shown when Display: A picture</sub> | 0.05 – 1 | 1 |
-|  | Show beam jumps<br><sub>shown when Display: A picture</sub> | on / off | off |
-|  | Shape<br><sub>shown when Display: Custom shape</sub> | Circle · Square · Triangle · Star · Heart · Infinity · My drawing | Circle |
-|  | Draw a shape on the widget<br><sub>shown when Display: Custom shape</sub> | button |  |
-|  | Gain | 0.1 – 4 | 1 |
-|  | Channels<br><sub>shown when Display: Waveform (Y/T)</sub> | Mono mix · Left + right | Left + right |
-|  | Shape rotation<br><sub>shown when Display: Custom shape</sub> | -2 – 2 | 0.2 |
-|  | Echoes | 0 – 8 | 0 |
-|  | Echo size step<br><sub>shown when Echoes ≥ 1</sub> | -0.3 – 0.3 | -0.12 |
-|  | Echo twist<br><sub>shown when Echoes ≥ 1</sub> | -90 – 90 | 12 |
-| **Phosphor** | Phosphor persistence | 0 – 0.97 | 0.8 |
-|  | Beam width | 0.5 – 5 | 1.5 |
-|  | Optical bloom | 0 – 2 | 1 |
-| **Color** | Phosphor color | color | `#2fe3a2` |
-|  | Graticule | on / off | off |
+| **Settings** | Mode | X/Y (left → X, right → Y) · Y/T (time base) · Beam draws a shape · Beam draws a picture | X/Y (left → X, right → Y) |
+| **Vertical** | Volts / div | 10 mV · 20 mV · 50 mV · 0.1 V · 0.2 V · 0.5 V · 1 V · 2 V | 0.2 V |
+|  | Variable gain | 0.25 – 4 | 1 |
+|  | Display<br><sub>shown when Mode: Y/T (time base)</sub> | Dual (CH1 + CH2) · CH1 (left) · CH2 (right) · Add (CH1 + CH2) | Dual (CH1 + CH2) |
+|  | CH1 position<br><sub>shown when Mode: Y/T (time base)</sub> | -4 – 4 div | 0 div |
+|  | CH2 position<br><sub>shown when Mode: Y/T (time base)</sub> | -4 – 4 div | 0 div |
+|  | Rotate 45° (mid / side)<br><sub>shown when Mode: X/Y (left → X, right → Y)</sub> | on / off | off |
+|  | X position<br><sub>shown when Mode: X/Y (left → X, right → Y) / Beam draws a shape / Beam draws a picture</sub> | -4 – 4 div | 0 div |
+|  | Y position<br><sub>shown when Mode: X/Y (left → X, right → Y) / Beam draws a shape / Beam draws a picture</sub> | -3 – 3 div | 0 div |
+| **Time base and trigger** | Time / div<br><sub>shown when Mode: Y/T (time base)</sub> | 0.1 ms · 0.2 ms · 0.5 ms · 1 ms · 2 ms · 5 ms · 10 ms · 20 ms · 50 ms | 2 ms |
+|  | Trigger mode<br><sub>shown when Mode: Y/T (time base)</sub> | Auto · Normal (waits for a trigger) · Free run | Auto |
+|  | Trigger source<br><sub>shown when Mode: Y/T (time base)</sub> | CH1 · CH2 · CH1 + CH2 | CH1 |
+|  | Slope<br><sub>shown when Mode: Y/T (time base)</sub> | Rising ↗ · Falling ↘ | Rising ↗ |
+|  | Trigger level<br><sub>shown when Mode: Y/T (time base)</sub> | -0.5 – 0.5 V | 0 V |
+|  | Holdoff<br><sub>shown when Mode: Y/T (time base)</sub> | 0 – 100 ms | 0 ms |
+| **Beam drawing** | Shape<br><sub>shown when Mode: Beam draws a shape</sub> | Circle · Square · Triangle · Star · Heart · Infinity · My drawing | Circle |
+|  | Draw a shape on the widget<br><sub>shown when Mode: Beam draws a shape</sub> | button |  |
+|  | Choose a picture…<br><sub>shown when Mode: Beam draws a picture</sub> | button |  |
+|  | Beam points<br><sub>shown when Mode: Beam draws a picture</sub> | 500 – 12000 | 4000 |
+|  | Edge detail<br><sub>shown when Mode: Beam draws a picture</sub> | 0 – 1 | 0.45 |
+|  | Shade dark areas<br><sub>shown when Mode: Beam draws a picture</sub> | 0 – 1 | 0 |
+|  | Light subject on dark<br><sub>shown when Mode: Beam draws a picture</sub> | on / off | off |
+|  | Show beam jumps<br><sub>shown when Mode: Beam draws a picture</sub> | on / off | off |
+|  | Redraw rate<br><sub>shown when Mode: Beam draws a shape / Beam draws a picture</sub> | 5 – 200 Hz | 50 Hz |
+|  | Size<br><sub>shown when Mode: Beam draws a shape / Beam draws a picture</sub> | 0.2 – 1.4 | 1 |
+|  | Signal on the beam<br><sub>shown when Mode: Beam draws a shape / Beam draws a picture</sub> | 0 – 3 | 1 |
+|  | Rotation<br><sub>shown when Mode: Beam draws a shape / Beam draws a picture</sub> | -2 – 2 | 0 |
+| **Tube** | Phosphor | P31 green (short) · P1 green (medium) · P7 blue flash, yellow afterglow · P4 white · P11 blue · P3 amber · Custom colour | P31 green (short) |
+|  | Custom colour<br><sub>shown when Phosphor: Custom colour</sub> | color | `#2fe3a2` |
+|  | Intensity | 0.05 – 4 | 1 |
+|  | Focus (spot size) | 0.4 – 5 | 1.1 |
+|  | Afterglow | 0.05 – 10 × | 1 × |
+|  | Halation | 0 – 2 | 0.6 |
+|  | Beam interpolation | Off (straight lines) · 2× · 4× · 8× (smoothest) | 4× |
+|  | Graticule | on / off | on |
+|  | Scale illumination<br><sub>shown when Graticule: true</sub> | 0 – 1 | 0.3 |
+|  | Readout | on / off | on |
+|  | Tube glass | 0 – 1 | 0.7 |
 
 ## Spectre
 

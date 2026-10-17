@@ -68,7 +68,12 @@ export class AudioEngine {
     try {
       await ctx.audioWorklet.addModule(new URL('./onset-worklet.js', import.meta.url));
       const node = new AudioWorkletNode(ctx, 'signalform-onsets', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 2, channelCountMode: 'explicit' });
-      node.port.onmessage = (e) => { for (const h of e.data) this._hits.push(h); if (this._hits.length > 64) this._hits.splice(0, this._hits.length - 64); };
+      node.port.onmessage = (e) => {
+        const d = e.data;
+        if (d && d.scope) { this._scopeIn(d.L, d.R); return; }
+        for (const h of d) this._hits.push(h);
+        if (this._hits.length > 64) this._hits.splice(0, this._hits.length - 64);
+      };
       const sink = ctx.createGain(); sink.gain.value = 0;
       this.input.connect(node); node.connect(sink); sink.connect(ctx.destination);
       this._onsetNode = node;
@@ -77,6 +82,13 @@ export class AudioEngine {
       console.warn('onset worklet unavailable, using the per-frame detector', e);
       this._onsetNode = null;
     }
+  }
+  // Every sample of the signal, kept in a ring for the oscilloscope (F.scope).
+  _scopeIn(L, R) {
+    const S = this.F.scope, m = S.mask, n = L.length;
+    let w = S.pos & m;
+    for (let i = 0; i < n; i++) { S.L[w] = L[i]; S.R[w] = R[i]; w = (w + 1) & m; }
+    S.pos += n; S.live = true; this._scopeT = performance.now();
   }
   setSensitivity(v) { this.sensitivity = v; if (this._onsetNode) this._onsetNode.port.postMessage({ sens: v }); }
 
@@ -196,6 +208,7 @@ export class AudioEngine {
   update(dt, time) {
     const F = this.F;
     F.dt = dt; F.time = time;
+    if (F.scope.live && performance.now() - (this._scopeT || 0) > 400) F.scope.live = false;   // the stream stopped
     if (!this.ctx) { this._idle(time); return F; }
     this.anL.getFloatTimeDomainData(F.waveL);
     this.anR.getFloatTimeDomainData(F.waveR);
@@ -333,6 +346,7 @@ export class AudioEngine {
 
 function makeFrame() {
   return {
+    scope: { L: new Float32Array(1 << 15), R: new Float32Array(1 << 15), mask: (1 << 15) - 1, pos: 0, live: false },
     dt: 0.016, time: 0, sampleRate: 48000, active: false, peak: 0,
     waveL: new Float32Array(WAVE), waveR: new Float32Array(WAVE), wave: new Float32Array(WAVE),
     spectrum: new Float32Array(FFT / 2), bands: new Float32Array(LOG_BANDS),

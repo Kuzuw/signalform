@@ -72,7 +72,7 @@
 | **Fractal** | A recursive network: clusters of linked points inside clusters, filling the frame. Julia, Kali and folded-geometry fractals are also available. | Hits light up links, kicks make it breathe, drops and heavy hits rewire it. |
 | **Grain** | Dust strung along slow, wavy bands that thicken, thin out and drift. A dense grain texture is a second look. | Bass sways the bands, kicks scatter them, hats make specks glint. |
 | **Lissajous** | Dozens of fine translucent ribbons tracing a tumbling harmonic knot in 3D. | Pitch sets the ratios, mids deform the knot, or the stereo X/Y signal draws the figure. |
-| **Oscilloscope** | A green phosphor scope in stereo phase (X/Y), waveform (Y/T), a custom shape you draw on the widget, or **a picture you load**: the beam traces its outlines like oscilloscope art. | The raw stereo signal, with echoes and afterglow; pictures shake along their lines with the sound. |
+| **Oscilloscope** | A real analog oscilloscope simulated from the electron beam up: X/Y, a triggered Y/T time base with dual trace, P31/P1/P7/P4/P11/P3 phosphors with true afterglow, graticule and readout. The beam can also draw a shape or **a picture you load**. | Every sample of the stereo signal; a slow beam burns bright, a fast one fades, like a CRT. |
 | **Spectre** | The spectrum as glowing emission lines in prism colors, or as bands, layers, a flowing spectrogram or a ring. | Every band lights its own lines, equalized so quiet regions still glow. |
 | **Trace** | The live signal at high gain, like a pen recorder pushed into the rails, or up to 12 lines as an open line, a loop or a spiral. | The raw waveform; or the spectrum bends the lines and hits send ripples. |
 | **Waveform** | A solid white mass of the music scrolling past, jagged with transients, or layered rings, contours and mirrored layers. | Peaks of each slice shape the edge; kicks thicken it. |
@@ -230,7 +230,7 @@ renderer/             the interface (plain ES modules, no build step)
   stage.js            widgets, layout, layering, groups and the compositor
   fx.js               per-widget Look and Audio controls
   inspector.js        the Module / Look / Audio panel, generated from parameter schemas
-  modules/            the 20 visual modules (WebGL 2 for Aura, Ferro, Fractal, Tunnel and Cells; Canvas 2D for the rest)
+  modules/            the 20 visual modules (WebGL 2 for Ferro, Tunnel, Cells, Oscilloscope and the shader looks of Aura and Fractal; Canvas 2D for the rest)
 docs/                 module reference and README images
 scripts/              generators for docs/MODULES.md and the README images
 test/                 headless interface, module and render tests

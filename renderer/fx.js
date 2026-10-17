@@ -63,7 +63,7 @@ export function shapeFrame(F, fx, st) {
   for (const n of HITS) { const gn = g[n] ?? 1; o[n] = Math.min(1.5, F[n] * fx.hits * gn * (0.5 + 0.5 * fx.react)); }
   o.onsets.length = 0;
   for (const e of F.onsets) { const s = e.strength * fx.hits * (g[e.band] ?? 1); if (s > 0.3) o.onsets.push({ band: e.band, strength: Math.min(1.3, s) }); }
-  o.waveL = F.waveL; o.waveR = F.waveR; o.wave = F.wave; o.spectrum = F.spectrum; o.bands = F.bands;
+  o.waveL = F.waveL; o.waveR = F.waveR; o.wave = F.wave; o.spectrum = F.spectrum; o.bands = F.bands; o.scope = F.scope;
   st.init = true;
   return o;
 }

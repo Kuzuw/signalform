@@ -4,6 +4,19 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-17
+
+### Changed
+- **Oscilloscope is now a real oscilloscope simulator.**
+  - **Every sample is drawn.** The audio thread streams the whole signal to the scope, so the beam traces it continuously instead of redrawing the latest snapshot each frame.
+  - **Beam physics on the GPU.** Each move of the beam is a gaussian spot integrated along its path, so slow parts burn bright and fast jumps leave faint lines, like a CRT. The beam path is smoothed between samples (Beam interpolation 1×–8×).
+  - **Real phosphors** with a fast flash and a slow afterglow that fade at their own rates: P31, P1, P7 (blue flash, yellow afterglow), P4, P11, P3 or a custom colour. Persistence is exact at any frame rate. Halation, focus and intensity controls.
+  - **Y/T with a real time base:** time/div, trigger source (CH1, CH2, CH1 + CH2), slope, level, Auto / Normal / Free run, holdoff; dual trace, single channel or Add, each channel with its own position.
+  - **X/Y** with volts/div, variable gain, X and Y position and an optional 45° mid/side rotation.
+  - Etched 10 × 8 graticule with minor ticks and scale illumination, an on-screen readout, and the tube glass.
+  - Shapes and pictures are drawn by the same beam at a chosen redraw rate, with the beam blanked between strokes.
+
+
 ## [1.5.0] - 2026-10-17
 
 ### Added
@@ -106,7 +119,8 @@ First public release. Free and open source under the MIT license, for Windows 10
 - Live Output dialog for Spout and NDI (the native add-ons are not bundled yet).
 - Windows installer built and published by GitHub Actions.
 
-[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/Kuzuw/signalform/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/Kuzuw/signalform/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/Kuzuw/signalform/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Kuzuw/signalform/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Kuzuw/signalform/compare/v1.2.0...v1.3.0

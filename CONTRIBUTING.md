@@ -120,6 +120,7 @@ Every value is already smoothed and normalized to about 0–1 unless noted. The 
 - **Scale with `S`** so the module looks the same in a small card and full screen.
 - **Never throw from `render`.** A broken frame stops the whole stage.
 - Keep `id` and parameter `key`s stable once released: scenes, presets and timeline keyframes store them.
+- **Exact renders call `render` with a fixed `dt`, as fast as the machine allows**, so use `ctx.dt`, `ctx.t` and `F.time` for anything that moves, never the wall clock (`performance.now()`, `Date.now()`).
 - **Every `range`, `select`, `color` and `toggle` parameter can be keyframed on the timeline** automatically (it gets a ◆ in the inspector). `render` receives the current values in `params` every frame, so read settings there rather than caching them in `create`, and make sure a setting can change from one frame to the next without a glitch.
 
 ## Writing an effect
@@ -148,6 +149,8 @@ node test/run-modules.mjs out/modules.png      # renders every module into one c
 ONLY=pulse node test/run-modules.mjs out/pulse.png
 node test/run-app.mjs out/                     # clicks through the interface, saves screenshots
 node test/timeline.mjs out/                    # keyframes, interpolation, in and out points, transport, a timeline render
+node test/set.mjs out/                         # songs on the timeline, crossfades, and an exact render joined with ffmpeg
+node test/mux.mjs                              # main/mux.js: H.264 and VP9 streams joined with audio by ffmpeg
 node test/run-render.mjs out/render.webm       # renders the 5-second fixture track (WebM or MP4, as the browser records)
 node test/onsets-varied.mjs 2001 40            # kick / snare / hat precision and recall on varied synthetic mixes
 node scripts/train-kick.mjs                    # refit the kick classifier (WRITE=1 saves renderer/kick-net.js)

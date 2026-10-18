@@ -4,6 +4,22 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-18
+
+### Added
+- **Songs on the timeline: render whole sets as one video.** *Add audio* in the timeline (or drop audio files on it) puts songs on audio lanes, one after another; the timeline becomes the set and *Timeline audio* the music, so every song drives the visuals. Drag songs to move them (up or down for the other lane), trim their ends, drag the dots on top to fade them, and overlap two songs on lanes A and B to crossfade (equal-power). Right-click a song for *Crossfade from the previous song* (6 s or 16 s), *Start when the previous song ends*, fades, louder and quieter, *Restore the full song* and *Remove and close the gap*. Songs are decoded only around the playhead and let go once played, so an hour-long set doesn't fill the memory; scenes remember where the files are, and a moved file can be found again from its clip.
+- **Exact render** (the default for a set or a track): the music runs through an offline audio engine and every frame is analysed, drawn at the video's resolution and encoded with WebCodecs (H.264 from the graphics card's encoder where there is one), then joined with the audio by ffmpeg. The video is perfectly smooth whatever the computer, the app stays responsive while it works, and it usually finishes faster than real time. The progress shows the speed and the time left. *Real time* is still there.
+- 24 fps as a render frame rate.
+
+### Changed
+- **Real-time recording is lighter:**
+  - Frames are composed only at the chosen frame rate, no longer at the screen's refresh rate (a 144 Hz screen composed 144 frames a second for a 60 fps video).
+  - Hidden layers are no longer drawn while the whole stage is recorded.
+  - With effects on the stage, the recorded picture is shown on screen instead of being composed a second time.
+  - Plain widgets are drawn straight into the video, and the others reuse a scratch canvas instead of reallocating one per widget per frame.
+  - Widgets draw at the video's resolution (sharper 4K renders, less work on high-DPI screens).
+  - Module thumbnails pause during a take, and takes and Live Output keep running while the window is minimized.
+
 ## [2.1.0] - 2026-10-18
 
 ### Added

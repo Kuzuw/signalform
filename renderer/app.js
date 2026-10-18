@@ -105,25 +105,30 @@ const app = {
   // Without a track: play the timeline from the start and record it for its length, in real time,
   // with whatever the music source is.
   async renderTimeline(opts, onProgress) {
-    const tl = app.timeline, dur = tl.duration;
+    const tl = app.timeline;
     const job = { done: false, cancelled: false };
     const wasLoop = tl.loop;
-    tl.playing = false; tl.seek(0);
+    tl.pause(); tl.seek(0);
+    await tl.useSongs();
+    if (tl.hasSet) await tl.player.prepare(0);
+    const dur = tl.duration;
+    if (opts.mute) app.audio.setMonitor(false);
     await app.recorder.start({ source: opts.source, height: opts.height, fps: opts.fps, withAudio: opts.audio, name: `${app.stage.scene.name || 'Timeline'} · Signalform` });
     $('recBtn').classList.add('on');
     let tick;
     job.result = new Promise((resolve) => {
       const finish = async (save) => {
         if (job.done) return; job.done = true;
-        clearInterval(tick); tl.onEnd = null; tl.loop = wasLoop; tl.playing = false;
+        clearInterval(tick); tl.onEnd = null; tl.loop = wasLoop; tl.pause();
         const path = await app.recorder.stop({ save });
         $('recBtn').classList.remove('on'); $('recLabel').textContent = 'Record';
+        if (opts.mute) app.audio.setMonitor(true);
         resolve(path);
       };
       job.cancel = () => { job.cancelled = true; finish(false); };
       tl.loop = false; tl.onEnd = () => finish(true);
       tick = setInterval(() => onProgress(Math.min(1, tl.now() / dur)), 200);
-      tl.playing = true; tl._rebase();
+      tl.play();
     });
     return job;
   },
@@ -147,7 +152,7 @@ window.signalform = app;
 
   app.stage = new Stage($('stage'), $('stageWrap'), {
     onSelect: () => { if (app.inspector) app.inspector.render(); if (app.timeline) { app.timeline.selKey = null; app.timeline.refreshSoon(); } },
-    onChange: (structural) => { autosave(); $('emptyState').hidden = app.stage.widgets.length > 0; if (structural && app.inspector) app.inspector.render(); if (app.timeline) app.timeline.refreshSoon(); },
+    onChange: (structural) => { autosave(); $('emptyState').hidden = app.stage.widgets.length > 0; if (structural && app.inspector) app.inspector.render(); if (app.timeline) app.timeline.refreshSoon(); if (app.audio.sourceType === 'timeline') updateSource(); },
     onDropModule: (id, rect) => addModule(id, rect),
     onContext: (x, y) => openContextMenu(x, y)
   });
@@ -190,22 +195,28 @@ function addModule(id, rect) {
 }
 
 /* ---------------- frame loop ---------------- */
-let lastT = performance.now(), t0 = lastT, meterTick = 0, fpsT = lastT, fpsFrames = 0;
-function loop(now) {
-  if (app.paused) { lastT = now; return requestAnimationFrame(loop); } // frame-by-frame capture (scripts/readme-assets)
+let lastT = performance.now(), t0 = lastT, meterTick = 0, fpsT = lastT, fpsFrames = 0, lastStep = lastT;
+function loop(now) { step(now); requestAnimationFrame(loop); }
+function step(now) {
+  lastStep = performance.now();
+  if (app.paused) { lastT = now; return; } // frame-by-frame capture (scripts/readme-assets)
   const dt = Math.min(0.1, Math.max(0.001, (now - lastT) / 1000)); lastT = now;
   const t = (now - t0) / 1000;
   const F = app.audio.update(dt, t);
   app.timeline.tick();
   app.stage.render(F, dt, t);
   app.timeline.frame();
-  app.recorder.frame();
+  app.recorder.frame(now);
   app.outputs.frame(now);
   if ((meterTick++ & 1) === 0) updateMeters(F);
   fpsFrames++;
   if (now - fpsT > 500) { updateStatus(now); fpsT = now; fpsFrames = 0; }
-  requestAnimationFrame(loop);
 }
+// A minimized or covered window gets no animation frames; keep a render or a live output going anyway.
+setInterval(() => {
+  const busy = app.recorder && (app.recorder.recording || (app.outputs && app.outputs.anyRunning));
+  if (busy && performance.now() - lastStep > 120) step(performance.now());
+}, 1000 / 60);
 
 let seeking = false;
 function updateMeters(F) {
@@ -238,6 +249,7 @@ function updateStatus(now) {
   autoQuality(fps);
   $('sbWidgets').textContent = `${st.widgets.length} widget${st.widgets.length === 1 ? '' : 's'}${st.groups.length ? ` · ${st.groups.length} group${st.groups.length === 1 ? '' : 's'}` : ''}`;
   $('sbSource').textContent = app.audio.sourceLabel;
+  if (app.recorder.recording) return;   // no thumbnails while recording: every millisecond goes to the video
   for (const c of document.querySelectorAll('canvas[data-thumb]')) {
     const r = st.rt.get(c.dataset.thumb);
     if (r && r.size[0]) c.getContext('2d').drawImage(r.out(), 0, 0, c.width, c.height);
@@ -397,6 +409,7 @@ const SRC = {
   demo: { ico: icon.beat, title: 'Demo beat', sub: '124 BPM loop with builds and drops' },
   system: { ico: icon.system, title: 'Connect', sub: 'Captures default audio output' },
   file: { ico: icon.music, title: 'Track', sub: '' },
+  timeline: { ico: icon.music, title: 'Timeline audio', sub: '' },
   device: { ico: icon.mic, title: 'Input', sub: 'Live input' },
   none: { ico: icon.off, title: 'No input', sub: 'Visuals idle on their own' }
 };
@@ -406,15 +419,17 @@ function updateSource() {
   const s = SRC[t] || SRC.none;
   $('srcIco').innerHTML = s.ico;
   $('srcChev').innerHTML = icon.chevron;
+  const songs = app.timeline ? app.timeline.songs : [];
+  const setInfo = `${songs.length} song${songs.length === 1 ? '' : 's'} · ${fmtTime(app.timeline ? app.timeline.duration : 0)}`;
   $('srcTitle').textContent = t === 'device' ? a.sourceLabel : t === 'file' ? 'Track loaded' : s.title;
-  $('srcSub').textContent = t === 'file' ? 'Open another track…' : t === 'device' ? 'Microphone or audio interface' : s.sub;
-  const showCard = t === 'file' || t === 'demo';
+  $('srcSub').textContent = t === 'file' ? 'Open another track…' : t === 'device' ? 'Microphone or audio interface' : t === 'timeline' ? setInfo : s.sub;
+  const showCard = t === 'file' || t === 'demo' || t === 'timeline';
   $('trackCard').hidden = !showCard;
   $('seekBox').hidden = t !== 'file';
   $('loopBtn').hidden = t !== 'file';
-  $('exportBtn').hidden = t !== 'file';
+  $('exportBtn').hidden = t !== 'file' && t !== 'timeline';
   $('ecBtn').hidden = t !== 'file';
-  $('trackName').textContent = t === 'file' ? a.trackName : 'Demo beat · 124 BPM';
+  $('trackName').textContent = t === 'file' ? a.trackName : t === 'timeline' ? `Set · ${songs.length} song${songs.length === 1 ? '' : 's'}` : 'Demo beat · 124 BPM';
   $('playBtn').innerHTML = a.playing ? icon.pause : icon.play;
   $('playBtn').title = a.playing ? 'Pause (Space)' : 'Play (Space)';
   const mon = a.monitor && a.monitor.gain.value > 0.001;
@@ -423,7 +438,7 @@ function updateSource() {
   $('loopBtn').innerHTML = icon.loop;
   $('loopBtn').setAttribute('aria-pressed', String(!!(a.media && a.media.loop)));
   $('ejectBtn').innerHTML = icon.close;
-  $('exportBtn').innerHTML = icon.download + '<span>Export video from this track</span>';
+  $('exportBtn').innerHTML = icon.download + (t === 'timeline' ? '<span>Render the set to video</span>' : '<span>Export video from this track</span>');
   if (!exportingEC) $('ecBtn').innerHTML = icon.download + '<span>Export for EffectCraft</span>';
 }
 
@@ -454,6 +469,7 @@ async function openSourceMenu() {
     item('system', icon.system, 'Connect', 'Captures default audio output', () => choose('system')),
     ...(app.devices.length ? app.devices : [{ id: '', label: 'Microphone' }]).map((d) => item('device:' + d.id, icon.mic, d.label, 'Microphone or audio interface', () => choose('device:' + d.id, d))),
     item('file', icon.music, 'Open a track…', 'WAV, MP3, AIFF, FLAC, M4A', () => app.pickTrack()),
+    ...(app.timeline.songs.length ? [item('timeline', icon.music, 'Timeline audio', `The ${app.timeline.songs.length} song${app.timeline.songs.length === 1 ? '' : 's'} on the timeline, as one set`, () => choose('timeline'))] : []),
     item('demo', icon.beat, 'Demo beat', 'Built-in loop with builds and drops', () => choose('demo')),
     item('none', icon.off, 'No input', 'Visuals idle on their own', () => choose('none')));
   menu.hidden = false;
@@ -468,8 +484,9 @@ async function choose(v, dev) {
     if (v === 'demo') await app.audio.useDemo();
     else if (v === 'system') await app.audio.useSystem();
     else if (v === 'none') app.audio.stopSource();
+    else if (v === 'timeline') { await app.timeline.useSongs(); }
     else if (v.startsWith('device:')) await app.audio.useDevice(v.slice(7) || undefined, dev && dev.label);
-    if (v !== 'none') { app.settings.lastSource = v; app.saveSettings(); }
+    if (v !== 'none' && v !== 'timeline') { app.settings.lastSource = v; app.saveSettings(); }
     toast('Listening to ' + app.audio.sourceLabel);
   } catch (err) {
     toast(err.name === 'NotAllowedError' ? 'Access was denied. Allow microphone or screen recording access for Signalform in your system settings.' : err.message, true, 6000);

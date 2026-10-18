@@ -63,8 +63,8 @@
 | **Real-life oscilloscope** | The oscilloscope simulates the beam, the phosphor and the time base, and can show the whole instrument: a dual-trace analog scope whose knobs, buttons and lamps follow its real settings. |
 | **Music-aware analysis** | Bass, mid and high levels; kick, snare and hi-hat detection on the audio thread (small trained classifiers tell kicks and snares apart from bass notes); pitch; and build-up and drop detection, shared by every module. |
 | **Any sound in** | What your PC is playing, a microphone or audio interface, a virtual cable, a track file, or the built-in demo beat. |
-| **Timeline** | Keyframe any setting with the ◆ beside it (linear, eased or held), set when each layer starts and stops, and scrub the track with the playhead. Renders follow the timeline. |
-| **Video out** | Render a track or the timeline to MP4 with its audio, or record live takes of the whole stage, a group or a single widget. |
+| **Timeline** | Keyframe any setting with the ◆ beside it (linear, eased or held), set when each layer starts and stops, and lay out whole sets of songs on audio lanes with crossfades. Renders follow the timeline. |
+| **Video out** | An exact render draws and encodes every frame in turn, so a track or an hour-long set becomes a perfectly smooth MP4 on any computer, usually faster than real time. Or record live takes of the whole stage, a group or a single widget. |
 | **EffectCraft plug-ins** | CRT Screen, Tunnel, Cells, Ferro, Horizon and Aura as WebAssembly effect plug-ins for [EffectCraft](https://github.com/storytold/effectcraft), plus a script export that brings a track's beats, bands, builds and drops into EffectCraft or After Effects as keyframes. |
 | **Scenes and presets** | Save whole layouts as scenes (and share them as `.sfscene` files), or save module settings as presets. Eleven starter scenes are included. |
 | **Free and open source** | MIT licensed. No account, no license key, no telemetry. |
@@ -156,7 +156,8 @@ Every control of every module, with ranges and defaults, is listed in the **[mod
 | Playhead to the start / end | <kbd>Home</kbd> / <kbd>End</kbd> |
 | Keyframe a setting | Click the ◆ beside it |
 | Change a key's easing / delete it | Right-click the key / click it and press <kbd>Delete</kbd> |
-| Move a key or a layer bar without snapping | Drag it with <kbd>Alt</kbd> |
+| Move a key, a layer bar or a song without snapping | Drag it with <kbd>Alt</kbd> |
+| Remove the picked song | Click it and press <kbd>Delete</kbd> |
 | Zoom / scroll the timeline | <kbd>Ctrl</kbd>+scroll / <kbd>Shift</kbd>+scroll |
 
 ## Audio sources
@@ -171,20 +172,23 @@ Every control of every module, with ranges and defaults, is listed in the **[mod
 
 ## Timeline
 
-<img src="docs/images/timeline.png" alt="The timeline under the stage: layer bars with in and out points, keyframes for Aura's opacity, hue and zoom, and the playhead" width="100%">
+<img src="docs/images/timeline.png" alt="The timeline under the stage: three songs on two audio lanes with crossfades, layer bars with in and out points, keyframes for Aura's opacity and hue, and the playhead" width="100%">
 
 The timeline sits under the stage (<kbd>Ctrl</kbd>+<kbd>T</kbd> shows or hides it, and its top edge drags to resize it).
 
-- **The playhead.** With a track loaded, the playhead *is* the track's position: play, pause and scrub it from the ruler, and the track's waveform is drawn along the top. Without a track, the timeline has its own clock and a length you set (30 seconds to start), and the music comes from whatever source is on, live input included.
+- **Songs and sets.** Click **Add audio** (or drop audio files on the timeline) to put songs on the audio lanes, one after another, and the timeline becomes one long set: play it, and the visuals follow every song. Drag a song to move it (up or down for the other lane), drag its ends to trim it and the dots on its top corners to fade it in and out. Overlap two songs on lanes A and B to crossfade them, or right-click a song for **Crossfade from the previous song**, **Start when the previous song ends**, louder or quieter, and more. Songs are read from disk as the playhead reaches them, so an hour-long set doesn't fill the memory, and the scene remembers where they are.
+- **The playhead.** With songs on the timeline, or a track loaded, the playhead is the music's position: play, pause and scrub it from the ruler. Otherwise the timeline has its own clock and a length you set (30 seconds to start), and the music comes from whatever source is on, live input included.
 - **Keyframes.** Every setting a widget has, in Module, Look and Audio, plus its opacity, has a **◆** beside its name. Click it to add a key at the playhead; once a setting has keys, changing it adds or updates the key where the playhead is, the same as in a video editor. Numbers and colours travel smoothly between keys; choices and switches change at the key. Right-click a key for **Linear**, **Ease in and out** or **Hold**; drag keys along their row; click one and press <kbd>Delete</kbd> to remove it. Keys snap to the playhead and to other keys.
 - **In and out points.** Each layer has a bar. Drag its ends to set when it appears and disappears, or drag the bar to move it; double-click it to make it play the whole time. A layer outside its bar is not drawn at all, so it costs nothing.
 - **Everything is saved with the scene**, and the audio still drives every widget as usual: keyframes set *what* the visuals are, the music moves them.
 
 ## Recording and export
 
-- **Export video from this track** plays a loaded track from the start and renders the stage to an MP4 (H.264 + AAC) with the track's audio, following the timeline. It runs in real time, so it takes as long as the track.
-- **Render** (in the timeline, or *File ▸ Render to Video…*, <kbd>Ctrl</kbd>+<kbd>R</kbd>) renders the timeline from the start for its length when no track is loaded, with or without the audio of the current source.
-- **Record** captures a live take of whatever is playing. The **Record Widget** dialog lets you record the whole stage, a group or one widget, at 720p, 1080p, 1440p or 4K and 30 or 60 fps, with or without audio.
+- **Render** (in the timeline, *File ▸ Render to Video…*, <kbd>Ctrl</kbd>+<kbd>R</kbd>, or *Export video from this track*) renders the whole set or track, following the timeline, to an MP4 (H.264 + AAC):
+  - **Exact** (the default with songs or a track): the music is played through an offline audio engine and every frame is analysed, drawn at the video's resolution and encoded (with the graphics card's encoder where there is one) in turn. Nothing is recorded off the screen, so the video is perfectly smooth however busy the computer is, the app stays usable, and it usually takes less time than the music lasts.
+  - **Real time**: plays the music and records the stage as it runs, exactly what is on screen.
+  - Without songs or a track, Render records the timeline in real time for its length, with or without the audio of the current source.
+- **Record** captures a live take of whatever is playing. Takes are paced at the chosen frame rate whatever the screen's refresh rate, widgets draw at the video's resolution, and a take keeps going when the window is minimized. The **Record Widget** dialog lets you record the whole stage, a group or one widget, at 720p, 1080p, 1440p or 4K and 30 or 60 fps, with or without audio.
 - When a take ends, you choose where to save it (your Videos folder by default). Videos are saved as MP4; the bundled ffmpeg converts them when needed.
 
 ## Signalform for EffectCraft
@@ -269,7 +273,7 @@ npm test           # source and settings checks
 
 ### Tests
 
-Every push and pull request runs [`ci.yml`](.github/workflows/ci.yml): the source and settings checks (`npm test`), a check that the [module reference](docs/MODULES.md) is up to date, beat detection scored on 24 synthetic mixes (`npm run test:onsets`, kick and snare F1 must stay at 80% or more), the whole interface and the timeline clicked through in headless Chromium (`npm run test:ui`, `npm run test:timeline`), the EffectCraft scripts run against a model of the scripting API, and the EffectCraft plug-ins built, validated and rendered in EffectCraft's own WebAssembly host. The screenshots are kept with each run.
+Every push and pull request runs [`ci.yml`](.github/workflows/ci.yml): the source and settings checks (`npm test`), a check that the [module reference](docs/MODULES.md) is up to date, beat detection scored on 24 synthetic mixes (`npm run test:onsets`, kick and snare F1 must stay at 80% or more), the whole interface, the timeline and a set of songs clicked through in headless Chromium (`npm run test:ui`, `npm run test:timeline`, `npm run test:set`, which also renders the set exactly and joins it with ffmpeg), the EffectCraft scripts run against a model of the scripting API, and the EffectCraft plug-ins built, validated and rendered in EffectCraft's own WebAssembly host. The screenshots are kept with each run.
 
 ### Releases
 
@@ -287,6 +291,7 @@ Pushes that keep the same version rebuild that release's installer; documentatio
 main/                 Electron main process
   main.js             window, menus, app:// protocol, recording files, ffmpeg transcode
   store.js            scenes, presets and settings on disk
+  mux.js              joins an exact render's video and audio into an MP4 with ffmpeg
   preload.js          the small, typed bridge the UI talks to (window.sf)
   outputs/            Spout and NDI adapters
 renderer/             the interface (plain ES modules, no build step)
@@ -296,6 +301,8 @@ renderer/             the interface (plain ES modules, no build step)
   snare-net.js        the snare classifier's weights (TARGET=snare scripts/train-kick.mjs)
   stage.js            widgets, layout, layering, groups and the compositor
   timeline.js         keyframes, in and out points, the playhead and the timeline panel
+  audioset.js         songs on the timeline: lanes, fades, crossfades, playback, decoding near the playhead
+  offline.js          the exact render: offline audio, frame-by-frame drawing, WebCodecs encoding
   effectcraft.js      the track analysis as an EffectCraft / After Effects script
   fx.js               per-widget Look and Audio controls
   rack.js             the effect rack: effects and the shared GPU engine that runs them
@@ -313,6 +320,7 @@ Each frame, `audio.js` produces one analysis frame and `timeline.js` sets the an
 
 ## Roadmap
 
+- [ ] macOS version
 - [ ] Bundle the Spout and NDI add-ons in the release build
 - [ ] Code-signed installer
 - [ ] MIDI and OSC control of any parameter

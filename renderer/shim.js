@@ -14,7 +14,9 @@ export function installShim() {
     requestMic: async () => true,
     store: { get: async (n) => ls.get(n), set: async (n, d) => ls.set(n, d) },
     file: {
-      saveText: async (text, name, kind, ext) => { download(new Blob([text], { type: 'text/plain' }), name + '.' + ext); return 'download'; }
+      saveText: async (text, name, kind, ext) => { download(new Blob([text], { type: 'text/plain' }), name + '.' + ext); return 'download'; },
+      pathFor: () => '',
+      readAudio: async () => null
     },
     scene: {
       export: async (scene) => { download(new Blob([JSON.stringify(scene, null, 2)], { type: 'application/json' }), (scene.name || 'scene') + '.sfscene'); return 'download'; },
@@ -30,6 +32,14 @@ export function installShim() {
       end: async (id, name) => { const r = recs[id]; delete recs[id]; if (!r) return null; window.__lastRecording = { bytes: r.parts.reduce((a, b) => a + b.byteLength, 0), ext: r.ext }; download(new Blob(r.parts), `${name}.${r.ext}`); return `${name}.${r.ext}`; },
       abort: async (id) => { delete recs[id]; return true; },
       reveal: async () => {}
+    },
+    // exact renders: kept in memory (window.__lastRender) since a browser can't run ffmpeg
+    render: {
+      begin: async (o) => { const id = 'r' + Math.random().toString(36).slice(2); recs[id] = { o, video: [], audio: [] }; return { id, ffmpeg: false }; },
+      video: async (id, buf) => { recs[id]?.video.push(buf); return true; },
+      audio: async (id, buf) => { recs[id]?.audio.push(buf); return true; },
+      end: async (id, name) => { const r = recs[id]; delete recs[id]; if (!r) return { error: 'gone' }; window.__lastRender = { opts: r.o, video: r.video, audio: r.audio, videoBytes: r.video.reduce((a, b) => a + b.byteLength, 0), audioBytes: r.audio.reduce((a, b) => a + b.byteLength, 0), name }; return { path: name + '.mp4' }; },
+      abort: async (id) => { delete recs[id]; return true; }
     },
     output: {
       backends: async () => [

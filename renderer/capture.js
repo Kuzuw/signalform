@@ -33,7 +33,9 @@ export class Recorder {
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d', { alpha: false });
     this.stage.compose(ctx, W, H, source);
-    const stream = canvas.captureStream(fps);
+    // frames are pushed one by one (requestFrame) at the chosen rate, whatever the screen's refresh rate
+    const stream = canvas.captureStream(0);
+    const track = stream.getVideoTracks()[0];
     if (withAudio && this.audio.recordDest) for (const t of this.audio.recordDest.stream.getAudioTracks()) stream.addTrack(t);
     const { id, finalExt } = await window.sf.rec.begin({ ext: fmt.ext, transcode: fmt.transcode });
     const bitrate = Math.round(W * H * fps * 0.12); // ~25 Mbps at 1080p60
@@ -46,21 +48,34 @@ export class Recorder {
       chain = chain.then(async () => window.sf.rec.chunk(id, await e.data.arrayBuffer()));
     };
     const stopped = new Promise((r) => { mr.onstop = r; });
-    this.stage.forceRender.add(source === 'stage' ? '*' : source);
+    // a single widget or a group is recorded even while it is hidden on the stage
+    if (source !== 'stage') this.stage.forceRender.add(source);
+    else this.stage.mirror = { canvas };
+    // the widgets draw at the video's resolution (sharper 4K, and no wasted work on a high-DPI screen)
+    this.stage.recScale = W / Math.max(1, this.stage.sourceRect(source).w * this.stage.px.w);
     mr.start(1000);
-    this.active = { id, mr, ctx, canvas, W, H, source, name, chain: () => chain, stopped, t0: performance.now(), fmt, bytes: () => bytes };
+    this.active = { id, mr, ctx, canvas, track, W, H, fps, source, name, chain: () => chain, stopped, t0: performance.now(), next: performance.now(), frames: 0, fmt, bytes: () => bytes };
     return { W, H, ext: finalExt };
   }
 
-  frame() {
-    const a = this.active;
-    if (a) this.stage.compose(a.ctx, a.W, a.H, a.source);
+  // Called every animation frame: composes and sends a video frame only when one is due, so a 144 Hz
+  // screen does not compose 144 frames a second for a 60 fps video.
+  frame(now = performance.now()) {
+    const a = this.active; if (!a) return;
+    const iv = 1000 / a.fps;
+    if (now + 2 < a.next) return;
+    a.next = Math.max(a.next + iv, now - iv);   // keep the cadence; don't try to catch up after a stall
+    this.stage.compose(a.ctx, a.W, a.H, a.source);
+    if (a.track && a.track.requestFrame) a.track.requestFrame();
+    a.frames++;
   }
 
   async stop({ save = true } = {}) {
     const a = this.active; if (!a) return null;
     this.active = null;
-    this.stage.forceRender.delete(a.source === 'stage' ? '*' : a.source);
+    if (a.source !== 'stage') this.stage.forceRender.delete(a.source);
+    else this.stage.mirror = null;
+    this.stage.recScale = null;
     if (a.mr.state !== 'inactive') a.mr.stop();
     await a.stopped;
     await new Promise((r) => setTimeout(r, 50));

@@ -454,7 +454,8 @@ export class Stage {
       const r = this.rt.get(w.id);
       if (!r || !r.inst || r.failed) continue;
       if (!this.shown(w) && !this.forceRender.has(w.id) && !this.forceRender.has('*') && !(w.group && this.forceRender.has(w.group))) continue;
-      const S = dpr * this.renderScale;
+      // while rendering, widgets draw at the size the video needs, not the size they have on screen
+      const S = this.recScale || dpr * this.renderScale;
       let cw = Math.max(16, Math.round(w.rect.w * this.px.w * S)), ch = Math.max(16, Math.round(w.rect.h * this.px.h * S));
       const cap = 3840 / Math.max(cw, ch); if (cap < 1) { cw = Math.round(cw * cap); ch = Math.round(ch * cap); }
       if (r.size[0] !== cw || r.size[1] !== ch) {
@@ -493,6 +494,8 @@ export class Stage {
   }
 
   // Composite a source into a 2D context of any size, matching what the stage shows.
+  // Plain widgets (clear background, no corners, no feather) are drawn straight onto the output; the
+  // rest go through a scratch canvas kept per widget, so nothing is reallocated from frame to frame.
   compose(ctx, W, H, source = 'stage') {
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.filter = 'none';
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
@@ -502,11 +505,21 @@ export class Stage {
     const sx = W / area.w, sy = H / area.h;
     for (const w of list) {
       const r = this.rt.get(w.id);
-      if ((!this.shown(w) && !single) || !r || !r.inst || !r.size[0]) continue;
+      if ((!this.shown(w) && !single) || !r || !r.inst || !r.size[0] || w.opacity <= 0) continue;
       const x = (w.rect.x - area.x) * sx, y = (w.rect.y - area.y) * sy, cw = Math.max(1, Math.round(w.rect.w * sx)), ch = Math.max(1, Math.round(w.rect.h * sy));
-      const t = this.tmp, tc = this.tmpCtx;
-      if (t.width !== cw || t.height !== ch) { t.width = cw; t.height = ch; } else tc.clearRect(0, 0, cw, ch);
-      const mode = w.bg.mode, ink = isInk(w.bg);
+      const mode = w.bg.mode, ink = mode !== 'clear' && isInk(w.bg);
+      const radPx = (w.radius / 1000) * (W / area.w);
+      const featherPx = (w.feather / 1000) * (W / area.w);
+      const op = single ? 'source-over' : BLENDS[w.blend].canvas;
+      if (mode === 'clear' && radPx <= 0.5 && featherPx <= 0.5) {
+        ctx.globalAlpha = w.opacity; ctx.globalCompositeOperation = op;
+        ctx.drawImage(r.out(), x, y, cw, ch);
+        continue;
+      }
+      let t = r.ctmp;
+      if (!t) { t = r.ctmp = document.createElement('canvas'); r.ctmpCtx = t.getContext('2d'); }
+      const tc = r.ctmpCtx;
+      if (t.width !== cw || t.height !== ch) { t.width = cw; t.height = ch; } else { tc.globalCompositeOperation = 'source-over'; tc.clearRect(0, 0, cw, ch); }
       if (mode === 'glass') {
         tc.filter = `blur(${Math.round(18 * (W / this.px.w))}px) saturate(1.25)`;
         tc.drawImage(ctx.canvas, x, y, cw, ch, 0, 0, cw, ch);
@@ -517,13 +530,11 @@ export class Stage {
       if (ink) tc.filter = INK_FILTER;
       tc.drawImage(r.out(), 0, 0, cw, ch);
       tc.filter = 'none';
-      const radPx = (w.radius / 1000) * (W / area.w);
-      const featherPx = (w.feather / 1000) * (W / area.w);
       if (featherPx > 0.5) { tc.globalCompositeOperation = 'destination-in'; tc.drawImage(featherMask(cw, ch, radPx, featherPx), 0, 0); }
       else if (radPx > 0.5) { tc.globalCompositeOperation = 'destination-in'; tc.fillStyle = '#000'; tc.beginPath(); tc.roundRect(0, 0, cw, ch, radPx); tc.fill(); }
       tc.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = w.opacity;
-      ctx.globalCompositeOperation = single ? 'source-over' : BLENDS[w.blend].canvas;
+      ctx.globalCompositeOperation = op;
       ctx.drawImage(t, x, y);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -548,6 +559,9 @@ export class Stage {
     const S = dpr * this.renderScale, W = Math.max(16, Math.round(this.px.w * S)), H = Math.max(16, Math.round(this.px.h * S));
     if (this.masterCv.width !== W || this.masterCv.height !== H) { this.masterCv.width = W; this.masterCv.height = H; }
     this.masterCv.style.display = '';
+    // while the whole stage is being recorded, show the recorded picture instead of composing it twice
+    const m = this.mirror;
+    if (m && m.canvas.width) { this.masterCtx.globalCompositeOperation = 'source-over'; this.masterCtx.globalAlpha = 1; this.masterCtx.drawImage(m.canvas, 0, 0, W, H); return; }
     this.compose(this.masterCtx, W, H, 'stage');
   }
 
@@ -572,7 +586,7 @@ export class Stage {
   _timelineOut() {
     this._pruneTimeline();
     const tl = this.scene.timeline;
-    return { duration: tl.duration, keys: JSON.parse(JSON.stringify(tl.keys)), clips: JSON.parse(JSON.stringify(tl.clips)) };
+    return { duration: tl.duration, keys: JSON.parse(JSON.stringify(tl.keys)), clips: JSON.parse(JSON.stringify(tl.clips)), audio: JSON.parse(JSON.stringify(tl.audio)) };
   }
 }
 

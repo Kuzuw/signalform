@@ -1,5 +1,5 @@
 'use strict';
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('sf', {
   native: true,
@@ -14,7 +14,10 @@ contextBridge.exposeInMainWorld('sf', {
     import: () => ipcRenderer.invoke('scene:import')
   },
   file: {
-    saveText: (text, name, kind, ext) => ipcRenderer.invoke('file:save-text', { text, name, kind, ext })
+    saveText: (text, name, kind, ext) => ipcRenderer.invoke('file:save-text', { text, name, kind, ext }),
+    // where a picked or dropped file lives on disk, so a scene can find its songs again
+    pathFor: (file) => { try { return webUtils.getPathForFile(file) || ''; } catch { return ''; } },
+    readAudio: (p) => ipcRenderer.invoke('file:read-audio', p)
   },
   rec: {
     begin: (opts) => ipcRenderer.invoke('rec:begin', opts),
@@ -22,6 +25,14 @@ contextBridge.exposeInMainWorld('sf', {
     end: (id, name) => ipcRenderer.invoke('rec:end', id, name),
     abort: (id) => ipcRenderer.invoke('rec:abort', id),
     reveal: (p) => ipcRenderer.invoke('shell:reveal', p)
+  },
+  // exact (offline) renders: encoded video and the audio mix stream to temp files, ffmpeg joins them
+  render: {
+    begin: (opts) => ipcRenderer.invoke('render:begin', opts),
+    video: (id, buf) => ipcRenderer.invoke('render:video', id, buf),
+    audio: (id, buf) => ipcRenderer.invoke('render:audio', id, buf),
+    end: (id, name) => ipcRenderer.invoke('render:end', id, name),
+    abort: (id) => ipcRenderer.invoke('render:abort', id)
   },
   output: {
     backends: () => ipcRenderer.invoke('output:backends'),

@@ -8,24 +8,27 @@
 // how the value travels to the next key: "l" linear, "e" ease in and out, "h" hold.
 import { byId } from './modules/index.js';
 import { FX_PARAMS } from './fx.js';
-import { h, icon } from './ui.js';
+import { h, icon, toast, uid } from './ui.js';
+import { normalizeAudio, setEnd, clipEnd, SetPlayer, registerFile, relink, probe, peaksFor, isMissing, decode, forget, gainAt } from './audioset.js';
 import { hexToRgb } from './modules/util.js';
 
 const EPS = 1 / 120;                  // keys closer than this are the same key
 const SNAP_PX = 6;
-const ROW = 26, SUB = 22, AUDIO_ROW = 30, RULER = 24;
+const ROW = 26, SUB = 22, AUDIO_ROW = 34, RULER = 24;
 const OPACITY = { key: 'opacity', label: 'Opacity', type: 'range', min: 0, max: 1, step: 0.01, pct: true };
 const FX_ALL = [...FX_PARAMS.look.map((p) => ({ ...p, group: 'Look' })), ...FX_PARAMS.audio.map((p) => ({ ...p, group: 'Audio' }))];
 const EASE = { l: 'Linear', e: 'Ease in and out', h: 'Hold' };
 export const KEYABLE = new Set(['range', 'select', 'color', 'toggle']);
 const ICON_START = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-9 6 9 6z" fill="currentColor" stroke="none"/></svg>';
 const ICON_PREV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-7 6 7 6z" fill="currentColor"/></svg>';
+const ICON_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+const AUDIO_EXT = /\.(mp3|wav|wave|aif|aiff|flac|m4a|aac|ogg|oga|opus|wma|webm|mp4|m4v|mov|mkv)$/i;
 const ICON_NEXT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l7 6-7 6z" fill="currentColor"/></svg>';
 
 /* ---------------- the data ---------------- */
 export function normalizeTimeline(tl) {
   tl = tl && typeof tl === 'object' ? tl : {};
-  const out = { duration: clamp(num(tl.duration, 30), 1, 3600), keys: {}, clips: {} };
+  const out = { duration: clamp(num(tl.duration, 30), 1, 3600), keys: {}, clips: {}, audio: normalizeAudio(tl.audio) };
   for (const [id, props] of Object.entries(tl.keys || {})) {
     for (const [path, ks] of Object.entries(props || {})) {
       if (!Array.isArray(ks) || !/^(params\.|fx\.)[\w-]+$|^opacity$/.test(path)) continue;
@@ -86,6 +89,9 @@ export class Timeline {
     this.selKey = null;                        // { id, path, k } the key picked in the panel
     this.peaks = null; this.peaksFor = null;
     this._refresh = true; this._lastSync = 0; this._shown = {};
+    this.selClip = null;                       // the audio clip picked in the panel
+    this.player = new SetPlayer(app.audio, () => (this.data ? this.data.audio : []));
+    app.audio.onTimelineToggle = () => this.togglePlay();
     const s = app.settings.timeline || {};
     this.collapsed = !!s.collapsed;
     this.height = clamp(num(s.height, 200), 96, 520);
@@ -97,19 +103,40 @@ export class Timeline {
   get stage() { return this.app.stage; }
   get data() { return this.stage.scene.timeline; }
   get hasTrack() { const a = this.app.audio, m = a.media; return a.sourceType === 'file' && !!m && isFinite(m.duration) && m.duration > 0; }
-  get duration() { return this.hasTrack ? this.app.audio.media.duration : this.data.duration; }
+  // the timeline's own songs are the music (the source is "Timeline audio")
+  get hasSet() { return this.app.audio.sourceType === 'timeline'; }
+  get songs() { return (this.data && this.data.audio) || []; }
+  get duration() { return this._frozenD || (this.hasTrack ? this.app.audio.media.duration : this.songs.length ? Math.max(1, setEnd(this.songs)) : this.data.duration); }
   get isPlaying() { return this.hasTrack ? !this.app.audio.media.paused : this.playing; }
-  now() { return this.hasTrack ? this.app.audio.media.currentTime : this.clock; }
+  now() { return this.renderT != null ? this.renderT : this.hasTrack ? this.app.audio.media.currentTime : this.clock; }
 
   /* transport */
-  togglePlay() {
+  // With songs on the timeline, playing it makes them the music (unless a track is loaded).
+  async useSongs() {
+    if (this.songs.length && !this.hasSet && this.app.audio.sourceType !== 'file') { await this.app.audio.useTimeline(this.player); this.player.seek(this.clock); }
+  }
+  async togglePlay() {
     if (this.hasTrack) { this.app.audio.togglePlay(); return; }
-    if (!this.playing && this.clock >= this.duration - 0.01) this.clock = 0;
-    this.playing = !this.playing; this._rebase();
+    if (this.playing) this.pause(); else await this.play();
+  }
+  async play() {
+    if (this.hasTrack) { if (this.app.audio.media.paused) this.app.audio.media.play().catch(() => {}); return; }
+    await this.useSongs();
+    if (this.clock >= this.duration - 0.01) this.clock = 0;
+    this.playing = true; this._rebase();
+    if (this.hasSet) this.player.play(this.clock);
+    this.app.audio.emit();
+  }
+  pause() {
+    if (this.hasTrack) { this.app.audio.media.pause(); return; }
+    if (this.hasSet) { this.player.pause(); this.clock = this.player.now(); }
+    this.playing = false; this._rebase();
+    this.app.audio.emit();
   }
   seek(t) {
     t = clamp(t, 0, this.duration);
-    if (this.hasTrack) this.app.audio.media.currentTime = t; else { this.clock = t; this._rebase(); }
+    if (this.hasTrack) this.app.audio.media.currentTime = t;
+    else { this.clock = t; this._rebase(); if (this.hasSet) this.player.seek(t); }
     this.apply(t); this._follow(t, true);
     this._syncInspector(true);
   }
@@ -119,14 +146,16 @@ export class Timeline {
   tick() {
     if (!this.data) return;
     if (!this.hasTrack && this.playing) {
-      // the clock follows real time (not frame time), so a render of N seconds lasts N seconds
-      this.clock = this._base.clock + (performance.now() - this._base.real) / 1000;
+      // the clock follows the audio clock with songs, otherwise real time (so a render of N seconds lasts N seconds)
+      this.clock = this.hasSet ? this.player.now() : this._base.clock + (performance.now() - this._base.real) / 1000;
       const d = this.duration;
       if (this.clock >= d) {
-        if (this.loop && !this.onEnd) { this.clock %= d; this._rebase(); }
-        else { this.clock = d; this.playing = false; const f = this.onEnd; this.onEnd = null; if (f) f(); }
+        if (this.loop && !this.onEnd) { this.clock = this.hasSet ? 0 : this.clock % d; this._rebase(); if (this.hasSet) this.player.play(this.clock); }
+        else { this.clock = d; this.playing = false; if (this.hasSet) this.player.pause(); const f = this.onEnd; this.onEnd = null; this.app.audio.emit(); if (f) f(); }
       }
     }
+    if (!this.playing && !this.hasTrack && this.clock > this.duration) { this.clock = this.duration; this._rebase(); if (this.hasSet) this.player.seek(this.clock); }
+    if (this.hasSet) this.player.pump();
     this.apply(this.now());
   }
 
@@ -248,12 +277,14 @@ export class Timeline {
     this.hint = h('span', { class: 'tl-hint' });
     this.zoomIn = h('input', { type: 'range', id: 'tlZoom', min: 0, max: 1, step: 0.001, value: 0, 'aria-label': 'Timeline zoom',
       oninput: (e) => { const d = this.duration, min = Math.min(d, 0.5); this.zoomTo(d * Math.pow(min / d, +e.target.value)); } });
+    this.fileIn = h('input', { type: 'file', accept: 'audio/*,video/*', multiple: true, hidden: true, id: 'tlAudioFile', onchange: (e) => { const f = [...e.target.files]; e.target.value = ''; this.addSongs(f); } });
+    const addBtn = h('button', { class: 'btn sm ghost', type: 'button', id: 'tlAddAudio', title: 'Add songs to the timeline (or drop them on it): play a whole set and render it as one video', onclick: () => this.fileIn.click() }, h('span', { class: 'ico', html: icon.music }), 'Add audio');
     const renderBtn = h('button', { class: 'btn sm', type: 'button', id: 'tlRender', title: 'Render the timeline to a video file', onclick: () => this.app.openRender() }, h('span', { class: 'ico', html: icon.download }), 'Render');
     const bar = h('div', { class: 'tl-bar' }, this.toggleBtn, h('span', { class: 'vr', 'aria-hidden': 'true' }),
       h('button', { class: 'icon-btn', type: 'button', title: 'Go to the start (Home)', html: ICON_START, onclick: () => this.seek(0) }),
       this.playBtn, this.timeEl, h('span', { class: 'tl-slash' }, '/'), this.durEl, this.durIn, h('small', { class: 'tl-unit' }, 's'),
       this.hint, h('span', { class: 'spacer' }),
-      h('label', { class: 'tl-zoom', title: 'Zoom (Ctrl + scroll over the lanes)' }, h('span', {}, 'Zoom'), this.zoomIn), renderBtn);
+      h('label', { class: 'tl-zoom', title: 'Zoom (Ctrl + scroll over the lanes)' }, h('span', {}, 'Zoom'), this.zoomIn), addBtn, renderBtn, this.fileIn);
     this.leftCol = h('div', { class: 'tl-left' });
     this.ruler = h('canvas', { class: 'tl-ruler', height: RULER });
     this.rows = h('div', { class: 'tl-rows' });
@@ -287,7 +318,20 @@ export class Timeline {
       if (dx && this.view.span) { e.preventDefault(); this.view.start = clamp(this.start + (dx / this.laneW()) * this.span, 0, this.duration - this.span); this.refreshSoon(); }
     }, { passive: false });
     this.rows.addEventListener('pointerdown', (e) => this._lanePointer(e));
-    this.rows.addEventListener('contextmenu', (e) => { const k = e.target.closest('.tl-key.edit'); if (k) { e.preventDefault(); this._keyMenu(k, e.clientX, e.clientY); } });
+    this.rows.addEventListener('contextmenu', (e) => {
+      const k = e.target.closest('.tl-key.edit'); if (k) { e.preventDefault(); this._keyMenu(k, e.clientX, e.clientY); return; }
+      const c = e.target.closest('.tl-aclip'); if (c) { e.preventDefault(); this._songMenu(c.dataset.cid, e.clientX, e.clientY); }
+    });
+    // drop songs on the timeline: where they land (or after the last song)
+    this.el.addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; this.el.classList.add('dropping'); } });
+    this.el.addEventListener('dragleave', (e) => { if (!this.el.contains(e.relatedTarget)) this.el.classList.remove('dropping'); });
+    this.el.addEventListener('drop', (e) => {
+      this.el.classList.remove('dropping');
+      const files = [...e.dataTransfer.files]; if (!files.length) return;
+      e.preventDefault();
+      const b = this.right.getBoundingClientRect();
+      this.addSongs(files, e.clientX >= b.left && e.clientX <= b.right && this.songs.length ? this.tAt(e.clientX) : null);
+    });
     this.rows.addEventListener('dblclick', (e) => {
       const c = e.target.closest('.tl-clip'); if (!c) return;
       delete this.data.clips[c.dataset.id]; this.changed();
@@ -305,6 +349,11 @@ export class Timeline {
   _key(e) {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
     if (document.getElementById('dlg').open) return;
+    if ((e.key === 'Delete' || e.key === 'Backspace') && this.selClip && !this.selKey) {
+      e.preventDefault(); e.stopPropagation();
+      this.removeSong(this.selClip, false); return;
+    }
+    if (e.key === 'Escape' && this.selClip) { this.selClip = null; this.refreshSoon(); e.stopPropagation(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && this.selKey) {
       const { id, path, k } = this.selKey, w = this.stage.get(id);
       e.preventDefault(); e.stopPropagation();
@@ -319,6 +368,9 @@ export class Timeline {
   // drag a key, or a layer bar (its ends set the in and out points)
   _lanePointer(e) {
     if (e.button !== 0) return;
+    const songEl = e.target.closest('.tl-aclip');
+    if (songEl) return this._dragSong(e, songEl);
+    if (this.selClip) { this.selClip = null; this.refreshSoon(); }
     const keyEl = e.target.closest('.tl-key'), clipEl = e.target.closest('.tl-clip');
     if (keyEl && keyEl.classList.contains('sum')) { this.seek(+keyEl.dataset.t); return; }
     if (keyEl) return this._dragKey(e, keyEl);
@@ -424,10 +476,212 @@ export class Timeline {
     setTimeout(() => document.addEventListener('pointerdown', out, true), 0);
   }
 
+  /* ---------------- songs ---------------- */
+  async addSongs(files, at = null) {
+    const list = files.filter((f) => /^(audio|video)\//.test(f.type) || AUDIO_EXT.test(f.name));
+    if (!list.length) { toast('Those are not audio files.', true); return; }
+    await this.app.audio.resume();
+    const rate = this.player.rate;
+    let t = at == null ? setEnd(this.songs) : at, added = 0;
+    toast(list.length > 1 ? `Adding ${list.length} songs…` : `Adding “${list[0].name}”…`, false, 60000);
+    for (const f of list) {
+      const { key, path } = registerFile(f);
+      const c = { id: uid(), name: f.name.replace(/\.[^.]+$/, ''), key, path, start: Math.max(0, t), offset: 0, len: 1, dur: 1, fadeIn: 0, fadeOut: 0, gain: 1, row: 0 };
+      try { c.dur = c.len = (await probe(c, rate)).dur; } catch { toast(`“${f.name}” could not be read.`, true); continue; }
+      // the first lane free at that time
+      for (let r = 0; r < 8; r++) { if (!this.songs.some((o) => o.row === r && o.start < clipEnd(c) - 0.01 && clipEnd(o) > c.start + 0.01)) { c.row = r; break; } }
+      if (this.hasSet && Math.abs(c.start - this.now()) > LOOKAHEAD_DROP) forget(c, rate);
+      this.songs.push(c); t = clipEnd(c); added++;
+    }
+    if (!added) return;
+    this.selClip = null;
+    await this.useSongs();
+    this.player.resync();
+    if (this.collapsed) this.setCollapsed(false);
+    this.view = { start: 0, span: 0 };
+    this.changed();
+    toast(`${added === 1 ? 'Song' : added + ' songs'} added · the set is ${fmtTime(setEnd(this.songs))} long`);
+  }
+  song(id) { return this.songs.find((c) => c.id === id); }
+  removeSong(id, closeGap) {
+    const c = this.song(id); if (!c) return;
+    const i = this.songs.indexOf(c); this.songs.splice(i, 1);
+    if (closeGap) for (const o of this.songs) if (o.start >= clipEnd(c) - 0.01) o.start = round3(Math.max(0, o.start - c.len));
+    if (this.selClip === id) this.selClip = null;
+    this.player.resync();
+    if (!this.songs.length && this.hasSet) { this.pause(); }
+    this.changed();
+  }
+  // Overlap a song with the one before it, on the other lane, with matching fades.
+  crossfade(id, X) {
+    const c = this.song(id); if (!c) return;
+    const prev = this.songs.filter((o) => o !== c && o.start < c.start).sort((a, b) => b.start - a.start)[0];
+    if (!prev) { toast('There is no song before this one.'); return; }
+    X = Math.min(X, prev.len / 2, c.len / 2);
+    const s0 = c.start, delta = clipEnd(prev) - X - s0;
+    for (const o of this.songs) if (o !== prev && o.start >= s0 - 0.001) o.start = round3(Math.max(0, o.start + delta));
+    c.row = prev.row === 0 ? 1 : 0;
+    prev.fadeOut = round3(X); c.fadeIn = round3(X);
+    this.player.resync(); this.changed();
+  }
+  closeGap(id) {
+    const c = this.song(id); if (!c) return;
+    const prev = this.songs.filter((o) => o !== c && o.start < c.start).sort((a, b) => b.start - a.start)[0];
+    const target = prev ? clipEnd(prev) : 0, delta = target - c.start;
+    for (const o of this.songs) if (o.start >= c.start - 0.001) o.start = round3(Math.max(0, o.start + delta));
+    this.player.resync(); this.changed();
+  }
+
+  _renderSongs(W) {
+    const songs = this.songs, left = this.leftCol, rows = this.rows, live = this.hasSet || !songs.length;
+    const top = songs.length ? Math.max(...songs.map((c) => c.row)) : 0;
+    const nRows = songs.length ? Math.max(2, top + 1 + (this._dragRow ? 1 : 0)) : 1;
+    for (let r = 0; r < nRows; r++) {
+      left.append(h('div', { class: 'tl-name song' + (live ? '' : ' idle'), title: live ? '' : 'Muted: another source is the music. Press play on the timeline to hear the songs.' },
+        h('span', { class: 'ico', html: icon.music }), h('span', { class: 'nm' }, songs.length ? `Audio ${String.fromCharCode(65 + r)}` : 'Audio'),
+        r === 0 ? h('button', { class: 'tl-mini add', type: 'button', title: 'Add songs', html: ICON_PLUS, onclick: () => this.fileIn.click() }) : ''));
+      const lane = h('div', { class: 'tl-lane song' + (live ? '' : ' idle'), 'data-row': r });
+      if (!songs.length) lane.append(h('span', { class: 'tl-drop' }, 'Drop songs here, or click +, to play a whole set and render it as one video. Overlap two songs on lanes A and B to crossfade.'));
+      for (const c of songs) if (c.row === r) { const el = this._songEl(c, W); if (el) lane.append(el); }
+      rows.append(lane);
+    }
+  }
+  _songEl(c, W) {
+    const x0 = this.x(c.start), x1 = this.x(clipEnd(c)), w = Math.max(3, x1 - x0);
+    if (x1 < -2 || x0 > W + 2) return null;
+    const miss = isMissing(c), pk = peaksFor(c);
+    const el = h('div', { class: 'tl-aclip' + (miss ? ' missing' : '') + (this.selClip === c.id ? ' sel' : ''), 'data-cid': c.id,
+      style: `left:${x0}px;width:${w}px;--c:hsl(${hashHue(c.key)} 45% 55%)`,
+      title: `${c.name}\n${fmtClock(c.start)} – ${fmtClock(clipEnd(c))}${c.gain !== 1 ? ` · volume ${Math.round(c.gain * 100)}%` : ''}\nDrag to move it (up or down for the other lane), its ends to trim it, the dots on top to fade. Right-click for crossfades and more.` });
+    const vl = Math.max(0, -x0), vr = Math.min(w, W - x0);
+    if (pk && vr - vl > 1) {
+      const cw = Math.round(vr - vl), r = dpr(), H = AUDIO_ROW - 8, per = c.len / w;
+      const cv = h('canvas', { class: 'tl-awave', width: Math.round(cw * r), height: Math.round(H * r), style: `left:${vl}px;width:${cw}px;height:${H}px` });
+      const g = cv.getContext('2d'); g.setTransform(r, 0, 0, r, 0, 0); g.fillStyle = 'rgba(255,255,255,0.5)';
+      for (let x = 0; x < cw; x++) {
+        const f0 = c.offset + (vl + x) * per, i0 = Math.floor(f0 * pk.rate), i1 = Math.max(i0 + 1, Math.floor((f0 + per) * pk.rate));
+        let m = 0; for (let i = i0; i < i1 && i < pk.data.length; i++) if (pk.data[i] > m) m = pk.data[i];
+        m = Math.min(1, m * gainAt(c, c.start + (vl + x + 0.5) * per));
+        const hh = Math.max(0.5, m * (H / 2 - 1)); g.fillRect(x, H / 2 - hh, 1, hh * 2);
+      }
+      el.append(cv);
+    }
+    const fiW = Math.min(w, (c.fadeIn / c.len) * w), foW = Math.min(w, (c.fadeOut / c.len) * w);
+    if (fiW > 1) el.append(h('i', { class: 'tl-fade in', style: `width:${fiW}px` }));
+    if (foW > 1) el.append(h('i', { class: 'tl-fade out', style: `width:${foW}px` }));
+    el.append(h('span', { class: 'tl-aname' }, miss ? `${c.name} · file not found (right-click to find it)` : c.name),
+      h('i', { class: 'tl-ah in' }), h('i', { class: 'tl-ah out' }),
+      h('b', { class: 'tl-fk fi', style: `left:${Math.min(fiW, w - 8)}px`, title: 'Drag to fade in' }), h('b', { class: 'tl-fk fo', style: `right:${Math.min(foW, w - 8)}px`, title: 'Drag to fade out' }));
+    return el;
+  }
+
+  _dragSong(e, el) {
+    if (e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const c = this.song(el.dataset.cid); if (!c) return;
+    const cl = e.target.classList;
+    const mode = cl.contains('fi') ? 'fi' : cl.contains('fo') ? 'fo' : cl.contains('tl-ah') ? (cl.contains('in') ? 'in' : 'out') : 'move';
+    if (this.selClip !== c.id) { this.selClip = c.id; this.selKey = null; this.refreshSoon(); }
+    const rows = this.rows; rows.setPointerCapture(e.pointerId);
+    const c0 = { ...c }, x0 = e.clientX, y0 = e.clientY, pxPer = this.laneW() / this.span;
+    const top = Math.max(...this.songs.map((x) => x.row));
+    const pts = [0, this.now(), ...this.songs.filter((x) => x !== c).flatMap((x) => [x.start, clipEnd(x)])];
+    const snap = (v, alt) => { if (alt) return v; let best = v, bd = SNAP_PX / pxPer; for (const p of pts) { const d = Math.abs(p - v); if (d < bd) { bd = d; best = p; } } return best; };
+    this._frozenD = this.duration;
+    let moved = false;
+    const mv = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 3) return;
+      moved = true;
+      const dt = (ev.clientX - x0) / pxPer, alt = ev.altKey;
+      if (mode === 'move') {
+        this._dragRow = true;
+        let st = Math.max(0, c0.start + dt);
+        const a = snap(st, alt), b = snap(st + c0.len, alt) - c0.len;
+        st = Math.abs(a - st) <= Math.abs(b - st) ? a : b;
+        c.start = round3(Math.max(0, st));
+        c.row = clamp(c0.row + Math.round((ev.clientY - y0) / AUDIO_ROW), 0, Math.min(7, top + 1));
+      } else if (mode === 'in') {
+        let d = clamp(snap(c0.start + dt, alt) - c0.start, -c0.offset, c0.len - 0.2);
+        if (c0.start + d < 0) d = -c0.start;
+        c.start = round3(c0.start + d); c.offset = round3(c0.offset + d); c.len = round3(c0.len - d);
+      } else if (mode === 'out') c.len = round3(clamp(snap(clipEnd(c0) + dt, alt) - c0.start, 0.2, c0.dur - c0.offset));
+      else if (mode === 'fi') c.fadeIn = round3(clamp(c0.fadeIn + dt, 0, c.len - c.fadeOut));
+      else c.fadeOut = round3(clamp(c0.fadeOut - dt, 0, c.len - c.fadeIn));
+      this.refreshSoon();
+    };
+    const up = () => {
+      rows.removeEventListener('pointermove', mv); rows.removeEventListener('pointerup', up);
+      this._dragRow = false; this._frozenD = 0;
+      if (!moved) { this.refreshSoon(); return; }
+      this.player.resync(); this.changed();
+    };
+    rows.addEventListener('pointermove', mv); rows.addEventListener('pointerup', up);
+  }
+
+  _songMenu(id, x, y) {
+    const c = this.song(id); if (!c) return;
+    this.selClip = id; this.refreshSoon();
+    let menu = document.getElementById('tlMenu');
+    if (!menu) { menu = h('div', { class: 'ctxmenu', id: 'tlMenu', role: 'menu' }); document.body.append(menu); }
+    const close = () => { menu.hidden = true; document.removeEventListener('pointerdown', out, true); };
+    const out = (ev) => { if (!ev.target.closest('#tlMenu')) close(); };
+    const item = (label, fn, cls = '', key = '') => h('button', { type: 'button', role: 'menuitem', class: cls, onclick: () => { close(); fn(); } }, h('span', {}, label), key ? h('kbd', {}, key) : '');
+    const edit = (fn) => () => { fn(); this.player.resync(); this.changed(); };
+    const hasPrev = this.songs.some((o) => o !== c && o.start < c.start);
+    menu.innerHTML = '';
+    menu.append(h('div', { class: 'ctx-title' }, `${c.name} · ${fmtClock(c.start)} – ${fmtClock(clipEnd(c))}`),
+      item('Play from here', async () => { this.seek(c.start); if (!this.isPlaying) await this.play(); }),
+      isMissing(c) ? item('Find the file…', () => this._relink(c)) : '',
+      h('hr'),
+      hasPrev ? item('Crossfade from the previous song', () => this.crossfade(id, 6), '', '6 s') : '',
+      hasPrev ? item('Long crossfade', () => this.crossfade(id, 16), '', '16 s') : '',
+      hasPrev ? item('Start when the previous song ends', () => this.closeGap(id)) : '',
+      item(c.fadeIn ? 'No fade in' : 'Fade in', edit(() => { c.fadeIn = c.fadeIn ? 0 : Math.min(3, c.len - c.fadeOut); }), '', c.fadeIn ? fmtSec(c.fadeIn) : '3 s'),
+      item(c.fadeOut ? 'No fade out' : 'Fade out', edit(() => { c.fadeOut = c.fadeOut ? 0 : Math.min(3, c.len - c.fadeIn); }), '', c.fadeOut ? fmtSec(c.fadeOut) : '3 s'),
+      h('hr'),
+      item('Louder', edit(() => { c.gain = Math.min(4, round3(c.gain * 1.4125)); }), '', '+3 dB'),
+      item('Quieter', edit(() => { c.gain = round3(c.gain / 1.4125); }), '', '−3 dB'),
+      c.gain !== 1 ? item('Original volume', edit(() => { c.gain = 1; }), '', Math.round(c.gain * 100) + '%') : '',
+      item('Restore the full song', edit(() => { c.start = round3(Math.max(0, c.start - c.offset)); c.offset = 0; c.len = c.dur; })),
+      h('hr'),
+      item('Remove', () => this.removeSong(id, false), 'danger', 'Del'),
+      item('Remove and close the gap', () => this.removeSong(id, true), 'danger'));
+    menu.hidden = false;
+    const b = menu.getBoundingClientRect();
+    menu.style.left = Math.min(x, innerWidth - b.width - 8) + 'px';
+    menu.style.top = Math.max(8, Math.min(y, innerHeight - b.height - 8)) + 'px';
+    setTimeout(() => document.addEventListener('pointerdown', out, true), 0);
+  }
+  _relink(c) {
+    const inp = h('input', { type: 'file', accept: 'audio/*,video/*' });
+    inp.onchange = async () => {
+      const f = inp.files[0]; if (!f) return;
+      const old = c.key; relink(c, f);
+      for (const o of this.songs) if (o.key === old) { o.key = c.key; o.path = c.path; }
+      try { await probe(c, this.player.rate); toast(`Found “${f.name}”`); } catch { toast(`“${f.name}” could not be read.`, true); }
+      this.player.resync(); this.changed();
+    };
+    inp.click();
+  }
+
   /* ---------------- drawing ---------------- */
   // Called every frame after the stage renders: playhead, clock, and a rebuild when something changed.
   frame() {
     if (!this.data) return;
+    if (this.data !== this._dataRef) {   // another scene was opened
+      this._dataRef = this.data;
+      this.player.pause(); this.playing = false; this.clock = 0; this.selClip = null; this.selKey = null; this._tried = new Set();
+      if (this.hasSet && !this.songs.length) this.app.audio.useDemo().catch(() => {});
+      this.refreshSoon();
+    }
+    // waveforms of songs from a saved scene, one at a time in the background
+    if (!this._peakJob && this.app.audio.ctx && this.renderT == null) {
+      const rate = this.player.rate, c = this.songs.find((x) => !peaksFor(x) && !(this._tried || (this._tried = new Set())).has(x.key));
+      if (c) {
+        this._tried.add(c.key);
+        this._peakJob = decode(c, rate).then(() => { if (!this.hasSet) forget(c, rate); }).catch(() => {}).finally(() => { this._peakJob = null; this.refreshSoon(); });
+      }
+    }
     const a = this.app.audio, f = this.hasTrack ? a.file : null;
     if (f !== this.peaksFor) { this.peaksFor = f; this.peaks = null; if (f) this._loadPeaks(f); this.view = { start: 0, span: 0 }; this.refreshSoon(); }
     const d = this.duration;
@@ -467,14 +721,16 @@ export class Timeline {
   _render() {
     const st = this.stage, tl = this.data, d = this.duration;
     this.durEl.textContent = fmtClock(d);
-    this.durEl.hidden = !this.hasTrack; this.durIn.hidden = this.hasTrack; this.durIn.nextSibling.hidden = this.hasTrack;
-    if (!this.hasTrack && document.activeElement !== this.durIn) this.durIn.value = String(tl.duration);
+    const fixed = this.hasTrack || this.songs.length > 0;   // the track or the set decides the length
+    this.durEl.hidden = !fixed; this.durIn.hidden = fixed; this.durIn.nextSibling.hidden = fixed;
+    if (!fixed && document.activeElement !== this.durIn) this.durIn.value = String(tl.duration);
     this._paintZoom();
     const nKeys = Object.values(tl.keys).reduce((s, p) => s + Object.values(p).reduce((a, k) => a + k.length, 0), 0);
     const nClips = Object.keys(tl.clips).length;
-    this.hint.textContent = !st.widgets.length ? '' : nKeys || nClips
-      ? [nKeys ? `${nKeys} keyframe${nKeys === 1 ? '' : 's'}` : '', nClips ? `${nClips} trimmed layer${nClips === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')
-      : 'Click ◆ beside a setting to keyframe it · drag a bar’s ends to trim a layer';
+    const nSongs = this.songs.length;
+    this.hint.textContent = nKeys || nClips || nSongs
+      ? [nSongs ? `${nSongs} song${nSongs === 1 ? '' : 's'}${this.hasSet || this.hasTrack ? '' : ' (muted)'}` : '', nKeys ? `${nKeys} keyframe${nKeys === 1 ? '' : 's'}` : '', nClips ? `${nClips} trimmed layer${nClips === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')
+      : st.widgets.length ? 'Click ◆ beside a setting to keyframe it · drag a bar’s ends to trim a layer' : '';
     if (this.collapsed) return;
 
     const W = this.laneW(), left = this.leftCol, rows = this.rows;
@@ -487,6 +743,7 @@ export class Timeline {
       rows.append(h('div', { class: 'tl-lane audio' }, cv));
       this._drawWave(cv, W);
     }
+    if (!this.hasTrack || this.songs.length) this._renderSongs(W);
     if (!st.widgets.length) {
       left.append(h('div', { class: 'tl-name empty' }, h('span', { class: 'nm' }, 'No layers')));
       rows.append(h('div', { class: 'tl-lane empty' }, h('span', {}, 'Add a module to the stage to animate it.')));
@@ -584,6 +841,10 @@ function fmtValue(spec, v) {
   if (spec.type === 'select') { const o = (spec.options || []).find(([k]) => String(k) === String(v)); return o ? o[1] : String(v); }
   return String(v);
 }
+function round3(v) { return Math.round(v * 1000) / 1000; }
+function fmtTime(t) { t = Math.max(0, Math.round(t)); const hh = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), ss = t % 60; return (hh ? hh + ':' + String(m).padStart(2, '0') : m) + ':' + String(ss).padStart(2, '0'); }
+function fmtSec(t) { return (Math.round(t * 10) / 10) + ' s'; }
+const LOOKAHEAD_DROP = 45;
 function same(a, b) { return a === b || JSON.stringify(a) === JSON.stringify(b); }
 function clone(v) { return v && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v; }
 function hashHue(s) { let x = 0; for (const c of String(s)) x = (x * 31 + c.charCodeAt(0)) >>> 0; return Math.round((x * 137.508) % 360); }   // golden angle: neighbouring ids get distinct colours

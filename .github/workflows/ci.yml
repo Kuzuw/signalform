@@ -73,6 +73,17 @@ jobs:
             echo "::error title=Interface test::$(tail -n 40 out/log.txt | sed -e 's/%/%25/g' -e ':a;N;$!ba;s/\n/%0A/g')"
             exit 1
           fi
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Join renders with ffmpeg
+        run: node test/mux.mjs
+      - name: Songs on the timeline and the exact render
+        run: |
+          node test/set.mjs out/ 2>&1 | tee out/set.txt || true
+          if ! grep -q "problems: none" out/set.txt; then
+            echo "::error title=Set test::$(tail -n 40 out/set.txt | sed -e 's/%/%25/g' -e ':a;N;$!ba;s/\n/%0A/g')"
+            exit 1
+          fi
       - name: Drive the timeline
         run: |
           node test/timeline.mjs out/ 2>&1 | tee out/timeline.txt || true

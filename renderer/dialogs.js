@@ -3,6 +3,7 @@ import { h, modal, toast, fmtTime } from './ui.js';
 import * as lib from './library.js';
 import { byId } from './modules/index.js';
 import { pickFormat } from './capture.js';
+import { exactRenderSupported, audioPlan, renderExact } from './offline.js';
 
 const RES = [[720, '720p'], [1080, '1080p'], [1440, '1440p'], [2160, '4K']];
 
@@ -100,43 +101,60 @@ export function recordDialog(app) {
 
 /* ---------------- render a track ---------------- */
 export function renderDialog(app) {
-  const s = app.settings.render || { source: 'stage', height: 1080, fps: 60, mute: false, audio: true };
-  const audio = app.audio;
+  const s = app.settings.render || { source: 'stage', height: 1080, fps: 60, mute: false, audio: true, exact: true };
+  const audio = app.audio, tl = app.timeline;
   const hasTrack = audio.sourceType === 'file' && audio.media && isFinite(audio.media.duration);
+  const plan = audioPlan(app);                        // the loaded track, or the songs on the timeline
+  const canExact = !!plan && exactRenderSupported();
   let job = null;
+  const title = hasTrack ? 'Render track to video' : plan ? 'Render the set to video' : 'Render timeline to video';
   return modal({
-    title: hasTrack ? 'Render track to video' : 'Render timeline to video',
+    title,
     onClose: () => { if (job && !job.done) job.cancel(); },
     build(body, close, foot) {
-      const dur = hasTrack ? audio.media.duration : app.timeline.duration;
+      const dur = plan ? plan.duration : tl.duration;
       const prog = h('div', { class: 'progress' }, h('i'));
-      const status = h('p', { class: 'note' }, hasTrack
-        ? `“${audio.trackName}” · ${fmtTime(dur)}. Plays the track from the start with the timeline, and records the visuals with the audio until it ends. The render runs in real time, so it takes as long as the track.`
-        : `The timeline · ${fmtTime(dur)}. Plays the timeline from the start and records it for its length, with ${audio.sourceLabel} as the music. The render runs in real time. To render to a song instead, choose a track.`);
-      body.append(status,
+      const what = hasTrack ? `“${audio.trackName}” · ${fmtTime(dur)}` : plan ? `The set · ${tl.songs.length} song${tl.songs.length === 1 ? '' : 's'} · ${fmtTime(dur)}` : `The timeline · ${fmtTime(dur)}`;
+      const status = h('p', { class: 'note' }, plan
+        ? `${what}. Plays from the start with the timeline and renders the visuals with the music.`
+        : `${what}. Plays the timeline from the start and records it for its length, with ${audio.sourceLabel} as the music, in real time. To render to songs, add them to the timeline or load a track.`);
+      const mode = canExact ? h('div', { class: 'radio-list', role: 'radiogroup' },
+        h('label', { class: 'radio' }, h('input', { type: 'radio', name: 'rnMode', value: 'exact', checked: s.exact !== false }), h('i'),
+          h('span', {}, h('b', {}, 'Exact (recommended)'), h('small', {}, 'Every frame is drawn and encoded in turn: perfectly smooth on any computer, no lag while it works, usually faster than real time.'))),
+        h('label', { class: 'radio' }, h('input', { type: 'radio', name: 'rnMode', value: 'live', checked: s.exact === false }), h('i'),
+          h('span', {}, h('b', {}, 'Real time'), h('small', {}, 'Plays the music and records the stage as it runs, as on screen. Takes as long as the music.')))) : '';
+      body.append(status, mode,
         h('div', { class: 'grid2' },
           h('label', { class: 'lbl' }, h('span', {}, 'Capture'), h('select', { id: 'rnSource' }, ...sourceOptions(app.stage, app.stage.get(s.source) || app.stage.group(s.source) ? s.source : 'stage'))),
           h('label', { class: 'lbl' }, h('span', {}, 'Resolution'), sel('rnHeight', RES, s.height)),
-          h('label', { class: 'lbl' }, h('span', {}, 'Frame rate'), sel('rnFps', [[30, '30 fps'], [60, '60 fps']], s.fps)),
-          hasTrack
+          h('label', { class: 'lbl' }, h('span', {}, 'Frame rate'), sel('rnFps', [[24, '24 fps'], [30, '30 fps'], [60, '60 fps']], s.fps)),
+          plan
             ? h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'rnMute', checked: s.mute }), 'Mute speakers while rendering')
             : h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'rnAudio', checked: s.audio !== false }), 'Record the audio too')),
         prog);
-      if (!hasTrack) foot.prepend(h('button', { class: 'btn ghost', type: 'button', onclick: () => { close(); app.pickTrack(true); } }, 'Choose a track…'));
+      if (!plan) foot.prepend(h('button', { class: 'btn ghost', type: 'button', onclick: () => { close(); app.pickTrack(true); } }, 'Choose a track…'));
       const start = h('button', { class: 'btn primary', type: 'button', id: 'rnStart', onclick: async () => {
         const v = (id) => document.getElementById(id);
-        const opts = { source: v('rnSource').value, height: +v('rnHeight').value, fps: +v('rnFps').value, mute: hasTrack ? v('rnMute').checked : !!s.mute, audio: hasTrack ? s.audio !== false : v('rnAudio').checked };
+        const exact = canExact && (document.querySelector('input[name="rnMode"]:checked') || {}).value !== 'live';
+        const opts = { source: v('rnSource').value, height: +v('rnHeight').value, fps: +v('rnFps').value, mute: plan ? v('rnMute').checked : !!s.mute, audio: plan ? true : v('rnAudio').checked, exact: canExact ? exact : s.exact };
         app.settings.render = opts; app.saveSettings();
         start.disabled = true; body.querySelectorAll('select, input').forEach((e) => (e.disabled = true));
         document.getElementById('dlg').dataset.busy = '1';
-        const onProgress = (p) => { prog.firstChild.style.width = (p * 100).toFixed(1) + '%'; status.textContent = `Rendering… ${fmtTime(p * dur)} of ${fmtTime(dur)}`; };
-        job = hasTrack ? await app.renderTrack(opts, onProgress) : await app.renderTimeline(opts, onProgress);
-        const path = await job.result;
+        const onProgress = (p) => {
+          if (typeof p === 'number') p = { p, t: p * dur };
+          prog.firstChild.style.width = (p.p * 100).toFixed(1) + '%';
+          status.textContent = p.saving ? 'Putting the video together…'
+            : `Rendering… ${fmtTime(p.t)} of ${fmtTime(dur)}` + (p.speed ? ` · ${p.speed >= 0.995 ? p.speed.toFixed(1) + '× real time' : Math.round(p.speed * 100) + '% of real time'} · about ${fmtTime(p.eta)} left` : '');
+        };
+        try {
+          job = exact ? await renderExact(app, opts, onProgress) : hasTrack ? await app.renderTrack(opts, onProgress) : await app.renderTimeline(opts, onProgress);
+          const path = await job.result;
+          if (path) {
+            status.textContent = 'Saved: ' + path + (job.seconds ? ` (rendered in ${fmtTime(job.seconds)})` : ''); status.className = 'ok';
+            start.replaceWith(h('button', { class: 'btn', type: 'button', onclick: () => window.sf.rec.reveal(path) }, 'Show in folder'));
+          } else { status.textContent = job.cancelled ? 'Render cancelled.' : 'Render finished but the file was not saved.'; }
+        } catch (e) { status.textContent = 'The render stopped: ' + e.message; status.className = 'err'; console.error(e); }
         delete document.getElementById('dlg').dataset.busy;
-        if (path) {
-          status.textContent = 'Saved: ' + path; status.className = 'ok';
-          start.replaceWith(h('button', { class: 'btn', type: 'button', onclick: () => window.sf.rec.reveal(path) }, 'Show in folder'));
-        } else { status.textContent = job.cancelled ? 'Render cancelled.' : 'Render finished but the file was not saved.'; }
       } }, 'Start render');
       foot.append(start);
     },

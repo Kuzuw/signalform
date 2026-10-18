@@ -38,6 +38,7 @@ export class AudioEngine {
   // `offline` (an OfflineAudioContext) runs the same analysis on a whole file, faster than real time
   ensure(offline) {
     if (this.ctx) return;
+    this.offline = !!offline;
     const ctx = this.ctx = offline || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
     this.input = ctx.createGain();
     this.input.channelCount = 2;
@@ -135,6 +136,7 @@ export class AudioEngine {
     if (this.srcNode) { try { this.srcNode.disconnect(); } catch {} this.srcNode = null; }
     if (this.stream) { this.stream.getTracks().forEach((t) => t.stop()); this.stream = null; }
     if (this.media) { this.media.pause(); }
+    if (this.set) { this.set.detach(); this.set = null; }
   }
 
   setMonitor(on) {
@@ -204,6 +206,19 @@ export class AudioEngine {
     this.emit();
   }
 
+  // The timeline's songs (renderer/audioset.js) as the source; the timeline drives play and seek.
+  async useTimeline(player) {
+    await this.resume();
+    this._teardown();
+    this.set = player;
+    player.attach();
+    this.setMonitor(true);
+    this.sourceType = 'timeline';
+    this.sourceLabel = 'Timeline audio';
+    this.trackName = 'Timeline audio';
+    this.emit();
+  }
+
   async useDemo() {
     await this.resume();
     this._teardown();
@@ -226,19 +241,21 @@ export class AudioEngine {
   get playing() {
     if (this.sourceType === 'file') return this.media && !this.media.paused;
     if (this.sourceType === 'demo') return !!(this.demo && this.demo.running);
+    if (this.sourceType === 'timeline') return !!(this.set && this.set.playing);
     return this.sourceType === 'device' || this.sourceType === 'system';
   }
 
   togglePlay() {
     if (this.sourceType === 'file' && this.media) { this.media.paused ? this.media.play() : this.media.pause(); }
     else if (this.sourceType === 'demo' && this.demo) { this.demo.running ? this.demo.stop() : this.demo.start(); this.emit(); }
+    else if (this.sourceType === 'timeline' && this.onTimelineToggle) { this.onTimelineToggle(); this.emit(); }
   }
 
   /* ---------------- analysis ---------------- */
   update(dt, time) {
     const F = this.F;
     F.dt = dt; F.time = time;
-    if (F.scope.live && performance.now() - (this._scopeT || 0) > 400) F.scope.live = false;   // the stream stopped
+    if (F.scope.live && !this.offline && performance.now() - (this._scopeT || 0) > 400) F.scope.live = false;   // the stream stopped
     if (!this.ctx) { this._idle(time); return F; }
     this.anL.getFloatTimeDomainData(F.waveL);
     this.anR.getFloatTimeDomainData(F.waveR);

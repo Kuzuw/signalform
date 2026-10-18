@@ -24,7 +24,7 @@ const browser = await chromium.launch({
   executablePath: process.env.PW_CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined),
   args: ['--autoplay-policy=no-user-gesture-required', ...(process.env.NOGPU ? [] : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])]
 });
-const page = await browser.newPage({ viewport: { width: 2024, height: process.argv[4] ? 1200 : 720 } });
+const page = await browser.newPage({ bypassCSP: true, viewport: { width: 2024, height: process.argv[4] ? 1200 : 720 } });
 const logs = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text().slice(0, 400)); });
 page.on('pageerror', (e) => logs.push('pageerror: ' + e.message));

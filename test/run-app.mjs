@@ -21,7 +21,7 @@ const browser = await pw.chromium.launch({
   executablePath: process.env.PW_CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined),
   args: ['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
 });
-const ctx = await browser.newContext({ viewport: { width: 1600, height: 940 }, acceptDownloads: true });
+const ctx = await browser.newContext({ viewport: { width: 1600, height: 940 }, acceptDownloads: true, bypassCSP: true });
 const page = await ctx.newPage();
 const problems = [];
 page.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) problems.push('console: ' + m.text().slice(0, 300)); });

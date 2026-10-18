@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 const server = http.createServer((req, res) => { const f = path.join(root, decodeURIComponent(req.url.split('?')[0])); if (!f.startsWith(root) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': types[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res); });
 await new Promise((r) => server.listen(0, r));
-const browser = await pw.chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--autoplay-policy=no-user-gesture-required'] });
+const browser = await pw.chromium.launch({ executablePath: process.env.PW_CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined), args: ['--autoplay-policy=no-user-gesture-required'] });
 const page = await (await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 860 } })).newPage();
 const problems = []; page.on('pageerror', (e) => problems.push(e.message));
 await page.goto(`http://127.0.0.1:${server.address().port}/renderer/index.html`);

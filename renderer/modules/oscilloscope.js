@@ -1,5 +1,6 @@
 import { hexToRgb, hexToVec, rgba, TAU } from './util.js';
 import { tracePicture, loadPicture, pictureGray } from './picture-trace.js';
+import { layoutInstrument, drawPanel } from './scope-panel.js';
 
 // An analog oscilloscope simulated from the electron beam up.
 //
@@ -113,8 +114,9 @@ void main() { vec2 uv = gl_FragCoord.xy / uSize;
   o = s; }`;
 const COMP_FRAG = `#version 300 es
 precision highp float;
-uniform sampler2D uPhos, uNear, uWide, uOver;
+uniform sampler2D uPhos, uNear, uWide, uOver, uPanel;
 uniform vec2 uRes, uCenter, uScreen;
+uniform vec4 uLed[3]; uniform float uLedR;
 uniform float uDiv, uBloomAmt, uGrid, uGlass, uT, uGrain, uFrame, uRad, uOverOn, uDim;
 uniform vec3 uColF, uColS, uGridCol, uBack;
 out vec4 o;
@@ -155,7 +157,22 @@ void main() {
     col += (hash(gl_FragCoord.xy + fract(uT) * 91.0) - 0.5) * 0.012 * uGlass;
   }
   if (uOverOn > 0.0) { vec4 ov = texture(uOver, uv); col = col * (1.0 - uDim) + ov.rgb; }
-  if (uFrame > 0.5) {
+  if (uFrame > 1.5) {
+    // the whole instrument: the tube sits in a recess of the painted front panel
+    float d = sdBox(pc, uScreen, uRad);
+    float inside = 1.0 - smoothstep(-1.0, 1.0, d);
+    col *= 1.0 - 0.55 * exp(-max(-d, 0.0) / (uDiv * 0.18));                       // the recess shades the edge of the glass
+    col = mix(texture(uPanel, uv).rgb, col, inside);
+    // panel lamps: POWER (green), TRIG'D (green), READY (amber)
+    for (int i = 0; i < 3; i++) {
+      vec2 q = gl_FragCoord.xy - uLed[i].xy; float r = length(q), on = uLed[i].w;
+      vec3 lc = i == 2 ? vec3(1.0, 0.62, 0.12) : vec3(0.3, 1.0, 0.38);
+      float disc = 1.0 - smoothstep(uLedR - 1.0, uLedR + 0.5, r);
+      vec3 lens = lc * (0.12 + 0.9 * on) + vec3(1.0) * on * 0.55 * exp(-r * r / (uLedR * uLedR * 0.25));
+      col = mix(col, lens, disc);
+      col += lc * on * 0.55 * exp(-r / (uLedR * 1.3)) * (1.0 - disc);
+    }
+  } else if (uFrame > 0.5) {
     // the tube face is a rounded rectangle set in a dark bezel
     float d = sdBox(pc, uScreen, uRad);
     float inside = 1.0 - smoothstep(-1.0, 1.0, d);
@@ -203,6 +220,7 @@ export default {
   tagline: 'Signal rendered through light.',
   params: [
     { key: 'mode', label: 'Mode', type: 'select', default: 'xy', options: [['xy', 'X/Y (left → X, right → Y)'], ['yt', 'Y/T (time base)'], ['shape', 'Beam draws a shape'], ['picture', 'Beam draws a picture']] },
+    { key: 'frame', label: 'Look', type: 'select', default: 'bezel', options: [['bezel', 'Tube in its bezel'], ['instrument', 'Real-life oscilloscope'], ['none', 'Screen only']] },
     // ---- vertical
     { key: 'vdiv', label: 'Volts / div', type: 'select', default: '0.2', section: 'Vertical', options: VDIV.map(([v, l]) => [String(v), l]) },
     { key: 'gain', label: 'Variable gain', type: 'range', min: 0.25, max: 4, step: 0.05, default: 1 },
@@ -245,7 +263,6 @@ export default {
     { key: 'edgeFocus', label: 'Corner defocus', type: 'range', min: 0, max: 2, step: 0.01, default: 0.35 },
     { key: 'grain', label: 'Phosphor grain', type: 'range', min: 0, max: 1, step: 0.01, default: 0.3 },
     { key: 'noise', label: 'Trace noise', type: 'range', min: 0, max: 0.05, step: 0.0005, default: 0.002, unit: ' div' },
-    { key: 'frame', label: 'Tube frame', type: 'select', default: 'bezel', options: [['bezel', 'Screen in its bezel'], ['none', 'Screen only']] },
     { key: 'grid', label: 'Graticule', type: 'toggle', default: true },
     { key: 'gridLight', label: 'Scale illumination', type: 'range', min: 0, max: 1, step: 0.01, default: 0.3, showIf: { grid: true } },
     { key: 'readout', label: 'Readout', type: 'toggle', default: true },
@@ -269,6 +286,14 @@ export default {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     let ovKey = '', ovOn = false;
+    // front panel of the real-life look: painted only when a setting or the size changes
+    const pn = document.createElement('canvas'), pctx = pn.getContext('2d');
+    const pnTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, pnTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    let pnKey = '', lastTrig = -9;
     // beam history (x, y in divisions, z = beam on) for Catmull-Rom upsampling; one per trace
     const mkBeam = () => ({ x: new Float32Array(4), y: new Float32Array(4), z: new Uint8Array(4), n: 0 });
     const resetBeam = (b) => { b.n = 0; b.z.fill(0); };
@@ -360,8 +385,10 @@ export default {
         const sr = F.sampleRate || 48000;
         const ph = p.phosphor === 'custom' ? (() => { const c = hexToVec(p.color); return { f: c, s: c.map((v) => v * 0.8), tf: 0.025, ts: 0.15, mf: 1, ms: 0.3 }; })() : PHOSPHORS[p.phosphor] || PHOSPHORS.p31;
         const tauF = ph.tf, tauS = ph.ts * p.afterglow;
-        const bez = p.frame === 'bezel';
-        const div = Math.min(W / 10, H / 8) * (bez ? 0.86 : 0.92), cx = W / 2, cy = H / 2;
+        const real = p.frame === 'instrument', bez = p.frame === 'bezel' || real;
+        // screen placement: centred, or where the instrument's panel puts the tube (cy is in GL coordinates, cyC in canvas ones)
+        const LI = real ? layoutInstrument(W, H) : null;
+        const div = real ? LI.div : Math.min(W / 10, H / 8) * (bez ? 0.86 : 0.92), cx = real ? LI.cx : W / 2, cyC = real ? LI.cy : H / 2, cy = H - cyC;
         const vd = (+p.vdiv || 0.2) / p.gain;                    // volts per division
         const U = p.mode === 'picture' ? 1 : Math.max(1, +p.smooth || 4);
         if (p.mode !== lastMode) { lastMode = p.mode; resetBeam(B0); sw.state = 'wait'; sw.key = ''; gl.bindFramebuffer(gl.FRAMEBUFFER, phos.fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); }
@@ -452,7 +479,7 @@ export default {
               sw.wait++;
               const crossed = sw.armed && (rise ? v >= lvl : v <= lvl);
               if (rise ? v < lvl - hyst : v > lvl + hyst) sw.armed = true;
-              if (p.trigMode === 'free' || crossed || (p.trigMode === 'auto' && sw.wait > autoN)) { sw.state = 'sweep'; sw.x = 0; sw.armed = false; for (const b of beams) resetBeam(b); }
+              if (p.trigMode === 'free' || crossed || (p.trigMode === 'auto' && sw.wait > autoN)) { if (crossed) lastTrig = time; sw.state = 'sweep'; sw.x = 0; sw.armed = false; for (const b of beams) resetBeam(b); }
             }
             if (sw.state === 'sweep') {
               const x = -5 + 10 * (sw.x / sweepN);
@@ -515,17 +542,17 @@ export default {
         const txt = [0, 1, 2].map((i) => Math.round(255 * Math.min(1, ph.f[i] * 0.55 + 0.45)));
         const msg = p.mode === 'picture' && !pic.path ? (pic.busy ? 'Tracing the picture…' : pic.error || 'Choose a picture in the panel on the right.') : '';
         const capKey = self.capturing ? 'cap' + stroke.length + drawing : '';
-        const fs = Math.max(9, Math.round(div * 0.22));
+        const fs = Math.max(5, Math.round(div * 0.22));
         const ovk = (p.readout ? info : '') + '|' + msg + '|' + capKey;
         overlay(ovk === '||' ? '' : ovk + '|' + txt + W + 'x' + H, W, H, (o) => {
           o.textBaseline = 'alphabetic';
           if (p.readout && info) {
             o.font = `600 ${fs}px ui-monospace, Consolas, monospace`; o.textAlign = 'left';
             o.shadowColor = rgba(txt, 0.8); o.shadowBlur = 6 * S; o.fillStyle = rgba(txt, 0.82);
-            o.fillText(info, cx - 5 * div + div * 0.12, cy + 4 * div - div * 0.14);
+            o.fillText(info, cx - 5 * div + div * 0.12, cyC + 4 * div - div * 0.14);
             o.shadowBlur = 0;
           }
-          if (msg) { o.fillStyle = rgba(txt, 0.8); o.font = `${13 * S}px system-ui, sans-serif`; o.textAlign = 'center'; o.fillText(msg, cx, cy); }
+          if (msg) { o.fillStyle = rgba(txt, 0.8); o.font = `${13 * S}px system-ui, sans-serif`; o.textAlign = 'center'; o.fillText(msg, cx, cyC); }
           if (self.capturing) {
             o.fillStyle = rgba(txt, 0.9); o.font = `${13 * S}px system-ui, sans-serif`; o.textAlign = 'center';
             o.fillText(drawing ? 'Release to finish' : 'Draw one continuous line. Press Esc to cancel.', cx, 24 * S);
@@ -533,6 +560,18 @@ export default {
           }
         });
         if (self.capturing) { self._WH = [W, H]; self._div = div; }
+        if (real) {
+          const vi = Math.max(0, VDIV.findIndex((q) => q[0] === +p.vdiv)), ti = Math.max(0, TDIV.findIndex((q) => q[0] === +p.tdiv));
+          const k = [W, H, vi, ti, p.mode, p.channels, p.trigMode, p.trigSrc, p.slope, p.intensity, p.width, p.grid, p.gridLight, p.gain, p.pos1, p.pos2, p.posX, p.level].join('|');
+          if (k !== pnKey) {
+            pnKey = k; pn.width = W; pn.height = H;
+            drawPanel(pctx, LI, p, vi, ti);
+            gl.bindTexture(gl.TEXTURE_2D, pnTex);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, pn);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          }
+        }
 
         // ---- GPU: fade the phosphor, add this frame's beam, scatter, show
         gl.disable(gl.DEPTH_TEST);
@@ -571,11 +610,17 @@ export default {
         const C = G.P.comp;
         gl.useProgram(C.p); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
         const tex = (unit, name, t) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(C.u(name), unit); };
-        tex(0, 'uPhos', phos.t); tex(1, 'uNear', near.t); tex(2, 'uWide', wide.t); tex(3, 'uOver', ovTex);
+        tex(0, 'uPhos', phos.t); tex(1, 'uNear', near.t); tex(2, 'uWide', wide.t); tex(3, 'uOver', ovTex); tex(4, 'uPanel', pnTex);
+        if (real) {
+          const yt = p.mode === 'yt', led = (k, on) => [LI.leds[k][0], H - LI.leds[k][1], 0, on];
+          const trig = yt && time - lastTrig < 0.12 ? 1 : 0, ready = yt && p.trigMode === 'normal' && sw.state === 'wait' ? 1 : 0;
+          gl.uniform4fv(C.u('uLed'), new Float32Array([...led('power', 1), ...led('trig', trig), ...led('ready', ready)]));
+          gl.uniform1f(C.u('uLedR'), LI.ledR);
+        }
         gl.uniform2f(C.u('uRes'), W, H); gl.uniform2f(C.u('uCenter'), cx, cy); gl.uniform1f(C.u('uDiv'), div);
         gl.uniform1f(C.u('uBloomAmt'), p.glow > 0 ? p.glow * 0.35 : 0);
         gl.uniform1f(C.u('uGrid'), p.grid ? 0.05 + p.gridLight * 0.35 : 0); gl.uniform1f(C.u('uGlass'), p.glass); gl.uniform1f(C.u('uT'), time);
-        gl.uniform1f(C.u('uGrain'), p.grain); gl.uniform1f(C.u('uFrame'), bez ? 1 : 0);
+        gl.uniform1f(C.u('uGrain'), p.grain); gl.uniform1f(C.u('uFrame'), real ? 2 : bez ? 1 : 0);
         gl.uniform2f(C.u('uScreen'), 5.35 * div, 4.35 * div); gl.uniform1f(C.u('uRad'), div * 0.55);
         gl.uniform1f(C.u('uOverOn'), ovOn ? 1 : 0); gl.uniform1f(C.u('uDim'), self.capturing ? 0.35 : 0);
         gl.uniform3fv(C.u('uColF'), ph.f); gl.uniform3fv(C.u('uColS'), ph.s);
@@ -619,7 +664,7 @@ export default {
       resize() {},
       dispose() {
         for (const t of [phos, near, wide, tmpB]) if (t) { gl.deleteTexture(t.t); gl.deleteFramebuffer(t.fb); }
-        gl.deleteTexture(ovTex);
+        gl.deleteTexture(ovTex); gl.deleteTexture(pnTex);
         const ext = gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext();
       }
     };

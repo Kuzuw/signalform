@@ -1,0 +1,53 @@
+name: CI
+
+# Checks every push and pull request: source and settings checks, the module reference,
+# beat-detection accuracy, and the whole interface clicked through in headless Chromium.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks and beat detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Source and settings checks
+        run: node --no-warnings scripts/check.mjs
+      - name: Module reference is up to date
+        run: |
+          node --no-warnings scripts/gen-modules-doc.mjs
+          git diff --exit-code docs/MODULES.md || (echo "::error::docs/MODULES.md is out of date. Run npm run docs:modules." && exit 1)
+      - name: Beat detection accuracy (kick and snare F1 ≥ 80%)
+        run: MIN_F1=80 node --no-warnings test/onsets-varied.mjs 2001 24
+
+  interface:
+    name: Interface test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.48.2
+          npx playwright install --with-deps chromium
+      - name: Click through the interface
+        run: |
+          mkdir -p out
+          node test/run-app.mjs out/ | tee out/log.txt
+          grep -q "problems: none" out/log.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: interface-screenshots
+          path: out/

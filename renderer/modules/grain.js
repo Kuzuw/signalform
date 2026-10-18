@@ -7,7 +7,8 @@ export default {
   params: [
     { key: 'look', label: 'Look', type: 'select', default: 'dust', options: [['dust', 'Drifting dust bands'], ['sand', 'Grain texture']] },
     { key: 'bands', label: 'Bands', type: 'range', min: 1, max: 9, step: 1, default: 5, showIf: { look: 'dust' } },
-    { key: 'specks', label: 'Specks', type: 'range', min: 1000, max: 30000, step: 500, default: 7000, showIf: { look: 'dust' } },
+    { key: 'specks', label: 'Specks', type: 'range', min: 1000, max: 30000, step: 500, default: 12000, showIf: { look: 'dust' } },
+    { key: 'depth', label: 'Depth of field', type: 'range', min: 0, max: 1, step: 0.01, default: 0.6, showIf: { look: 'dust' } },
     { key: 'wave', label: 'Waviness', type: 'range', min: 0, max: 2, step: 0.05, default: 1, showIf: { look: 'dust' } },
     { key: 'spreadY', label: 'Band thickness', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1, showIf: { look: 'dust' } },
     { key: 'dustColor', label: 'Dust color', type: 'color', default: '#ffffff', showIf: { look: 'dust' } },
@@ -41,12 +42,12 @@ export default {
     }
     let key = '';
     // ---- dust: specks strung along slow wavy bands, thick in places and thinning out in others
-    let DN = 0, DX, DO, DB, DL, dz = 0, kickE = 0;
+    let DN = 0, DX, DO, DB, DL, DD, dz = 0, kickE = 0;
     function dust(F, dt, W, H, S, p) {
       const n = Math.round(p.specks);
       if (n !== DN) {
-        DN = n; DX = new Float32Array(n); DO = new Float32Array(n); DB = new Uint8Array(n); DL = new Float32Array(n);
-        for (let i = 0; i < n; i++) { DX[i] = Math.random(); DO[i] = (Math.random() + Math.random() + Math.random() - 1.5); DB[i] = (Math.random() * 9) | 0; DL[i] = Math.random(); }
+        DN = n; DX = new Float32Array(n); DO = new Float32Array(n); DB = new Uint8Array(n); DL = new Float32Array(n); DD = new Uint8Array(n);
+        for (let i = 0; i < n; i++) { DX[i] = Math.random(); DO[i] = (Math.random() + Math.random() + Math.random() - 1.5); DB[i] = (Math.random() * 9) | 0; DL[i] = Math.random(); const q = Math.random(); DD[i] = q < 0.6 ? 0 : q < 0.988 ? 1 : 2; }
       }
       dt = Math.max(0, dt);
       dz += dt * 0.12 * p.flow * (0.6 + F.mid * 1.2 + F.drop * 2);
@@ -58,11 +59,13 @@ export default {
       const amp = H * 0.06 * p.wave * (1 + F.bass * p.shake * 1.2);
       const r = Math.max(1, p.size * S * 0.55);
       const c = hexToRgb(p.dustColor);
-      const paths = [new Path2D(), new Path2D(), new Path2D()];
-      const vx = dt * 0.02 * p.flow * (1 + F.mid);
+      const paths = [new Path2D(), new Path2D(), new Path2D()], far = new Path2D(), near = new Path2D(), bloom = new Path2D();
+      const vx = dt * 0.02 * p.flow * (1 + F.mid), dof = p.depth ?? 0.6;
+      const rFar = Math.max(0.7, r * 0.65), rNear = r * (2 + 4 * dof);
       for (let i = 0; i < n; i++) {
-        const b = DB[i] % K;
-        let x = DX[i] + vx * (0.6 + (b % 3) * 0.25);
+        const b = DB[i] % K, dd = DD[i];
+        // nearer specks drift faster (parallax)
+        let x = DX[i] + vx * (0.6 + (b % 3) * 0.25) * (0.6 + dd * 0.6);
         if (x > 1.05) x -= 1.1;
         DX[i] = x;
         const xs = x * 2.2 * sc;
@@ -74,10 +77,26 @@ export default {
         const thick = H * 0.018 * p.spreadY * (0.6 + 1.4 * (0.5 + 0.5 * noise3(xs * 2.5, b * 5.1, dz * 0.5))) * (1 + F.level * 0.6 + kickE * 2.5);
         const y = yc + DO[i] * thick;
         const lum = DL[i] * (0.6 + 0.4 * dens) + F.hat * 0.3 * (DL[i] > 0.85 ? 1 : 0);
-        paths[lum > 0.66 ? 2 : lum > 0.33 ? 1 : 0].rect(x * W, y, r, r);
+        const px = x * W, py = y + (dd - 1) * thick * 0.6;
+        if (dd === 0 && dof > 0) far.rect(px, py, rFar, rFar);
+        else if (dd === 2 && dof > 0) { near.moveTo(px + rNear, py); near.arc(px, py, rNear, 0, TAU); }
+        else {
+          paths[lum > 0.66 ? 2 : lum > 0.33 ? 1 : 0].rect(px, py, r, r);
+          if (lum > 0.8) { bloom.moveTo(px + r * 2.2, py + r / 2); bloom.arc(px + r / 2, py + r / 2, r * 2.2, 0, TAU); }
+        }
       }
-      const al = [0.35, 0.65, 1];
-      for (let k = 0; k < 3; k++) { ctx.fillStyle = rgba(c, al[k] * Math.min(1, p.contrast)); ctx.fill(paths[k]); }
+      const al = [0.35, 0.65, 1], ct = Math.min(1, p.contrast);
+      ctx.fillStyle = rgba(c, 0.32 * ct); ctx.fill(far);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = rgba(c, 0.07 * ct); ctx.fill(bloom);
+      ctx.globalCompositeOperation = 'source-over';
+      for (let k = 0; k < 3; k++) { ctx.fillStyle = rgba(c, al[k] * ct); ctx.fill(paths[k]); }
+      // out-of-focus specks in front: large, faint discs
+      ctx.globalCompositeOperation = 'lighter';
+      // bokeh: a faint disc with a slightly brighter rim
+      ctx.fillStyle = rgba(c, (0.025 + 0.04 * (1 - dof)) * ct * (1 + F.level * 0.5)); ctx.fill(near);
+      ctx.strokeStyle = rgba(c, 0.05 * ct); ctx.lineWidth = Math.max(0.6, S * 0.6); ctx.stroke(near);
+      ctx.globalCompositeOperation = 'source-over';
     }
     return {
       render(F, { dt, W, H, S, params: p }) {

@@ -8,7 +8,8 @@ export default {
     { key: 'look', label: 'Look', type: 'select', default: 'lattice', options: [['lattice', 'A grid of points carried by the field'], ['streams', 'Particle streams']] },
     { key: 'gridSize', label: 'Grid spacing', type: 'range', min: 6, max: 40, step: 1, default: 15, showIf: { look: 'lattice' } },
     { key: 'warp', label: 'Displacement', type: 'range', min: 0, max: 4, step: 0.05, default: 1.6, showIf: { look: 'lattice' } },
-    { key: 'dot', label: 'Point size', type: 'range', min: 0.5, max: 4, step: 0.05, default: 1.2, showIf: { look: 'lattice' } },
+    { key: 'dot', label: 'Point size', type: 'range', min: 0.5, max: 4, step: 0.05, default: 1.6, showIf: { look: 'lattice' } },
+    { key: 'tails', label: 'Tails back to each point\'s home', type: 'toggle', default: true, showIf: { look: 'lattice' } },
     { key: 'pattern', label: 'Stream pattern', type: 'select', default: 'curl', section: 'Field', options: [['curl', 'Curl noise'], ['vortex', 'Vortex'], ['waves', 'Waves'], ['radial', 'Radial burst'], ['grid', 'Crosshatch']] },
     { key: 'count', label: 'Particles', type: 'range', min: 500, max: 20000, step: 100, default: 4000 },
     { key: 'speed', label: 'Flow speed', type: 'range', min: 0.1, max: 4, step: 0.05, default: 1 },
@@ -22,7 +23,7 @@ export default {
     { key: 'shape', label: 'Particle shape', type: 'select', default: 'lines', options: [['lines', 'Streaks'], ['dots', 'Dots'], ['dashes', 'Dashes']] },
     { key: 'bright', label: 'Brightness', type: 'range', min: 0.1, max: 3, step: 0.05, default: 1 },
     { key: 'width', label: 'Line width', type: 'range', min: 0.5, max: 4, step: 0.1, default: 1 },
-    { key: 'colorMode', label: 'Coloring', type: 'select', default: 'mono', section: 'Color', options: [['direction', 'By direction'], ['speed', 'By speed'], ['mono', 'Single color']] },
+    { key: 'colorMode', label: 'Coloring', type: 'select', default: 'speed', section: 'Color', options: [['direction', 'By direction'], ['speed', 'By speed'], ['mono', 'Single color']] },
     { key: 'colorA', label: 'Color A', type: 'color', default: '#e6e6ea' },
     { key: 'colorB', label: 'Color B', type: 'color', default: '#38c6c0' }
   ],
@@ -57,7 +58,7 @@ export default {
       const col = hexToRgb(p.colorA), colB = hexToRgb(p.colorB);
       const nx = Math.ceil(W / g) + 2, ny = Math.ceil(H / g) + 2;
       const ox = (W - (nx - 1) * g) / 2, oy = (H - (ny - 1) * g) / 2;
-      const groups = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
+      const groups = [new Path2D(), new Path2D(), new Path2D(), new Path2D()], tails = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
       for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
         const x = ox + i * g, y = oy + j * g;
         // displacement: the curl of a slow noise field, so the grid shears in waves instead of clumping
@@ -68,12 +69,15 @@ export default {
         vx += noise3(xs * 3, ys * 3, lz * 1.6 + 5) * tb * 0.35; vy += noise3(xs * 3 + 9, ys * 3, lz * 1.6) * tb * 0.35;
         let px = x + vx * amp * 0.5, py = y + vy * amp * 0.5;
         if (kickE > 0.02) { const ddx = px - cx, ddy = py - cy, d = Math.hypot(ddx, ddy) + 1; const push = kickE * g * 1.2 * Math.exp(-d / (Math.min(W, H) * 0.6)); px += ddx / d * push; py += ddy / d * push; }
-        const m = Math.min(3, Math.floor(Math.hypot(vx, vy) * 1.6));
-        groups[m].rect(px - r / 2, py - r / 2, r, r);
+        const m = Math.min(3, Math.floor(Math.hypot(px - x, py - y) / (g * 0.9) * 4));
+        if (p.tails !== false && m > 0) { tails[m].moveTo(x, y); tails[m].lineTo(px, py); }
+        groups[m].moveTo(px + r * 0.5, py); groups[m].arc(px, py, r * 0.5 + m * 0.12 * r, 0, TAU);
       }
+      ctx.lineWidth = Math.max(0.6, 0.7 * S); ctx.lineCap = 'round';
       for (let m = 0; m < 4; m++) {
         const c = p.colorMode === 'mono' ? col : mixRgb(col, colB, m / 3);
-        ctx.fillStyle = rgba(c, Math.min(1, (0.55 + m * 0.15) * p.bright * (0.85 + F.level * 0.3)));
+        if (p.tails !== false && m > 0) { ctx.strokeStyle = rgba(c, Math.min(1, (0.12 + m * 0.08) * p.bright)); ctx.stroke(tails[m]); }
+        ctx.fillStyle = rgba(c, Math.min(1, (0.5 + m * 0.17) * p.bright * (0.85 + F.level * 0.3)));
         ctx.fill(groups[m]);
       }
     }

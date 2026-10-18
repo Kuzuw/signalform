@@ -129,6 +129,15 @@ Effects live in `renderer/rack.js`. A one-pass effect is a name, a category, its
 
 The tests drive the interface and the modules in headless Chromium, with a browser stand-in (`renderer/shim.js`) instead of Electron. They need Playwright:
 
+Start with the fast checks, which need nothing but Node:
+
+```bash
+npm test                                       # every file parses; every module, effect, preset and starter scene is well formed
+npm run test:onsets                            # beat detection on 24 synthetic mixes; fails below 80% kick or snare F1
+```
+
+The rest drive the interface and the modules in headless Chromium:
+
 ```bash
 npm i -D playwright
 npx playwright install chromium     # or set PW_CHROMIUM to a Chromium executable
@@ -142,7 +151,7 @@ node scripts/train-kick.mjs                    # refit the kick classifier (WRIT
 TARGET=snare node scripts/train-kick.mjs       # refit the snare classifier (WRITE=1 saves renderer/snare-net.js)
 ```
 
-Check the images, and make sure the interface and render runs end with `problems: none`.
+Check the images, and make sure the interface and render runs end with `problems: none`. GitHub runs `npm test`, the onset test, the module reference check and the interface test on every pull request.
 
 ## Pull requests
 

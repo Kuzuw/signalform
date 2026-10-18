@@ -120,7 +120,7 @@ export const STARTERS = [
     name: 'Stained Glass',
     note: 'Cells of colored glass behind strings strung across a circle.',
     scene: { aspect: '16:9', widgets: [
-      W('cells', { x: 0, y: 0, w: 1, h: 1 }, { ...BASE, opacity: 0.7, params: { style: 'mosaic' } }),
+      W('cells', { x: 0, y: 0, w: 1, h: 1 }, { ...BASE, opacity: 0.7, params: { style: 'mosaic', colorA: '#ff4d6d', colorB: '#4d7cff', edge: 1 } }),
       W('strings', { x: 0.2, y: 0, w: 0.6, h: 1 }, { params: { layout: 'star', count: 18, colorLow: '#ffffff', colorHigh: '#ffe2b0' } })
     ] }
   }

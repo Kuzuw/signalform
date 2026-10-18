@@ -10,12 +10,13 @@
 <body>
 <div class="app" id="app">
   <header class="topbar" id="topbar">
-    <div class="brand"><span class="mark" aria-hidden="true"></span><span>Signalform</span></div>
+    <div class="brand"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="mk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd37a"/><stop offset="1" stop-color="#ff7a45"/></linearGradient></defs><rect x="1" y="1" width="22" height="22" rx="6.5" fill="#17171a" stroke="url(#mk)" stroke-width="1.4"/><path d="M4.5 12h2.2l1.6-4.6 2.4 9.6 2.3-12 2.2 10.4 1.5-3.4h2.8" fill="none" stroke="url(#mk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Signalform</span></div>
     <input class="scene-name" id="sceneName" type="text" aria-label="Scene name" spellcheck="false">
     <div class="spacer"></div>
     <select id="aspectSel" title="Canvas format" aria-label="Canvas format">
       <option value="16:9">16:9</option><option value="9:16">9:16</option><option value="1:1">1:1</option><option value="4:3">4:3</option><option value="21:9">21:9</option>
     </select>
+    <span class="vr" aria-hidden="true"></span>
     <button class="btn" id="scenesBtn" type="button">Scenes</button>
     <button class="btn rec" id="recBtn" type="button" title="Record a live take"><i class="dot"></i><span id="recLabel">Record</span></button>
     <button class="btn live" id="outBtn" type="button" title="Spout and NDI output"><i class="dot"></i><span>Live Output</span></button>
@@ -57,6 +58,7 @@
     </section>
     <section class="sec mods">
       <h3>Modules <span class="count" id="modCount"></span></h3>
+      <input class="mod-search" id="modSearch" type="search" placeholder="Search modules" aria-label="Search modules" spellcheck="false" autocomplete="off">
       <div class="tiles" id="modList"></div>
       <p class="note">Click to add, or drag onto the stage. Layer, resize and group them freely.</p>
     </section>

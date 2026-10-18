@@ -14,12 +14,13 @@ export default {
   tagline: 'Layered waveform shapes from audio.',
   params: [
     { key: 'mode', label: 'Arrangement', type: 'select', default: 'envelope', options: [['envelope', 'Scrolling mass'], ['radial', 'Radial rings'], ['stacked', 'Stacked contours'], ['mirror', 'Mirrored layers']] },
+    { key: 'look', label: 'Look', type: 'select', default: 'bars', showIf: { mode: 'envelope' }, options: [['bars', 'Fine bars'], ['solid', 'Solid mass']] },
     { key: 'body', label: 'Body thickness', type: 'range', min: 0, max: 0.4, step: 0.01, default: 0.12, showIf: { mode: 'envelope' } },
     { key: 'spiky', label: 'Spikiness', type: 'range', min: 0, max: 2, step: 0.05, default: 1, showIf: { mode: 'envelope' } },
     { key: 'layers', label: 'Layers', type: 'range', min: 3, max: 60, step: 1, default: 24 },
     { key: 'spacing', label: 'Layer spacing', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1 },
     { key: 'amp', label: 'Amplitude', type: 'range', min: 0.1, max: 3, step: 0.05, default: 1 },
-    { key: 'detail', label: 'Detail', type: 'range', min: 32, max: 400, step: 1, default: 160 },
+    { key: 'detail', label: 'Detail', type: 'range', min: 32, max: 400, step: 1, default: 140 },
     { key: 'fill', label: 'Filled shapes', type: 'toggle', default: true },
     { key: 'colorMode', label: 'Color', type: 'select', default: 'single', options: [['multi', 'Multi-color palette'], ['single', 'Single color']] },
     { key: 'palette', label: 'Palette', type: 'select', default: 'ember', showIf: { colorMode: 'multi' }, options: Object.keys(PALETTES).map((k) => [k, k[0].toUpperCase() + k.slice(1)]) },
@@ -67,6 +68,38 @@ export default {
       if (n < 2) return;
       const cy = H / 2, c = p.colorMode === 'single' ? hexToRgb(p.color) : gradient((PALETTES[p.palette] || PALETTES.ember).map(hexToRgb), 0.9);
       const x = (i) => W - (i / (cols - 1)) * W;     // newest on the right, scrolling left
+      if (p.look !== 'solid') {
+        // fine rounded bars, brightest at the centre line, older columns fading into the dark
+        const step = W / (cols - 1), bw = Math.max(1, step * 0.58), r = Math.min(bw / 2, 3 * S);
+        const g = ctx.createLinearGradient(0, cy - H * 0.48, 0, cy + H * 0.48);
+        g.addColorStop(0, rgba(c, 0.5)); g.addColorStop(0.42, rgba(c, 0.95)); g.addColorStop(0.5, rgba(c, 1)); g.addColorStop(0.58, rgba(c, 0.95)); g.addColorStop(1, rgba(c, 0.5));
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        // a little smoothing between neighbouring columns keeps the bars from flickering
+        for (let i = 0; i < n; i++) {
+          const a = i > 0 ? i - 1 : i, b2 = i < n - 1 ? i + 1 : i;
+          const top = (envT[a] + envT[i] * 2 + envT[b2]) / 4 * H, bot = (envB[a] + envB[i] * 2 + envB[b2]) / 4 * H;
+          const h = Math.max(top + bot, 1.5 * S);
+          ctx.roundRect(x(i) - bw / 2, cy - top, bw, h, r);
+        }
+        ctx.fill();
+        // the newest columns glow; the oldest fade out
+        ctx.globalCompositeOperation = 'destination-out';
+        const f = ctx.createLinearGradient(0, 0, W, 0);
+        f.addColorStop(0, 'rgba(0,0,0,0.92)'); f.addColorStop(0.55, 'rgba(0,0,0,0.25)'); f.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = f; ctx.fillRect(0, 0, W, H);
+        // the newest bars glow
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.save();
+        ctx.shadowColor = rgba(c, 0.55 + F.kick * 0.4 * p.beatWidth); ctx.shadowBlur = 10 * S;
+        ctx.fillStyle = rgba(c, 0.9);
+        ctx.beginPath();
+        for (let i = 0; i < Math.min(n, 4); i++) { const top = envT[i] * H, bot = envB[i] * H; ctx.roundRect(x(i) - bw / 2, cy - top, bw, Math.max(top + bot, 1.5 * S), r); }
+        ctx.fill(); ctx.restore();
+        // centre line
+        ctx.fillStyle = rgba(c, 0.18); ctx.fillRect(0, cy - 0.5 * S, W, 1 * S);
+        return;
+      }
       ctx.beginPath();
       for (let i = 0; i < n; i++) ctx.lineTo(x(i), cy - envT[i] * H);
       for (let i = n - 1; i >= 0; i--) ctx.lineTo(x(i), cy + envB[i] * H);

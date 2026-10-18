@@ -55,10 +55,15 @@ void main() {
   float wall = 1.0 - smoothstep(uEdge * 0.04, uEdge * 0.04 + aa, border);
   float lit = uFill * (0.06 + e);
   vec3 col;
-  if (uStyle < 0.5) {                     // glass: dim panes, bright edges, light pooling at the rim
+  if (uStyle < 0.5) {                     // glass: frosted panes lit from the upper left, hair-thin bright walls
     float rim = exp(-border * 9.0);
-    col = tint * lit * (0.35 + 0.9 * rim);
-    col += uEdgeCol * wall * (0.35 + uEdgeGlow * (0.6 + e * 1.5 + uHat * 0.8));
+    vec3 nn = normalize(vec3(-ts * (1.2 + uBevel * 2.0) * smoothstep(0.0, 0.35, border), 1.0));
+    float sheen = pow(max(dot(nn, normalize(vec3(-0.5, 0.6, 0.62))), 0.0), 7.0);
+    float depth = 0.55 + 0.45 * hash(id + 5.7);           // panes sit at slightly different depths
+    col = tint * lit * (0.22 + 0.85 * rim) * depth;
+    col += mix(tint, vec3(1.0), 0.6) * sheen * (0.05 + e * 0.25) * uBevel;
+    float halo = exp(-border * 34.0);
+    col += uEdgeCol * (wall * 0.85 + halo * 0.22) * (0.3 + uEdgeGlow * (0.45 + e * 1.4 + uHat * 0.6));
   } else if (uStyle < 1.5) {              // organic: soft bodies, dark gaps, a nucleus
     float body = smoothstep(0.0, 0.25 + 0.15 * uBevel, border);
     float nucleus = exp(-dot(ts, ts) * 60.0) * (0.4 + e);
@@ -93,15 +98,15 @@ export default {
     { key: 'speed', label: 'Movement speed', type: 'range', min: 0, max: 3, step: 0.05, default: 0.6 },
     { key: 'flinch', label: 'Flinch on hits', type: 'range', min: 0, max: 2, step: 0.05, default: 0.8 },
     { key: 'breathe', label: 'Shrink on builds', type: 'toggle', default: true },
-    { key: 'edge', label: 'Wall width', type: 'range', min: 0.1, max: 4, step: 0.05, default: 1, section: 'Look' },
-    { key: 'edgeGlow', label: 'Wall glow', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
-    { key: 'fill', label: 'Cell light', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
+    { key: 'edge', label: 'Wall width', type: 'range', min: 0.1, max: 4, step: 0.05, default: 0.45, section: 'Look' },
+    { key: 'edgeGlow', label: 'Wall glow', type: 'range', min: 0, max: 2, step: 0.05, default: 0.85 },
+    { key: 'fill', label: 'Cell light', type: 'range', min: 0, max: 2, step: 0.05, default: 0.85 },
     { key: 'bevel', label: 'Depth', type: 'range', min: 0, max: 1, step: 0.01, default: 0.5 },
     { key: 'bright', label: 'Brightness', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
     { key: 'coloring', label: 'Coloring', type: 'select', default: 'freq', section: 'Color', options: [['freq', 'By frequency'], ['two', 'Two colors'], ['mono', 'Single color']] },
-    { key: 'colorA', label: 'Color A', type: 'color', default: '#ff4d6d' },
-    { key: 'colorB', label: 'Color B', type: 'color', default: '#4d7cff' },
-    { key: 'edgeColor', label: 'Wall color', type: 'color', default: '#f2f4ff' }
+    { key: 'colorA', label: 'Color A', type: 'color', default: '#3f6bff' },
+    { key: 'colorB', label: 'Color B', type: 'color', default: '#20d3c2' },
+    { key: 'edgeColor', label: 'Wall color', type: 'color', default: '#e4eaff' }
   ],
   create(canvas) {
     let s;

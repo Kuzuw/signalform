@@ -18,7 +18,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, r));
 const base = `http://127.0.0.1:${server.address().port}/renderer/index.html`;
 const browser = await pw.chromium.launch({
-  executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: process.env.PW_CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined),
   args: ['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
 });
 const ctx = await browser.newContext({ viewport: { width: 1600, height: 940 }, acceptDownloads: true });
@@ -119,8 +119,20 @@ await page.locator('.fx-sub', { hasText: 'Phosphor mask' }).click(); await page.
 step('crt: ' + JSON.stringify(await page.evaluate(() => { const r = window.signalform.stage.scene.rack.at(-1).p; return [r.preset, r.signal, r.maskType, r.scan]; })) + ' mask control shown: ' + await page.locator(`#p_${crtId}_maskType`).count());
 await page.waitForTimeout(2000);
 await shot('ui-crt');
-await page.evaluate(() => { window.signalform.stage.scene.rack.length = 0; const s = window.signalform.stage; s.select(s.widgets[2].id); });
-await page.click('#tab-module');
+await page.evaluate(() => { window.signalform.stage.scene.rack.length = 0; });
+// the real-life oscilloscope look, and Ferro's REACTIVE!!! switch
+await page.click('.tile[data-mod="oscilloscope"]'); await page.waitForTimeout(500);
+await page.click('#tab-module'); await page.waitForTimeout(200);
+await page.selectOption('#p_frame', 'instrument'); await page.waitForTimeout(2500);
+step('oscilloscope look: ' + await page.evaluate(() => { const s = window.signalform.stage; return s.get(s.selected).params.frame; }));
+await shot('ui-scope-real');
+await page.click('.tile[data-mod="ferro"]'); await page.waitForTimeout(500);
+await page.click('#tab-module'); await page.waitForTimeout(200);
+await page.locator('label.switch:has(#p_reactive)').click(); await page.waitForTimeout(1500);
+step('ferro reactive: ' + await page.evaluate(() => { const s = window.signalform.stage; return s.get(s.selected).params.reactive; }));
+await shot('ui-ferro-reactive');
+await page.evaluate(() => { const s = window.signalform.stage; s.remove(s.widgets.slice(3).map((w) => w.id)); s.select(s.widgets[2].id); });
+await page.waitForTimeout(300);
 
 // record a group via the widget picker
 await page.click('#recBtn'); await page.waitForTimeout(200);

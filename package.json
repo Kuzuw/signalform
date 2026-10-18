@@ -1,7 +1,7 @@
 {
   "name": "signalform",
   "productName": "Signalform",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "description": "Free, open-source realtime audio-reactive visual engine for Windows: 20 modules you can layer, blend and export to video.",
   "keywords": [
     "audio-visualizer",
@@ -31,7 +31,9 @@
     "dev": "electron . --dev",
     "dist:win": "electron-builder --win --x64",
     "dist": "electron-builder --win --x64",
+    "test": "node --no-warnings scripts/check.mjs",
     "test:ui": "node test/run-app.mjs",
+    "test:onsets": "MIN_F1=80 node --no-warnings test/onsets-varied.mjs 2001 24",
     "test:render": "node test/run-render.mjs",
     "docs:modules": "node --no-warnings scripts/gen-modules-doc.mjs",
     "docs:images": "node scripts/readme-assets/make.mjs"

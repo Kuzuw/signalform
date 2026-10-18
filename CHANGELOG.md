@@ -4,6 +4,35 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-18
+
+### Added
+- **Real-life oscilloscope** (*Oscilloscope → Look → Real-life oscilloscope*): the whole instrument, a dual-trace analog scope with the tube recessed in its front panel. VOLTS/DIV (with the red variable-gain knob), SEC/DIV, trigger level, position, intensity, focus and scale illumination knobs turn to the scope's actual settings; the mode, trigger and slope buttons light up for what is selected; the POWER, TRIG'D and READY lamps light live. The panel adapts to wide and tall layers and is redrawn only when a setting changes.
+- **REACTIVE!!!** switch and **Reaction strength** for Ferro (*Module → Reaction*). The magnet's field now follows the loudness and the bass: spikes stand up all around the body, the body pumps on kicks and when the bass rises, the beads are shoved apart on hits and snap back, snares twist it and swell its buds, the highs stir it, and droplets fly harder. REACTIVE!!! more than doubles all of it, raises the spike crown higher and shakes the camera on kicks.
+- **Search and categories in the module library**: type to filter by name or description (Esc clears); modules are grouped into Signal, Light and particles, Forms, and Worlds and type.
+- **Continuous integration** on GitHub: every push and pull request runs source and settings checks, verifies the module reference, scores beat detection (kick and snare F1 must stay at 80% or more) and clicks through the whole interface in headless Chromium. `npm test` runs the checks locally.
+
+### Changed
+- **CRT screen, more realistic:**
+  - The beam spot is round: bright parts of the picture spread sideways as well as up and down.
+  - *Power supply sag*: bright scenes make the picture swell a little and dim, like a real high-voltage supply and brightness limiter.
+  - *Overscan*: a TV crops the picture's edges; a negative value underscans and shows the black border of a studio monitor.
+  - *Geometry errors*: a slight tilt, keystone and uneven horizontal linearity.
+  - *Colour purity errors*: faint tints towards the corners where the beams land a little off their phosphors.
+  - *Dust and smudges* on the glass, and a thin glint of light along the glass edge.
+  - A new *Geometry* section; every monitor model sets the new controls too.
+- **Modules, modernized** (each keeps its character; the previous look is kept as an option where it changed):
+  - **Tunnel**: every ring lights the glossy wall around it, the tube catches a sheen on its upper side, and the default colours go from warm brown to a cool white-to-blue depth (*Light on the walls*).
+  - **Cells**: frosted glass panes lit from the upper left, hair-thin bright walls with a soft halo, panes at slightly different depths, and calmer blue and teal colours.
+  - **Waveform**: fine rounded bars, brightest at the centre line, older columns fading out and the newest glowing (*Look → Fine bars*; *Solid mass* is the previous look).
+  - **Flow Field**: each point of the lattice draws a fine tail back to its home, so the field reads as a clean vector map, and the fastest points take the accent colour.
+  - **Trace**: the live signal leaves a short afterimage, glows in two layers, has a soft fill under the line and an optional measurement grid.
+  - **Grain**: the dust has depth: tiny far specks, a sharp middle layer with a soft bloom, and rare out-of-focus specks drifting past in front (*Depth of field*).
+  - **ASCII**: a contrast curve carves clear shapes out of the field instead of an even wall of glyphs, lighter type by default, and a soft glow.
+- **Interface**: a new logo, a divider between the scene controls and the actions, quieter scrollbars, status bar readouts in tidy segments, and focus rings and hover states on sliders.
+- The Stained Glass starter keeps its warm colours.
+
+
 ## [1.8.0] - 2026-10-17
 
 ### Changed

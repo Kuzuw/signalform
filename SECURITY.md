@@ -6,8 +6,8 @@ Security fixes go into the latest release. Please update to the [latest version]
 
 | Version | Supported |
 |---|---|
-| 1.8.x | Yes |
-| < 1.8 | No |
+| 2.0.x | Yes |
+| < 2.0 | No |
 
 ## Reporting a vulnerability
 

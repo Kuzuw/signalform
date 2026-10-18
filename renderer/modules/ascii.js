@@ -11,10 +11,11 @@ export default {
     { key: 'text', label: 'Text', type: 'text', default: 'SIGNAL', showIf: { source: 'text' } },
     { key: 'glyphs', label: 'Glyph set', type: 'select', default: 'signs', section: 'Glyphs', options: [['signs', 'Signs x X % & # @'], ['classic', 'Classic  .:-=+*#%@'], ['blocks', 'Blocks ░▒▓█'], ['dots', 'Dots ·•●'], ['binary', 'Binary 01'], ['hex', 'Hex 0–F'], ['lines', 'Lines -=≡'], ['kana', 'Katakana'], ['custom', 'My characters']] },
     { key: 'charset', label: 'Characters (light → dense)', type: 'text', default: ' .:-=+*#%@', showIf: { glyphs: 'custom' } },
-    { key: 'weight', label: 'Weight', type: 'select', default: '800', options: [['300', 'Light'], ['500', 'Regular'], ['600', 'Medium'], ['800', 'Bold']] },
+    { key: 'weight', label: 'Weight', type: 'select', default: '600', options: [['300', 'Light'], ['500', 'Regular'], ['600', 'Medium'], ['800', 'Bold']] },
     { key: 'cell', label: 'Glyph size', type: 'range', min: 6, max: 40, step: 1, default: 18 },
     { key: 'spacing', label: 'Letter spacing', type: 'range', min: 0.45, max: 1.2, step: 0.01, default: 0.62 },
-    { key: 'density', label: 'Density', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1.35, section: 'Motion' },
+    { key: 'density', label: 'Density', type: 'range', min: 0.2, max: 2, step: 0.05, default: 1.05, section: 'Motion' },
+    { key: 'contrast', label: 'Contrast', type: 'range', min: 0, max: 1, step: 0.01, default: 0.6 },
     { key: 'motion', label: 'Glyph motion', type: 'select', default: 'drift', options: [['still', 'Still'], ['drift', 'Drift'], ['rain', 'Rain'], ['jitter', 'Jitter']] },
     { key: 'speed', label: 'Motion speed', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
     { key: 'punch', label: 'Bass punch', type: 'range', min: 0, max: 2, step: 0.05, default: 1 },
@@ -23,12 +24,14 @@ export default {
     { key: 'colorMode', label: 'Coloring', type: 'select', default: 'gradient', section: 'Color', options: [['mono', 'Single color'], ['gradient', 'By intensity'], ['frequency', 'By frequency']] },
     { key: 'colorA', label: 'Color A', type: 'color', default: '#3c3c42' },
     { key: 'colorB', label: 'Color B', type: 'color', default: '#f4f4f6' },
+    { key: 'bloom', label: 'Glow', type: 'range', min: 0, max: 1, step: 0.01, default: 0.4 },
     { key: 'invert', label: 'Invert', type: 'toggle', default: false }
   ],
   create(canvas) {
     const ctx = canvas.getContext('2d');
     let atlas = null, atlasPx = null, atlasKey = '', cw = 8, ch = 12, cols = 0, rows = 0;
     let frame = null, frame32 = null;
+    const glowC = document.createElement('canvas'), gctx = glowC.getContext('2d');
     let mask = null, maskKey = '';
     let rings = [], rowShift = new Float32Array(0), scroll = 0, drift = 0;
     const LEVELS = 12;
@@ -127,6 +130,9 @@ export default {
             }
             if (p.bandMap && p.source !== 'spectrum') v *= p.source === 'text' ? 0.8 + bv * 0.4 : 0.55 + bv * 0.9;
             v *= dens;
+            // a contrast curve carves clear shapes out of the field instead of an even texture
+            const cc = p.contrast ?? 0.6;
+            if (cc > 0) { const u = clamp(v); v = u + (u * u * (3 - 2 * u) * u - u) * cc * 1.4; }
             if (Math.random() < spark) v = 1;
             if (p.invert) v = 1 - v;
             v = clamp(v);
@@ -141,6 +147,15 @@ export default {
           }
         }
         ctx.putImageData(frame, 0, 0);
+        // soft glow: a blurred half-size copy added back on top
+        if (p.bloom > 0) {
+          const gw = Math.max(1, W >> 2), gh = Math.max(1, H >> 2);
+          if (glowC.width !== gw || glowC.height !== gh) { glowC.width = gw; glowC.height = gh; }
+          gctx.filter = `blur(${Math.max(1, ch * 0.25)}px)`; gctx.clearRect(0, 0, gw, gh); gctx.drawImage(canvas, 0, 0, gw, gh); gctx.filter = 'none';
+          ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = p.bloom * (0.55 + F.level * 0.4);
+          ctx.drawImage(glowC, 0, 0, W, H);
+          ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        }
       },
       resize() { atlasKey = ''; frame = null; },
       dispose() {}

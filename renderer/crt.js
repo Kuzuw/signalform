@@ -20,12 +20,12 @@ const hexv = (h) => { const s = String(h || '#ffffff').replace('#', ''); return 
 
 /* ------------------------------------------------------------------ presets */
 export const CRT_PRESETS = {
-  tv: { frame: 'bezel', signal: 'composite', lines: 240, interlace: false, sharp: 0.5, ring: 0.35, noise: 0.03, ghost: 0.06, jitter: 0.12, hum: 0, bright: 0, contrast: 1, sat: 1.05, tint: 0, temp: 7800, scan: 0.55, bloom: 0.7, converge: 0.35, persist: 0.25, flicker: 0.015, degauss: true, maskType: 'slot', mask: 0.6, pitch: 3, curve: 0.14, shape: 'sphere', corner: 0.07, vig: 0.45, halation: 0.45, diffusion: 0.25, reflect: 0.2 },
-  arcade: { frame: 'bezel', signal: 'rgb', lines: 240, interlace: false, sharp: 0.7, ring: 0.08, noise: 0, ghost: 0, jitter: 0.03, hum: 0, bright: 0, contrast: 1, sat: 1.1, tint: 0, temp: 7000, scan: 0.8, bloom: 0.75, converge: 0.25, persist: 0.2, flicker: 0.01, degauss: true, maskType: 'dots', mask: 0.6, pitch: 4.5, curve: 0.11, shape: 'sphere', corner: 0.04, vig: 0.35, halation: 0.4, diffusion: 0.2, reflect: 0.12 },
-  pvm: { frame: 'bezel', signal: 'rgb', lines: 240, interlace: false, sharp: 0.95, ring: 0, noise: 0, ghost: 0, jitter: 0, hum: 0, bright: 0, contrast: 1, sat: 1, tint: 0, temp: 6500, scan: 0.95, bloom: 0.5, converge: 0.06, persist: 0.15, flicker: 0, degauss: false, maskType: 'grille', mask: 0.7, pitch: 3, curve: 0.04, shape: 'cyl', corner: 0.02, vig: 0.15, halation: 0.18, diffusion: 0.1, reflect: 0.08 },
-  pc: { frame: 'bezel', signal: 'rgb', lines: 480, interlace: false, sharp: 1, ring: 0, noise: 0, ghost: 0, jitter: 0, hum: 0, bright: 0, contrast: 1, sat: 1, tint: 0, temp: 9300, scan: 0.35, bloom: 0.3, converge: 0.12, persist: 0.1, flicker: 0, degauss: false, maskType: 'dots', mask: 0.45, pitch: 3, curve: 0.06, shape: 'sphere', corner: 0.02, vig: 0.2, halation: 0.12, diffusion: 0.08, reflect: 0.1 },
-  bw: { frame: 'bezel', signal: 'composite', lines: 480, interlace: true, sharp: 0.45, ring: 0.45, noise: 0.08, ghost: 0.15, jitter: 0.2, hum: 0.3, bright: 0.02, contrast: 1.05, sat: 0, tint: 0, temp: 9000, scan: 0.5, bloom: 0.85, converge: 0, persist: 0.35, flicker: 0.03, degauss: false, maskType: 'none', mask: 0, pitch: 3, curve: 0.22, shape: 'sphere', corner: 0.13, vig: 0.6, halation: 0.6, diffusion: 0.35, reflect: 0.25 },
-  rf: { frame: 'bezel', signal: 'rf', lines: 240, interlace: false, sharp: 0.3, ring: 0.4, noise: 0.28, ghost: 0.3, jitter: 0.3, hum: 0.15, bright: 0.02, contrast: 1, sat: 0.95, tint: 0, temp: 7800, scan: 0.5, bloom: 0.75, converge: 0.45, persist: 0.3, flicker: 0.04, degauss: true, maskType: 'slot', mask: 0.55, pitch: 3, curve: 0.16, shape: 'sphere', corner: 0.08, vig: 0.5, halation: 0.5, diffusion: 0.3, reflect: 0.2 }
+  tv: { frame: 'bezel', signal: 'composite', lines: 240, interlace: false, sharp: 0.5, ring: 0.35, noise: 0.03, ghost: 0.06, jitter: 0.12, hum: 0, bright: 0, contrast: 1, sat: 1.05, tint: 0, temp: 7800, scan: 0.55, bloom: 0.7, converge: 0.35, persist: 0.25, flicker: 0.015, degauss: true, maskType: 'slot', mask: 0.6, pitch: 3, curve: 0.14, shape: 'sphere', corner: 0.07, vig: 0.45, halation: 0.45, diffusion: 0.25, reflect: 0.2, overscan: 0.05, geom: 0.25, sag: 0.5, purity: 0.2, dirt: 0.25 },
+  arcade: { frame: 'bezel', signal: 'rgb', lines: 240, interlace: false, sharp: 0.7, ring: 0.08, noise: 0, ghost: 0, jitter: 0.03, hum: 0, bright: 0, contrast: 1, sat: 1.1, tint: 0, temp: 7000, scan: 0.8, bloom: 0.75, converge: 0.25, persist: 0.2, flicker: 0.01, degauss: true, maskType: 'dots', mask: 0.6, pitch: 4.5, curve: 0.11, shape: 'sphere', corner: 0.04, vig: 0.35, halation: 0.4, diffusion: 0.2, reflect: 0.12, overscan: 0.02, geom: 0.3, sag: 0.5, purity: 0.15, dirt: 0.35 },
+  pvm: { frame: 'bezel', signal: 'rgb', lines: 240, interlace: false, sharp: 0.95, ring: 0, noise: 0, ghost: 0, jitter: 0, hum: 0, bright: 0, contrast: 1, sat: 1, tint: 0, temp: 6500, scan: 0.95, bloom: 0.5, converge: 0.06, persist: 0.15, flicker: 0, degauss: false, maskType: 'grille', mask: 0.7, pitch: 3, curve: 0.04, shape: 'cyl', corner: 0.02, vig: 0.15, halation: 0.18, diffusion: 0.1, reflect: 0.08, overscan: 0, geom: 0.05, sag: 0.15, purity: 0.03, dirt: 0 },
+  pc: { frame: 'bezel', signal: 'rgb', lines: 480, interlace: false, sharp: 1, ring: 0, noise: 0, ghost: 0, jitter: 0, hum: 0, bright: 0, contrast: 1, sat: 1, tint: 0, temp: 9300, scan: 0.35, bloom: 0.3, converge: 0.12, persist: 0.1, flicker: 0, degauss: false, maskType: 'dots', mask: 0.45, pitch: 3, curve: 0.06, shape: 'sphere', corner: 0.02, vig: 0.2, halation: 0.12, diffusion: 0.08, reflect: 0.1, overscan: 0, geom: 0.1, sag: 0.2, purity: 0.08, dirt: 0.1 },
+  bw: { frame: 'bezel', signal: 'composite', lines: 480, interlace: true, sharp: 0.45, ring: 0.45, noise: 0.08, ghost: 0.15, jitter: 0.2, hum: 0.3, bright: 0.02, contrast: 1.05, sat: 0, tint: 0, temp: 9000, scan: 0.5, bloom: 0.85, converge: 0, persist: 0.35, flicker: 0.03, degauss: false, maskType: 'none', mask: 0, pitch: 3, curve: 0.22, shape: 'sphere', corner: 0.13, vig: 0.6, halation: 0.6, diffusion: 0.35, reflect: 0.25, overscan: 0.06, geom: 0.4, sag: 0.7, purity: 0, dirt: 0.4 },
+  rf: { frame: 'bezel', signal: 'rf', lines: 240, interlace: false, sharp: 0.3, ring: 0.4, noise: 0.28, ghost: 0.3, jitter: 0.3, hum: 0.15, bright: 0.02, contrast: 1, sat: 0.95, tint: 0, temp: 7800, scan: 0.5, bloom: 0.75, converge: 0.45, persist: 0.3, flicker: 0.04, degauss: true, maskType: 'slot', mask: 0.55, pitch: 3, curve: 0.16, shape: 'sphere', corner: 0.08, vig: 0.5, halation: 0.5, diffusion: 0.3, reflect: 0.2, overscan: 0.05, geom: 0.35, sag: 0.5, purity: 0.25, dirt: 0.35 }
 };
 const D = CRT_PRESETS.tv;
 
@@ -94,12 +94,32 @@ void main() {
   o = vec4(max(lin, texture(uPrev, UV).rgb * uDecay), 1.0);
 }`,
 
+  // the beam spot is round: bright samples spread sideways as well as up and down (each neighbour's own spot,
+  // normalised so the light it carries is kept)
+  crtSpot: `uniform float uSpot;
+vec3 nrm(vec3 s) { vec3 a = exp(-1.0 / (2.0 * s * s)); return 1.0 + 2.0 * (a + a * a * a * a + pow(a, vec3(9.0))); }
+void main() { vec3 acc = vec3(0.0);
+  for (int k = -3; k <= 3; k++) { float fk = float(k); vec3 c = texture(uIn, (gl_FragCoord.xy + vec2(fk, 0.0)) / uRes).rgb;
+    vec3 s = 0.3 + uSpot * sqrt(clamp(c, 0.0, 1.5)); acc += c * exp(-fk * fk / (2.0 * s * s)) / nrm(s); }
+  o = vec4(acc, 1.0); }`,
+
+  // average brightness of the screen, smoothed like the tube's high-voltage supply (1 × 1)
+  crtAvg: `uniform sampler2D uPrev; uniform float uK;
+void main() { vec3 s = vec3(0.0);
+  for (int j = 0; j < 4; j++) for (int i = 0; i < 4; i++) s += texture(uIn, (vec2(float(i), float(j)) + 0.5) / 4.0).rgb;
+  o = vec4(mix(texture(uPrev, vec2(0.5)).rgb, s / 16.0, uK), 1.0); }`,
+
   // 4 bilinear taps spread over the destination pixel's footprint
   crtDown: `void main() { vec2 f = 0.25 / uRes; o = (tx(UV + f) + tx(UV + vec2(-f.x, f.y)) + tx(UV + vec2(f.x, -f.y)) + tx(UV - f)) * 0.25; }`,
 
-  crtScreen: `uniform sampler2D uNear, uWide;
+  crtScreen: `uniform sampler2D uNear, uWide, uAvg;
 uniform vec2 uSig, uInner, uHalf;
 uniform float uLines, uIl, uField, uSmin, uSmax, uConv, uMT, uMask, uPitch, uHal, uDif, uCurve, uShape, uCorner, uVig, uBz, uBzPx, uRefl, uFl, uDeg, uDegT;
+uniform float uOver, uGeom, uPur, uDirt, uSag;
+// an integer-safe hash (no visible lattice on cell coordinates)
+float h12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(h12(i), h12(i + vec2(1, 0)), f.x), mix(h12(i + vec2(0, 1)), h12(i + vec2(1, 1)), f.x), f.y); }
 uniform vec3 uBezel;
 float sdRBox(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
 // coverage of a periodic box (period 1, centred on c, width w) over [u - e, u + e]
@@ -136,6 +156,15 @@ void main() {
   // the glass edge stays put; only the picture swims while degaussing
   float dpx = sdRBox(pc * uHalf, uHalf, uCorner);
   if (uDeg > 0.0005) pc += uDeg * 0.018 * vec2(sin(pc.y * 7.0 + uDegT * 37.0), sin(pc.x * 6.0 + uDegT * 29.0));
+  // the raster is never perfect: a slight tilt, keystone and uneven horizontal linearity
+  if (uGeom > 0.0) { float a = uGeom * 0.004; pc = vec2(pc.x - pc.y * a, pc.y + pc.x * a);
+    pc.x *= 1.0 + uGeom * 0.012 * pc.y; pc.x += uGeom * 0.018 * (1.0 - pc.x * pc.x) * 0.5 + uGeom * 0.006 * sin(pc.y * 1.6); }
+  // a sagging high-voltage supply: bright scenes grow the picture a little, and the brightness limiter dims them
+  vec3 avg = uSag > 0.0 ? texture(uAvg, vec2(0.5)).rgb : vec3(0.0);
+  float al = dot(avg, vec3(0.2126, 0.7152, 0.0722));
+  pc /= 1.0 + uSag * 0.03 * al;
+  // overscan crops the picture's edges (a negative value underscans and shows a black border)
+  pc /= 1.0 + uOver;
   vec2 tuv = pc * 0.5 + 0.5;
   float inside = clamp(0.5 - dpx, 0.0, 1.0);
   // scan-line coordinate, and how many lines one pixel spans (for the box filter)
@@ -161,6 +190,11 @@ void main() {
     }
     acc *= 0.39894228;
     if (uDeg > 0.0005) acc *= 1.0 + uDeg * 0.7 * vec3(sin(q.x * 3.1 + q.y * 2.3 + uDegT * 4.0), sin(-q.x * 2.7 + q.y * 3.3 + uDegT * 3.1 + 2.0), sin(q.x * 3.7 - q.y * 1.9 + uDegT * 5.3 + 4.0));
+    // past the picture's edge (underscan) there is no beam
+    float ex2 = 0.5 / uHalf.x; acc *= smoothstep(-ex2, ex2, tuv.x) * smoothstep(-ex2, ex2, 1.0 - tuv.x);
+    // colour purity: beams landing slightly off their phosphors tint the corners
+    if (uPur > 0.0) acc *= 1.0 + uPur * vec3(0.22 * q.x * q.y - 0.05, -0.14 * (q.x * q.x - 0.35), 0.18 * q.y * abs(q.x) - 0.04 * q.x);
+    acc /= 1.0 + uSag * 1.4 * max(0.0, al - 0.2);
     vec3 v = acc;
     // the mask: lit phosphor glows brighter, the black matrix between them stays dark
     if (uMT < 2.5 && uMask > 0.0) v *= mix(vec3(1.0 - 0.75 * uMask), vec3(1.0 + 0.6 * uMask), mask(fc));
@@ -170,6 +204,16 @@ void main() {
     // the grey-green glass itself, and a soft window reflection
     vec2 w = (q - vec2(-0.5, 0.55)) * vec2(1.4, 2.2);
     v += uRefl * (vec3(0.0011, 0.0013, 0.0012) + 0.03 * exp(-4.0 * dot(w, w)));
+    // the curved glass catches a thin line of light along its edge
+    v += uRefl * 0.05 * exp(-max(-dpx, 0.0) / 2.5) * (0.4 + 0.6 * smoothstep(-1.0, 1.0, q.y));
+    if (uDirt > 0.0) {
+      // smudges scatter the picture's light; dust specks catch the room's light and shade what is behind them
+      float sm = smoothstep(0.58, 0.82, vnoise(q * vec2(2.6, 2.0) + 7.3) * 0.65 + vnoise(q * 7.0 + 1.7) * 0.35) * uDirt;
+      v = mix(v, v * 0.55 + texture(uNear, tuv).rgb * 0.9, sm * 0.6) + uRefl * sm * 0.012;
+      vec2 cell = floor(fc / 2.5); float h = h12(cell + 11.0);
+      float speck = step(1.0 - 0.004 * uDirt, h) * smoothstep(0.55, 0.15, length(fract(fc / 2.5) - 0.5 - (vec2(h12(cell + 3.0), h12(cell + 5.0)) - 0.5) * 0.4));
+      v = mix(v, vec3(0.05 + 0.08 * h12(cell + 7.0)) * (0.4 + uRefl), speck * 0.8);
+    }
     // phosphors driven past white saturate softly instead of clipping
     vec3 k = vec3(0.72); v = mix(v, k + (1.0 - k) * (1.0 - exp(-(v - k) / (1.0 - k))), step(k, v));
     col = v * uFl;
@@ -255,6 +299,7 @@ export const CRT = {
     { key: 'bloom', label: 'Beam bloom', type: 'range', min: 0, max: 1, step: 0.01, default: D.bloom },
     { key: 'converge', label: 'Misconvergence', type: 'range', min: 0, max: 1, step: 0.01, default: D.converge },
     { key: 'persist', label: 'Phosphor persistence', type: 'range', min: 0, max: 1, step: 0.01, default: D.persist },
+    { key: 'purity', label: 'Colour purity errors', type: 'range', min: 0, max: 1, step: 0.01, default: 0.2 },
     { key: 'flicker', label: 'Flicker', type: 'range', min: 0, max: 0.3, step: 0.005, default: D.flicker },
     { key: 'degauss', label: 'Degauss wobble on drops', type: 'toggle', default: D.degauss },
 
@@ -262,13 +307,17 @@ export const CRT = {
     { key: 'mask', label: 'Mask strength', type: 'range', min: 0, max: 1, step: 0.01, default: D.mask },
     { key: 'pitch', label: 'Mask pitch', type: 'range', min: 2, max: 12, step: 0.1, default: D.pitch, unit: ' px' },
 
+    { key: 'overscan', label: 'Overscan', type: 'range', min: -0.1, max: 0.15, step: 0.005, default: 0.05, section: 'Geometry' },
+    { key: 'geom', label: 'Geometry errors', type: 'range', min: 0, max: 1, step: 0.01, default: 0.25 },
+    { key: 'sag', label: 'Power supply sag', type: 'range', min: 0, max: 1, step: 0.01, default: 0.5 },
     { key: 'curve', label: 'Curvature', type: 'range', min: 0, max: 0.4, step: 0.005, default: D.curve, section: 'Glass' },
     { key: 'shape', label: 'Tube shape', type: 'select', default: D.shape, options: [['sphere', 'Spherical'], ['cyl', 'Cylindrical (flat vertically)'], ['flat', 'Flat']] },
     { key: 'corner', label: 'Corner rounding', type: 'range', min: 0, max: 0.25, step: 0.005, default: D.corner },
     { key: 'vig', label: 'Edge falloff', type: 'range', min: 0, max: 1, step: 0.01, default: D.vig },
     { key: 'halation', label: 'Halation', type: 'range', min: 0, max: 1, step: 0.01, default: D.halation },
     { key: 'diffusion', label: 'Glass diffusion', type: 'range', min: 0, max: 1, step: 0.01, default: D.diffusion },
-    { key: 'reflect', label: 'Room reflections', type: 'range', min: 0, max: 1, step: 0.01, default: D.reflect }
+    { key: 'reflect', label: 'Room reflections', type: 'range', min: 0, max: 1, step: 0.01, default: D.reflect },
+    { key: 'dirt', label: 'Dust and smudges', type: 'range', min: 0, max: 1, step: 0.01, default: 0.25 }
   ],
   run(E, src, dst, it, st) {
     const p = it.v, W = dst.w, H = dst.h, A = W / H;
@@ -297,16 +346,24 @@ export const CRT = {
     E.pass('crtDecode', enc, cur, { uPrev: prev, uSig: sig, uPhase: phase, uField: field, uIl: il ? 1 : 0, uBright: p.bright, uContrast: p.contrast, uSat: p.sat, uTint: p.tint * Math.PI / 180,
       uKl: st.k.kl, uKc: st.k.kc, uKs: st.k.ks, uDecay: [dec(1), dec(1.15), dec(0.75)], uWB: whiteBalance(p.temp) });
 
+    // the round beam spot spreads bright samples sideways too
+    const spot = E.tmp('crtSp', Ws, rows);
+    E.pass('crtSpot', cur, spot, { uSpot: 0.25 + p.bloom * 0.9 });
+
     // 3. halation and diffusion, from a tiny copy of the screen
-    const bezel = p.frame === 'bezel';
+    const bezel = p.frame === 'bezel', sag = p.sag ?? 0;
     const gw = Math.max(16, Math.round(W / 6)), gh = Math.max(16, Math.round(H / 6));
     const g0 = E.tmp('crtG0', gw, gh), g1 = E.tmp('crtG1', gw, gh), g2 = E.tmp('crtG2', gw, gh);
-    if (p.halation > 0 || p.diffusion > 0 || bezel) {
+    if (p.halation > 0 || p.diffusion > 0 || bezel || sag > 0 || p.dirt > 0) {
       E.pass('crtDown', cur, g0, {});
       E.pass('blur', g0, g1, { uDir: [1, 0], uRad: gh * 0.05 }); E.pass('blur', g1, g0, { uDir: [0, 1], uRad: gh * 0.05 });
       E.pass('blur', g0, g1, { uDir: [1, 0], uRad: gh * 0.16 }); E.pass('blur', g1, g2, { uDir: [0, 1], uRad: gh * 0.16 });
       E.pass('blur', g2, g1, { uDir: [1, 0], uRad: gh * 0.32 }); E.pass('blur', g1, g2, { uDir: [0, 1], uRad: gh * 0.32 });
     }
+    // the screen's average brightness for the supply sag, smoothed over ~0.15 s
+    if (!st.av) { st.av = [E.make(1, 1), E.make(1, 1)]; st.av.forEach((x) => E.pass('clear', null, x, {})); }
+    const avPrev = st.av[st.n & 1], avCur = st.av[(st.n + 1) & 1];
+    if (sag > 0) E.pass('crtAvg', g0, avCur, { uPrev: avPrev, uK: 1 - Math.exp(-dt / 0.15) });
 
     // degauss: the colour purity swims and the picture wobbles for a second after a drop
     const drop = E.audio.drop || 0;
@@ -320,7 +377,8 @@ export const CRT = {
     const inner = [0.5 - bz / W, 0.5 - bz / H], half = [W * inner[0], H * inner[1]];
     // beam spot (gaussian sigma, in line spacings): thin on dark lines, wider on bright ones
     const smin = 0.45 - 0.33 * p.scan, smax = smin + p.bloom * (0.55 - 0.33 * p.scan - smin);
-    E.pass('crtScreen', cur, dst, { uNear: g0, uWide: g2, uSig: [Ws, rows], uInner: inner, uHalf: half,
+    E.pass('crtScreen', spot, dst, { uNear: g0, uWide: g2, uAvg: avCur, uSig: [Ws, rows],
+      uOver: p.overscan ?? 0, uGeom: p.geom ?? 0, uPur: p.purity ?? 0, uDirt: p.dirt ?? 0, uSag: sag, uInner: inner, uHalf: half,
       uLines: lines, uIl: il ? 1 : 0, uField: field, uSmin: smin, uSmax: Math.max(smin, smax), uConv: p.converge * 1.6,
       uMT: MASK[p.maskType] ?? 1, uMask: p.mask, uPitch: p.pitch, uHal: p.halation, uDif: p.diffusion, uCurve: p.curve,
       uShape: p.shape === 'cyl' ? 1 : p.shape === 'flat' ? 2 : 0, uCorner: p.corner * Math.min(half[0], half[1]), uVig: p.vig,

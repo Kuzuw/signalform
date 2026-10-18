@@ -6,6 +6,7 @@
   <a href="https://github.com/Kuzuw/signalform/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Kuzuw/signalform?style=flat-square&label=release&color=ff8a3d"></a>
   <a href="https://github.com/Kuzuw/signalform/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Kuzuw/signalform/total?style=flat-square&color=38c6c0"></a>
   <a href="https://github.com/Kuzuw/signalform/actions/workflows/build.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/Kuzuw/signalform/build.yml?branch=main&style=flat-square&label=build"></a>
+  <a href="https://github.com/Kuzuw/signalform/actions/workflows/ci.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/Kuzuw/signalform/ci.yml?branch=main&style=flat-square&label=tests"></a>
   <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0b0b0d?style=flat-square&logo=windows&logoColor=white">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/Kuzuw/signalform?style=flat-square&color=8d8d96"></a>
 </p>
@@ -30,6 +31,7 @@
 ## Contents
 
 - [Highlights](#highlights)
+- [Showcase](#showcase)
 - [Modules](#modules)
 - [Download and install](#download-and-install)
 - [Quick start](#quick-start)
@@ -54,14 +56,26 @@
 | **Free composition** | Every module is a widget. Move, resize, layer, blend, group, align, lock, hide or duplicate it. Cards can be glass, solid, dark, light or clear, with rounded corners and feathered edges. |
 | **Deep control** | Each widget has three tabs: **Module** (its own settings, eight color palettes, presets, Randomize), **Look** (color, transform, mirror and kaleidoscope, glow, trails, pixelate, vignette) and **Audio** (reactivity, which part of the mix it hears, smoothing, hit strength, speed). |
 | **Effect rack** | Chain GPU effects on any widget, or on the whole stage: glow, light streaks, blur, motion and zoom blur, colour grade, gradient map, halftone, pixelate, posterize, edge glow, kaleidoscope, mirror, warp, RGB split, film grain, CRT screen, glitch, feedback echo, strobe and more. Any effect can follow the music. |
-| **CRT simulation** | The CRT screen effect simulates a tube from the signal up: RGB, S-Video, composite (with real NTSC dot crawl and colour bleed) or an aerial; scan lines whose width grows with brightness; aperture grille, slot or shadow mask; halation, curved glass and a bezel that reflects the picture. Six monitors to start from, and it degausses on drops. |
+| **CRT simulation** | The CRT screen effect simulates a tube from the signal up: RGB, S-Video, composite (with real NTSC dot crawl and colour bleed) or an aerial; a round beam spot that grows with brightness; aperture grille, slot or shadow mask; a sagging power supply, overscan and geometry errors; halation, curved glass with dust and smudges, and a bezel that reflects the picture. Six monitors to start from, and it degausses on drops. |
+| **Real-life oscilloscope** | The oscilloscope simulates the beam, the phosphor and the time base, and can show the whole instrument: a dual-trace analog scope whose knobs, buttons and lamps follow its real settings. |
 | **Music-aware analysis** | Bass, mid and high levels; kick, snare and hi-hat detection on the audio thread (small trained classifiers tell kicks and snares apart from bass notes); pitch; and build-up and drop detection, shared by every module. |
 | **Any sound in** | What your PC is playing, a microphone or audio interface, a virtual cable, a track file, or the built-in demo beat. |
 | **Video out** | Render a track to MP4 with its audio, or record live takes of the whole stage, a group or a single widget. |
 | **Scenes and presets** | Save whole layouts as scenes (and share them as `.sfscene` files), or save module settings as presets. Eleven starter scenes are included. |
 | **Free and open source** | MIT licensed. No account, no license key, no telemetry. |
 
-<p align="center"><img src="docs/images/crt.jpg" alt="Modules through the CRT screen effect: a tunnel on a living-room TV, a spectrum on an arcade monitor, the oscilloscope on a studio monitor and Aura on a black-and-white set" width="100%"></p>
+## Showcase
+
+<table>
+<tr>
+<td width="58%"><img src="docs/images/scope-real.jpg" alt="The real-life oscilloscope: a dual-trace analog scope drawing two channels, with its VOLTS/DIV, SEC/DIV and trigger controls set to match"></td>
+<td><b>A real oscilloscope</b><br><br>Every audio sample drives a simulated electron beam: slow parts burn bright, fast jumps fade, and the phosphor glows on with its own afterglow. Switch the look to <i>Real-life oscilloscope</i> and the whole instrument appears around the tube. Turn the time base in the panel and the SEC/DIV knob turns with it; the TRIG'D lamp flashes as the sweep triggers.</td>
+</tr>
+<tr>
+<td><img src="docs/images/crt.jpg" alt="Modules through the CRT screen effect: a tunnel on a living-room TV, a spectrum on an arcade monitor, the oscilloscope on a studio monitor and Aura on a black-and-white set"></td>
+<td><b>A CRT from the signal up</b><br><br>Add <i>CRT screen</i> from the effect rack to any layer or to the whole stage. The picture is encoded and decoded as a real video signal, drawn by a beam that blooms on bright lines, filtered through a phosphor mask and shown through curved, slightly dusty glass. Pick a living-room TV, an arcade monitor, a studio monitor, a computer monitor, a black-and-white set or an old TV on an aerial.</td>
+</tr>
+</table>
 
 ## Modules
 
@@ -206,7 +220,12 @@ npm install
 npm start          # run the app
 npm run dev        # run with DevTools
 npm run dist       # build dist/Signalform-Setup-x.y.z.exe
+npm test           # source and settings checks
 ```
+
+### Tests
+
+Every push and pull request runs [`ci.yml`](.github/workflows/ci.yml): the source and settings checks (`npm test`), a check that the [module reference](docs/MODULES.md) is up to date, beat detection scored on 24 synthetic mixes (`npm run test:onsets`, kick and snare F1 must stay at 80% or more), and the whole interface clicked through in headless Chromium (`npm run test:ui`). The screenshots are kept with each run.
 
 ### Releases
 
@@ -237,8 +256,9 @@ renderer/             the interface (plain ES modules, no build step)
   crt.js              the CRT screen effect: signal encode/decode, beam, mask, glass
   inspector.js        the Module / Look / Audio panel, generated from parameter schemas
   modules/            the 20 visual modules (WebGL 2 for Ferro, Tunnel, Cells, Oscilloscope and the shader looks of Aura and Fractal; Canvas 2D for the rest)
+    scope-panel.js    the real-life oscilloscope's front panel
 docs/                 module reference and README images
-scripts/              generators for docs/MODULES.md and the README images
+scripts/              checks (check.mjs), generators for docs/MODULES.md and the README images
 test/                 headless interface, module and render tests
 ```
 

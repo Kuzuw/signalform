@@ -14,5 +14,8 @@ for (let seed = first; seed < first + count; seed++) {
 }
 for (const b of ['kick', 'snare', 'hat']) {
   const { tp, fp, fn } = tot[b], p = tp / Math.max(1, tp + fp), r = tp / Math.max(1, tp + fn);
-  console.log(`${b.padEnd(6)} precision ${(p * 100).toFixed(0)}%  recall ${(r * 100).toFixed(0)}%  F1 ${((2 * p * r) / Math.max(1e-9, p + r) * 100).toFixed(0)}%`);
+  const f1 = (2 * p * r) / Math.max(1e-9, p + r) * 100;
+  console.log(`${b.padEnd(6)} precision ${(p * 100).toFixed(0)}%  recall ${(r * 100).toFixed(0)}%  F1 ${f1.toFixed(0)}%`);
+  // MIN_F1=80 makes this a test: kicks and snares must reach it
+  if (process.env.MIN_F1 && b !== 'hat' && f1 < +process.env.MIN_F1) { console.error(`${b} F1 ${f1.toFixed(0)}% is below ${process.env.MIN_F1}%`); process.exitCode = 1; }
 }

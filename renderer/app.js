@@ -129,6 +129,8 @@ window.signalform = app;
   app.loadScene(start, true);
 
   renderModuleList();
+  $('modSearch').addEventListener('input', renderModuleList);
+  $('modSearch').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.target.value = ''; renderModuleList(); e.target.blur(); } e.stopPropagation(); });
   wireTopbar();
   wireSource();
   wireKeys();
@@ -273,11 +275,32 @@ function paintRange(r) { r.style.setProperty('--p', (((r.value - r.min) / (r.max
 
 /* ---------------- module library ---------------- */
 const thumbs = new Map();
+// the library is grouped so twenty modules stay easy to scan
+const MOD_CATS = [
+  ['Signal', ['oscilloscope', 'trace', 'waveform', 'spectre', 'lissajous']],
+  ['Light and particles', ['aura', 'familiar', 'grain', 'flowfield', 'stroke', 'halo']],
+  ['Forms', ['oscillon', 'ferro', 'fractal', 'cells', 'strings', 'discharge']],
+  ['Worlds and type', ['tunnel', 'horizon', 'ascii']]
+];
 function renderModuleList() {
   const box = $('modList');
   box.innerHTML = '';
   $('modCount').textContent = MODULES.length;
-  for (const m of MODULES) {
+  const q = ($('modSearch') && $('modSearch').value || '').trim().toLowerCase();
+  const match = (m) => !q || m.name.toLowerCase().includes(q) || m.tagline.toLowerCase().includes(q) || m.id.includes(q);
+  const placed = new Set(MOD_CATS.flatMap(([, ids]) => ids));
+  const groups = [...MOD_CATS.map(([name, ids]) => [name, ids.map((id) => MODULES.find((m) => m.id === id)).filter(Boolean)]), ['More', MODULES.filter((m) => !placed.has(m.id))]];
+  let shown = 0;
+  for (const [name, mods] of groups) {
+    const list = mods.filter(match);
+    if (!list.length) continue;
+    box.append(h('div', { class: 'tile-cat' }, h('span', {}, name), h('span', { class: 'count' }, String(list.length))));
+    for (const m of list) { box.append(moduleTile(m)); shown++; }
+  }
+  if (!shown) box.append(h('p', { class: 'note tile-none' }, `No module matches “${q}”.`));
+}
+function moduleTile(m) {
+  {
     if (!thumbs.has(m.id)) thumbs.set(m.id, h('canvas', { width: 192, height: 108 }));
     const tile = h('button', {
       class: 'tile', type: 'button', draggable: 'true', 'data-mod': m.id,
@@ -286,7 +309,7 @@ function renderModuleList() {
     }, h('span', { class: 'thumb' }, thumbs.get(m.id)),
       h('span', { class: 'tname' }, m.name));
     tile.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/x-module', m.id); e.dataTransfer.effectAllowed = 'copy'; });
-    box.append(tile);
+    return tile;
   }
 }
 

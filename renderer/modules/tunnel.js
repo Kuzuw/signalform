@@ -7,7 +7,7 @@ const RINGS = 64;
 const FRAG = `
 uniform vec3 uColA, uColB;
 uniform float uSides, uTwist, uBend, uDens, uStyle, uFog, uGlow, uWidth, uZ, uCore, uSpecMap, uColorMode, uRot, uFlash, uSegs, uBright;
-uniform float uBass, uKick, uHigh;
+uniform float uBass, uKick, uHigh, uWallLight;
 uniform float uRing[${RINGS}];
 
 float polyR(vec2 p, float n) {
@@ -86,7 +86,13 @@ void main() {
   }
 
   // lines finer than a pixel turn to mush near the vanishing point: fade them out instead
-  b *= clamp(1.4 - fwidth(kv) * 2.5, 0.0, 1.0) * smoothstep(40.0, 14.0, z);
+  float far = clamp(1.4 - fwidth(kv) * 2.5, 0.0, 1.0) * smoothstep(40.0, 14.0, z);
+  b *= far;
+  // each ring is a light: it lights the glossy wall around it, and the tube's upper side catches a sheen
+  float dk = abs(fract(kv + 0.5) - 0.5) / max(uDens, 0.1);
+  float sheen = pow(max(0.0, normalize(q + 1e-5).y), 6.0);
+  float wall = (uStyle < 1.5 ? exp(-dk * 6.0) * (0.12 + e * 1.3) * sp : 0.12 * (0.2 + e)) * (0.35 + 1.4 * sheen) * uWallLight;
+  b += wall * mix(1.0, far, 0.6);
   // color: by depth, by frequency around the tunnel, or by energy
   float t = uColorMode < 0.5 ? clamp(z / 10.0, 0.0, 1.0) : uColorMode < 1.5 ? fpos : clamp(e * 1.2, 0.0, 1.0);
   vec3 col = mix(uColA, uColB, t) * (b + 0.03 * (1.0 + uBass) * smoothstep(30.0, 2.0, z));   // faint walls keep the shape readable
@@ -114,15 +120,16 @@ export default {
     { key: 'bend', label: 'Curves', type: 'range', min: 0, max: 2, step: 0.05, default: 0.8 },
     { key: 'density', label: 'Ring density', type: 'range', min: 0.5, max: 8, step: 0.05, default: 3.2, section: 'Walls' },
     { key: 'segments', label: 'Segments around', type: 'range', min: 4, max: 48, step: 1, default: 16, showIf: { style: ['grid', 'panels', 'warp'] } },
-    { key: 'width', label: 'Line width', type: 'range', min: 0.2, max: 4, step: 0.05, default: 1.3 },
+    { key: 'width', label: 'Line width', type: 'range', min: 0.2, max: 4, step: 0.05, default: 0.9 },
     { key: 'specMap', label: 'Walls follow the spectrum', type: 'toggle', default: true },
+    { key: 'wallLight', label: 'Light on the walls', type: 'range', min: 0, max: 2, step: 0.05, default: 0.7 },
     { key: 'fog', label: 'Depth fade', type: 'range', min: 0, max: 3, step: 0.05, default: 1 },
     { key: 'core', label: 'Light at the end', type: 'range', min: 0, max: 2, step: 0.05, default: 0.6 },
     { key: 'coloring', label: 'Coloring', type: 'select', default: 'depth', section: 'Color', options: [['depth', 'By depth'], ['freq', 'By frequency'], ['energy', 'By energy']] },
-    { key: 'colorA', label: 'Color A', type: 'color', default: '#ff7a3d' },
-    { key: 'colorB', label: 'Color B', type: 'color', default: '#6a5cff' },
+    { key: 'colorA', label: 'Color A', type: 'color', default: '#c4d8ff' },
+    { key: 'colorB', label: 'Color B', type: 'color', default: '#3a4dff' },
     { key: 'bright', label: 'Brightness', type: 'range', min: 0.2, max: 3, step: 0.05, default: 1 },
-    { key: 'glow', label: 'Glow', type: 'range', min: 0, max: 2, step: 0.05, default: 0.6 }
+    { key: 'glow', label: 'Glow', type: 'range', min: 0, max: 2, step: 0.05, default: 0.8 }
   ],
   create(canvas) {
     let s;
@@ -154,7 +161,7 @@ export default {
         s.set('uFog', p.fog); s.set('uCore', p.core); s.set('uSpecMap', p.specMap ? 1 : 0);
         s.set('uColorMode', ['depth', 'freq', 'energy'].indexOf(p.coloring)); s.set('uColA', hexToVec(p.colorA)); s.set('uColB', hexToVec(p.colorB));
         s.set('uRot', rollA); s.set('uFlash', flash); s.set('uBright', p.bright); s.set('uGlow', p.glow);
-        s.set('uBass', F.bass); s.set('uKick', F.kick); s.set('uHigh', F.high);
+        s.set('uBass', F.bass); s.set('uKick', F.kick); s.set('uHigh', F.high); s.set('uWallLight', p.wallLight ?? 1);
         s.setv('uRing', rings);
         s.draw();
       },

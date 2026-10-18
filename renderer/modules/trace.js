@@ -10,6 +10,8 @@ export default {
     { key: 'window', label: 'Time window', type: 'range', min: 0.1, max: 1, step: 0.01, default: 1, showIf: { form: 'signal' } },
     { key: 'clip', label: 'Clip at the edges', type: 'toggle', default: true, showIf: { form: 'signal' } },
     { key: 'auto', label: 'Automatic gain', type: 'toggle', default: true, showIf: { form: 'signal' } },
+    { key: 'grid', label: 'Measurement grid', type: 'toggle', default: true, showIf: { form: 'signal' } },
+    { key: 'area', label: 'Fill under the line', type: 'range', min: 0, max: 1, step: 0.01, default: 0.5, showIf: { form: 'signal' } },
     { key: 'lines', label: 'Lines', type: 'range', min: 1, max: 12, step: 1, default: 1 },
     { key: 'spread', label: 'Line spacing', type: 'range', min: 0, max: 1, step: 0.01, default: 0.25, showIf: { lines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] } },
     { key: 'lag', label: 'Line delay', type: 'range', min: 0, max: 1, step: 0.01, default: 0.3, showIf: { lines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] } },
@@ -31,7 +33,9 @@ export default {
     // the raw signal at high gain, like a pen recorder pushed into the rails
     let agc = 0.3;
     function signal(F, W, H, S, p) {
-      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+      // earlier sweeps linger as an afterimage; everything drawn below is scaled so its steady brightness stays the same
+      const k = Math.min(0.8, p.trail * 0.55), keep = 1 - k;
+      fade(ctx, W, H, k);
       const w = F.wave, n = Math.max(32, Math.floor(w.length * p.window));
       const step = Math.max(1, Math.floor(n / Math.min(n, W / (0.9 * S))));
       // automatic gain: follow the recent peak so quiet passages still fill the frame
@@ -46,11 +50,29 @@ export default {
         const x = i / (n - 1) * W, y = half - v * half * 0.985;
         if (first) { path.moveTo(x, y); first = false; } else path.lineTo(x, y);
       }
-      const c = hexToRgb(p.colorA);
+      const c = hexToRgb(p.colorA), cb = hexToRgb(p.colorB);
       ctx.globalCompositeOperation = 'lighter';
+      if (p.grid !== false) {
+        // a faint measurement grid: the centre line, quarter lines and ticks
+        ctx.fillStyle = rgba(c, 0.13 * keep); ctx.fillRect(0, half - 0.5 * S, W, S);
+        ctx.fillStyle = rgba(c, 0.05 * keep);
+        for (const f of [0.25, 0.75]) ctx.fillRect(0, H * f - 0.5 * S, W, S);
+        for (let i = 1; i < 16; i++) ctx.fillRect(i * W / 16 - 0.5 * S, half - 5 * S, S, 10 * S);
+      }
+      if (p.area > 0) {
+        // a soft body between the line and the centre
+        const fill = new Path2D(path); fill.lineTo(W, half); fill.lineTo(0, half); fill.closePath();
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, rgba(cb, 0.16 * p.area * keep)); g.addColorStop(0.5, rgba(cb, 0)); g.addColorStop(1, rgba(cb, 0.16 * p.area * keep));
+        ctx.fillStyle = g; ctx.fill(fill);
+      }
       ctx.lineJoin = 'round';
-      if (p.glow > 0) { ctx.strokeStyle = rgba(c, 0.12 * p.glow); ctx.lineWidth = p.width * S * 2.6; ctx.stroke(path); }
-      ctx.strokeStyle = rgba(c, 0.95); ctx.lineWidth = Math.max(0.8, p.width * S * 0.55); ctx.stroke(path);
+      const lw = p.width * S * (1 + F.kick * 0.35);
+      if (p.glow > 0) {
+        ctx.strokeStyle = rgba(cb, 0.07 * p.glow * keep * 2); ctx.lineWidth = lw * 6; ctx.stroke(path);
+        ctx.strokeStyle = rgba(c, 0.16 * p.glow * keep * 2); ctx.lineWidth = lw * 2.2; ctx.stroke(path);
+      }
+      ctx.strokeStyle = rgba(c, Math.min(1, 0.95 * keep * 2.2)); ctx.lineWidth = Math.max(0.8, lw * 0.55); ctx.stroke(path);
       ctx.globalCompositeOperation = 'source-over';
     }
     return {

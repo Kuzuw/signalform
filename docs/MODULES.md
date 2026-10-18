@@ -18,10 +18,11 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Text<br><sub>shown when Source: Your text</sub> | text | `SIGNAL` |
 | **Glyphs** | Glyph set | Signs x X % & # @ · Classic  .:-=+*#%@ · Blocks ░▒▓█ · Dots ·•● · Binary 01 · Hex 0–F · Lines -=≡ · Katakana · My characters | Signs x X % & # @ |
 |  | Characters (light → dense)<br><sub>shown when Glyph set: My characters</sub> | text | ` .:-=+*#%@` |
-|  | Weight | Light · Regular · Medium · Bold | Bold |
+|  | Weight | Light · Regular · Medium · Bold | Medium |
 |  | Glyph size | 6 – 40 | 18 |
 |  | Letter spacing | 0.45 – 1.2 | 0.62 |
-| **Motion** | Density | 0.2 – 2 | 1.35 |
+| **Motion** | Density | 0.2 – 2 | 1.05 |
+|  | Contrast | 0 – 1 | 0.6 |
 |  | Glyph motion | Still · Drift · Rain · Jitter | Drift |
 |  | Motion speed | 0 – 3 | 1 |
 |  | Bass punch | 0 – 2 | 1 |
@@ -30,6 +31,7 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 | **Color** | Coloring | Single color · By intensity · By frequency | By intensity |
 |  | Color A | color | `#3c3c42` |
 |  | Color B | color | `#f4f4f6` |
+|  | Glow | 0 – 1 | 0.4 |
 |  | Invert | on / off | off |
 
 ## Aura
@@ -74,6 +76,8 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 
 | Section | Control | Range / options | Default |
 |---|---|---|---|
+| **Reaction** | REACTIVE!!! | on / off | off |
+|  | Reaction strength | 0 – 3 | 1.3 |
 | **Body** | Body segments | 1 – 6 | 4 |
 |  | Buds | 0 – 7 | 5 |
 |  | Body size | 0.4 – 1.6 | 1 |
@@ -104,7 +108,8 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 | **Settings** | Look | A grid of points carried by the field · Particle streams | A grid of points carried by the field |
 |  | Grid spacing<br><sub>shown when Look: A grid of points carried by the field</sub> | 6 – 40 | 15 |
 |  | Displacement<br><sub>shown when Look: A grid of points carried by the field</sub> | 0 – 4 | 1.6 |
-|  | Point size<br><sub>shown when Look: A grid of points carried by the field</sub> | 0.5 – 4 | 1.2 |
+|  | Point size<br><sub>shown when Look: A grid of points carried by the field</sub> | 0.5 – 4 | 1.6 |
+|  | Tails back to each point's home<br><sub>shown when Look: A grid of points carried by the field</sub> | on / off | on |
 | **Field** | Stream pattern | Curl noise · Vortex · Waves · Radial burst · Crosshatch | Curl noise |
 |  | Particles | 500 – 20000 | 4000 |
 |  | Flow speed | 0.1 – 4 | 1 |
@@ -118,7 +123,7 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Particle shape | Streaks · Dots · Dashes | Streaks |
 |  | Brightness | 0.1 – 3 | 1 |
 |  | Line width | 0.5 – 4 | 1 |
-| **Color** | Coloring | By direction · By speed · Single color | Single color |
+| **Color** | Coloring | By direction · By speed · Single color | By speed |
 |  | Color A | color | `#e6e6ea` |
 |  | Color B | color | `#38c6c0` |
 
@@ -166,7 +171,8 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |---|---|---|---|
 | **Settings** | Look | Drifting dust bands · Grain texture | Drifting dust bands |
 |  | Bands<br><sub>shown when Look: Drifting dust bands</sub> | 1 – 9 | 5 |
-|  | Specks<br><sub>shown when Look: Drifting dust bands</sub> | 1000 – 30000 | 7000 |
+|  | Specks<br><sub>shown when Look: Drifting dust bands</sub> | 1000 – 30000 | 12000 |
+|  | Depth of field<br><sub>shown when Look: Drifting dust bands</sub> | 0 – 1 | 0.6 |
 |  | Waviness<br><sub>shown when Look: Drifting dust bands</sub> | 0 – 2 | 1 |
 |  | Band thickness<br><sub>shown when Look: Drifting dust bands</sub> | 0.2 – 3 | 1 |
 |  | Dust color<br><sub>shown when Look: Drifting dust bands</sub> | color | `#ffffff` |
@@ -216,6 +222,7 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 | Section | Control | Range / options | Default |
 |---|---|---|---|
 | **Settings** | Mode | X/Y (left → X, right → Y) · Y/T (time base) · Beam draws a shape · Beam draws a picture | X/Y (left → X, right → Y) |
+|  | Look | Tube in its bezel · Real-life oscilloscope · Screen only | Tube in its bezel |
 | **Vertical** | Volts / div | 10 mV · 20 mV · 50 mV · 0.1 V · 0.2 V · 0.5 V · 1 V · 2 V | 0.2 V |
 |  | Variable gain | 0.25 – 4 | 1 |
 |  | Display<br><sub>shown when Mode: Y/T (time base)</sub> | Dual (CH1 + CH2) · CH1 (left) · CH2 (right) · Add (CH1 + CH2) | Dual (CH1 + CH2) |
@@ -252,7 +259,6 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Corner defocus | 0 – 2 | 0.35 |
 |  | Phosphor grain | 0 – 1 | 0.3 |
 |  | Trace noise | 0 – 0.05  div | 0.002  div |
-|  | Tube frame | Screen in its bezel · Screen only | Screen in its bezel |
 |  | Graticule | on / off | on |
 |  | Scale illumination<br><sub>shown when Graticule: true</sub> | 0 – 1 | 0.3 |
 |  | Readout | on / off | on |
@@ -301,6 +307,8 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Time window<br><sub>shown when Form: Live signal</sub> | 0.1 – 1 | 1 |
 |  | Clip at the edges<br><sub>shown when Form: Live signal</sub> | on / off | on |
 |  | Automatic gain<br><sub>shown when Form: Live signal</sub> | on / off | on |
+|  | Measurement grid<br><sub>shown when Form: Live signal</sub> | on / off | on |
+|  | Fill under the line<br><sub>shown when Form: Live signal</sub> | 0 – 1 | 0.5 |
 |  | Lines | 1 – 12 | 1 |
 |  | Line spacing<br><sub>shown when Lines ≥ 2</sub> | 0 – 1 | 0.25 |
 |  | Line delay<br><sub>shown when Lines ≥ 2</sub> | 0 – 1 | 0.3 |
@@ -325,12 +333,13 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 | Section | Control | Range / options | Default |
 |---|---|---|---|
 | **Settings** | Arrangement | Scrolling mass · Radial rings · Stacked contours · Mirrored layers | Scrolling mass |
+|  | Look<br><sub>shown when Arrangement: Scrolling mass</sub> | Fine bars · Solid mass | Fine bars |
 |  | Body thickness<br><sub>shown when Arrangement: Scrolling mass</sub> | 0 – 0.4 | 0.12 |
 |  | Spikiness<br><sub>shown when Arrangement: Scrolling mass</sub> | 0 – 2 | 1 |
 |  | Layers | 3 – 60 | 24 |
 |  | Layer spacing | 0.2 – 2 | 1 |
 |  | Amplitude | 0.1 – 3 | 1 |
-|  | Detail | 32 – 400 | 160 |
+|  | Detail | 32 – 400 | 140 |
 |  | Filled shapes | on / off | on |
 |  | Color | Multi-color palette · Single color | Single color |
 |  | Palette<br><sub>shown when Color: Multi-color palette</sub> | Ember · Glacier · Acid · Dusk · Mono | Ember |
@@ -457,15 +466,16 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Curves | 0 – 2 | 0.8 |
 | **Walls** | Ring density | 0.5 – 8 | 3.2 |
 |  | Segments around<br><sub>shown when Walls: Wire grid / Light panels / Warp streaks</sub> | 4 – 48 | 16 |
-|  | Line width | 0.2 – 4 | 1.3 |
+|  | Line width | 0.2 – 4 | 0.9 |
 |  | Walls follow the spectrum | on / off | on |
+|  | Light on the walls | 0 – 2 | 0.7 |
 |  | Depth fade | 0 – 3 | 1 |
 |  | Light at the end | 0 – 2 | 0.6 |
 | **Color** | Coloring | By depth · By frequency · By energy | By depth |
-|  | Color A | color | `#ff7a3d` |
-|  | Color B | color | `#6a5cff` |
+|  | Color A | color | `#c4d8ff` |
+|  | Color B | color | `#3a4dff` |
 |  | Brightness | 0.2 – 3 | 1 |
-|  | Glow | 0 – 2 | 0.6 |
+|  | Glow | 0 – 2 | 0.8 |
 
 ## Horizon
 
@@ -563,15 +573,15 @@ Signalform ships with 20 modules. Every widget also has the shared [Look](#look-
 |  | Movement speed | 0 – 3 | 0.6 |
 |  | Flinch on hits | 0 – 2 | 0.8 |
 |  | Shrink on builds | on / off | on |
-| **Look** | Wall width | 0.1 – 4 | 1 |
-|  | Wall glow | 0 – 2 | 1 |
-|  | Cell light | 0 – 2 | 1 |
+| **Look** | Wall width | 0.1 – 4 | 0.45 |
+|  | Wall glow | 0 – 2 | 0.85 |
+|  | Cell light | 0 – 2 | 0.85 |
 |  | Depth | 0 – 1 | 0.5 |
 |  | Brightness | 0.2 – 3 | 1 |
 | **Color** | Coloring | By frequency · Two colors · Single color | By frequency |
-|  | Color A | color | `#ff4d6d` |
-|  | Color B | color | `#4d7cff` |
-|  | Wall color | color | `#f2f4ff` |
+|  | Color A | color | `#3f6bff` |
+|  | Color B | color | `#20d3c2` |
+|  | Wall color | color | `#e4eaff` |
 
 ## Look (every widget)
 
@@ -836,11 +846,15 @@ The Effects tab holds an ordered rack of effects; with nothing selected, the ins
 |  | Beam bloom | 0 – 1 | 0.7 |
 |  | Misconvergence | 0 – 1 | 0.35 |
 |  | Phosphor persistence | 0 – 1 | 0.25 |
+|  | Colour purity errors | 0 – 1 | 0.2 |
 |  | Flicker | 0 – 0.3 | 0.015 |
 |  | Degauss wobble on drops | on / off | on |
 | **Phosphor mask** | Phosphor mask | Aperture grille (Trinitron) · Slot mask · Shadow mask (dots) · None | Slot mask |
 |  | Mask strength | 0 – 1 | 0.6 |
 |  | Mask pitch | 2 – 12  px | 3  px |
+| **Geometry** | Overscan | -0.1 – 0.15 | 0.05 |
+|  | Geometry errors | 0 – 1 | 0.25 |
+|  | Power supply sag | 0 – 1 | 0.5 |
 | **Glass** | Curvature | 0 – 0.4 | 0.14 |
 |  | Tube shape | Spherical · Cylindrical (flat vertically) · Flat | Spherical |
 |  | Corner rounding | 0 – 0.25 | 0.07 |
@@ -848,6 +862,7 @@ The Effects tab holds an ordered rack of effects; with nothing selected, the ins
 |  | Halation | 0 – 1 | 0.45 |
 |  | Glass diffusion | 0 – 1 | 0.25 |
 |  | Room reflections | 0 – 1 | 0.2 |
+|  | Dust and smudges | 0 – 1 | 0.25 |
 
 ### Glitch
 

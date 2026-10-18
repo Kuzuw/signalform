@@ -44,8 +44,12 @@ jobs:
       - name: Click through the interface
         run: |
           mkdir -p out
-          node test/run-app.mjs out/ | tee out/log.txt
-          grep -q "problems: none" out/log.txt
+          node test/run-app.mjs out/ 2>&1 | tee out/log.txt || true
+          if ! grep -q "problems: none" out/log.txt; then
+            # the end of the log as one annotation, readable from the run's summary
+            echo "::error title=Interface test::$(tail -n 40 out/log.txt | sed -e 's/%/%25/g' -e ':a;N;$!ba;s/\n/%0A/g')"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

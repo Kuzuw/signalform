@@ -126,6 +126,8 @@ async function app() {
   const page = await browser.newPage({ viewport: { width: 1600, height: 940 }, deviceScaleFactor: 1 });
   await page.goto(`${base}/renderer/index.html`, { timeout: 300000 });
   await page.waitForFunction(() => window.__ready, null, { timeout: 300000 });
+  // wait for every module tile picture (they are drawn in idle time after launch)
+  await page.waitForFunction(() => { try { const c = JSON.parse(localStorage.getItem('sf.thumbs') || '{}'); return c.img && Object.keys(c.img).length >= document.querySelectorAll('.tile').length; } catch { return false; } }, null, { timeout: 1200000, polling: 2000 });
   await page.evaluate(() => window.signalform.loadScene({
     name: 'Night Drive', aspect: '16:9', widgets: [
       { module: 'flowfield', rect: { x: 0, y: 0, w: 1, h: 1 }, blend: 'normal', bg: { mode: 'solid', tone: 'dark' }, opacity: 0.55, params: {} },

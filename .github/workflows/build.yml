@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths-ignore: ['**.md', 'test/**', 'docs/**', 'scripts/**', '.github/ISSUE_TEMPLATE/**']
+    paths-ignore: ['**.md', 'test/**', 'docs/**', 'scripts/**', '.github/ISSUE_TEMPLATE/**', '.github/workflows/ci.yml']
 
 permissions:
   contents: write

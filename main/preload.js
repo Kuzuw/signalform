@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('sf', {
     export: (scene) => ipcRenderer.invoke('scene:export', scene),
     import: () => ipcRenderer.invoke('scene:import')
   },
+  file: {
+    saveText: (text, name, kind, ext) => ipcRenderer.invoke('file:save-text', { text, name, kind, ext })
+  },
   rec: {
     begin: (opts) => ipcRenderer.invoke('rec:begin', opts),
     chunk: (id, buf) => ipcRenderer.invoke('rec:chunk', id, buf),

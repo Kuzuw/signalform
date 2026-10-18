@@ -1,0 +1,4 @@
+build/
+host-check/target/
+effectcraft-src/
+dist/

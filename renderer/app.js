@@ -9,9 +9,11 @@ import { Recorder, Outputs } from './capture.js';
 import * as lib from './library.js';
 import * as D from './dialogs.js';
 import { h, icon, toast, fmtTime } from './ui.js';
+import { analysisScript } from './effectcraft.js';
 
 installShim();
 const $ = (id) => document.getElementById(id);
+let exportingEC = false;   // the EffectCraft analysis export is running
 
 const app = {
   settings: {},
@@ -378,6 +380,7 @@ function updateSource() {
   $('seekBox').hidden = t !== 'file';
   $('loopBtn').hidden = t !== 'file';
   $('exportBtn').hidden = t !== 'file';
+  $('ecBtn').hidden = t !== 'file';
   $('trackName').textContent = t === 'file' ? a.trackName : 'Demo beat · 124 BPM';
   $('playBtn').innerHTML = a.playing ? icon.pause : icon.play;
   $('playBtn').title = a.playing ? 'Pause (Space)' : 'Play (Space)';
@@ -388,6 +391,23 @@ function updateSource() {
   $('loopBtn').setAttribute('aria-pressed', String(!!(a.media && a.media.loop)));
   $('ejectBtn').innerHTML = icon.close;
   $('exportBtn').innerHTML = icon.download + '<span>Export video from this track</span>';
+  if (!exportingEC) $('ecBtn').innerHTML = icon.download + '<span>Export for EffectCraft</span>';
+}
+
+// The track's analysis as keyframes for EffectCraft (or After Effects): analysed offline, frame by frame.
+async function exportForEffectCraft() {
+  const a = app.audio;
+  if (exportingEC || !a.file) return;
+  exportingEC = true;
+  const btn = $('ecBtn');
+  try {
+    btn.disabled = true;
+    const an = await AudioEngine.analyzeFile(a.file, 30, (p) => { btn.innerHTML = `<span>Analysing… ${Math.round(p * 100)}%</span>`; }, a.sensitivity);
+    const path = await window.sf.file.saveText(analysisScript(an, app.version), `${an.name} · Signalform Audio`, 'EffectCraft / After Effects script', 'jsx');
+    if (path) toast(path === 'download' ? 'Script saved. Run it in EffectCraft with your composition open.' : 'Saved: ' + path + '. Run it in EffectCraft with your composition open.', false, 6000);
+  } catch (e) { toast('The analysis failed: ' + e.message, true); }
+  exportingEC = false; btn.disabled = false;
+  updateSource();
 }
 
 async function openSourceMenu() {
@@ -432,6 +452,7 @@ function wireSource() {
   $('monitorBtn').addEventListener('click', () => { const on = !(app.audio.monitor.gain.value > 0.001); app.audio.setMonitor(on); setTimeout(updateSource, 60); });
   $('ejectBtn').addEventListener('click', () => { app.audio.stopSource(); updateSource(); });
   $('exportBtn').addEventListener('click', () => D.renderDialog(app));
+  $('ecBtn').addEventListener('click', exportForEffectCraft);
   $('trackSeek').addEventListener('input', () => { seeking = true; paintRange($('trackSeek')); const m = app.audio.media; if (m && m.duration) $('trackTime').textContent = fmtTime(($('trackSeek').value / 1000) * m.duration); });
   $('trackSeek').addEventListener('change', () => { const m = app.audio.media; if (m && m.duration) m.currentTime = ($('trackSeek').value / 1000) * m.duration; seeking = false; });
   $('gainIn').addEventListener('input', (e) => { paintRange(e.target); app.audio.setSensitivity(+e.target.value); app.settings.gain = app.audio.sensitivity; app.saveSettings(); });

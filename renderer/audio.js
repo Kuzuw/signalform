@@ -35,9 +35,10 @@ export class AudioEngine {
   on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   emit() { for (const fn of this.listeners) fn(this); }
 
-  ensure() {
+  // `offline` (an OfflineAudioContext) runs the same analysis on a whole file, faster than real time
+  ensure(offline) {
     if (this.ctx) return;
-    const ctx = this.ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    const ctx = this.ctx = offline || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
     this.input = ctx.createGain();
     this.input.channelCount = 2;
     this.input.channelCountMode = 'explicit';
@@ -54,11 +55,39 @@ export class AudioEngine {
     this.input.connect(this.anMix);
     this.monitor = ctx.createGain(); this.monitor.gain.value = 0;
     this.input.connect(this.monitor); this.monitor.connect(ctx.destination);
-    this.recordDest = ctx.createMediaStreamDestination();
-    this.input.connect(this.recordDest);
+    if (!offline) { this.recordDest = ctx.createMediaStreamDestination(); this.input.connect(this.recordDest); }
     this._specDb = new Float32Array(FFT / 2);
     this.F.sampleRate = ctx.sampleRate;
-    this._startOnsets(ctx);
+    this._onsetsReady = this._startOnsets(ctx);
+  }
+
+  // Analyse a whole audio file offline, `fps` frames a second. Returns { fps, duration, frames: { level: Float32Array, … } }.
+  static async analyzeFile(file, fps = 30, onProgress = () => {}, sensitivity = 1) {
+    const data = await file.arrayBuffer();
+    const tmp = new (window.AudioContext || window.webkitAudioContext)();
+    let buf;
+    try { buf = await tmp.decodeAudioData(data); } finally { tmp.close(); }
+    const off = new OfflineAudioContext(2, buf.length, buf.sampleRate);
+    const eng = new AudioEngine();
+    eng.sensitivity = sensitivity;
+    eng.ensure(off);
+    await eng._onsetsReady;
+    const src = off.createBufferSource(); src.buffer = buf; src.connect(eng.input); src.start(0);
+    const keys = ['level', 'bass', 'mid', 'high', 'kick', 'snare', 'hat', 'build', 'drop'];
+    const n = Math.max(1, Math.floor(buf.duration * fps)), frames = {};
+    for (const k of keys) frames[k] = new Float32Array(n);
+    const dt = 1 / fps;
+    for (let i = 1; i < n; i++) {
+      off.suspend(i * dt).then(() => {
+        const F = eng.update(dt, i * dt);
+        for (const k of keys) frames[k][i] = F[k];
+        if (i % 30 === 0) onProgress(i / n);
+        off.resume();
+      });
+    }
+    await off.startRendering();
+    onProgress(1);
+    return { fps, duration: buf.duration, frames, name: file.name.replace(/\.[^.]+$/, '') };
   }
 
   // Hits are found on the audio thread (renderer/onset-worklet.js), sample-accurate and independent
@@ -166,6 +195,7 @@ export class AudioEngine {
     this.media.src = URL.createObjectURL(file);
     this.mediaNode.connect(this.input);
     this.srcNode = this.mediaNode;
+    this.file = file;
     this.trackName = file.name.replace(/\.[^.]+$/, '');
     this.setMonitor(true);
     this.sourceType = 'file';

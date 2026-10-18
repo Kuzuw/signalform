@@ -28,6 +28,29 @@ jobs:
           git diff --exit-code docs/MODULES.md || (echo "::error::docs/MODULES.md is out of date. Run npm run docs:modules." && exit 1)
       - name: Beat detection accuracy (kick and snare F1 ≥ 80%)
         run: MIN_F1=80 node --no-warnings test/onsets-varied.mjs 2001 24
+      - name: EffectCraft scripts (analysis export and the Audio Link panel)
+        run: node --no-warnings test/effectcraft-scripts.mjs
+
+  plugins:
+    name: EffectCraft plug-ins
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build (C → WebAssembly with clang)
+        run: |
+          sudo apt-get install -y lld >/dev/null
+          plugins/effectcraft/build.sh
+      - name: Check the plug-in ABI and compare with the native build
+        run: node plugins/effectcraft/test/host.mjs
+      - name: Load and render them in EffectCraft's own plug-in host
+        run: |
+          git clone --depth 1 https://github.com/storytold/effectcraft plugins/effectcraft/effectcraft-src
+          cd plugins/effectcraft/host-check
+          cargo run --release -- ../dist
 
   interface:
     name: Interface test

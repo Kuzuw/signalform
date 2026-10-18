@@ -134,6 +134,18 @@ function setupIpc() {
     fs.writeFileSync(r.filePath, JSON.stringify(scene, null, 2));
     return r.filePath;
   });
+  // save a text file the renderer made (the EffectCraft / After Effects analysis script)
+  ipcMain.handle('file:save-text', async (e, { text, name, kind, ext }) => {
+    const safeExt = String(ext || 'txt').replace(/[^\w]/g, '');
+    const r = await dialog.showSaveDialog(win, {
+      title: 'Save ' + (kind || 'file'),
+      defaultPath: String(name || 'export').replace(/[^\w\- .]+/g, '') + '.' + safeExt,
+      filters: [{ name: kind || 'File', extensions: [safeExt] }]
+    });
+    if (r.canceled || !r.filePath) return null;
+    fs.writeFileSync(r.filePath, String(text));
+    return r.filePath;
+  });
   ipcMain.handle('scene:import', async () => {
     const r = await dialog.showOpenDialog(win, {
       title: 'Open Scene',

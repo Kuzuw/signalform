@@ -83,6 +83,19 @@ jobs:
         with:
           path: out
           merge-multiple: true
+      - name: Signalform for EffectCraft (the plug-in bundle)
+        run: |
+          sudo apt-get install -y lld >/dev/null
+          plugins/effectcraft/build.sh
+          node plugins/effectcraft/test/host.mjs
+          v="${{ steps.v.outputs.tag }}"; v="${v#v}"
+          d="Signalform-for-EffectCraft-$v"
+          mkdir -p "$d/Plug-ins" "$d/ScriptUI Panels"
+          cp plugins/effectcraft/dist/*.wasm "$d/Plug-ins/"
+          cp "plugins/effectcraft/scripts/Signalform Audio Link.jsx" "$d/ScriptUI Panels/"
+          cp plugins/effectcraft/README.md "$d/README.md"
+          cp LICENSE "$d/LICENSE.txt"
+          (cd "$d" && zip -qr "../out/$d.zip" .)
       - name: Release notes from the changelog
         run: |
           v="${{ steps.v.outputs.tag }}"; v="${v#v}"
@@ -90,6 +103,8 @@ jobs:
             echo "Free and open-source audio-reactive visuals for Windows 10 and 11."
             echo
             echo "**Download:** \`Signalform-Setup-$v.exe\` below, then run it. The installer is not code-signed yet, so Windows SmartScreen may warn on first run: choose **More info** → **Run anyway**."
+            echo
+            echo "**Signalform for EffectCraft:** \`Signalform-for-EffectCraft-$v.zip\` holds the effect plug-ins for [EffectCraft](https://github.com/storytold/effectcraft) (copy \`Plug-ins\` into EffectCraft's settings folder) and the Signalform Audio Link panel. See the README inside."
             echo
             # the section of CHANGELOG.md for this version, without its heading
             awk -v ver="$v" '$0 ~ "^## \\[" ver "\\]" {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md
@@ -102,4 +117,6 @@ jobs:
           name: Signalform ${{ steps.v.outputs.tag }}
           make_latest: true
           body_path: notes.md
-          files: out/*.exe
+          files: |
+            out/*.exe
+            out/*.zip

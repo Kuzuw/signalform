@@ -13,6 +13,9 @@ export function installShim() {
     info: async () => ({ version: 'dev', platform: 'browser' }),
     requestMic: async () => true,
     store: { get: async (n) => ls.get(n), set: async (n, d) => ls.set(n, d) },
+    file: {
+      saveText: async (text, name, kind, ext) => { download(new Blob([text], { type: 'text/plain' }), name + '.' + ext); return 'download'; }
+    },
     scene: {
       export: async (scene) => { download(new Blob([JSON.stringify(scene, null, 2)], { type: 'application/json' }), (scene.name || 'scene') + '.sfscene'); return 'download'; },
       import: () => new Promise((resolve) => {

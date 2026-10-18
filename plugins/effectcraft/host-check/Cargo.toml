@@ -1,0 +1,13 @@
+# Loads the Signalform plug-ins into EffectCraft's own plug-in host (the wasmi sandbox, plug-in API v1)
+# and renders a frame with each. CI clones EffectCraft next to it (effectcraft-src/), see .github/workflows/ci.yml.
+[package]
+name = "signalform-host-check"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+effectcraft-plugin = { path = "../effectcraft-src/crates/plugin", features = ["wasm"] }
+effectcraft-effects = { path = "../effectcraft-src/crates/effects" }

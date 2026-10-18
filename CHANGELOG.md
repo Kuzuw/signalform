@@ -4,6 +4,22 @@ All notable changes to Signalform are listed here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-18
+
+### Added
+- **Timeline** under the stage (*View ▸ Timeline*, Ctrl+T):
+  - **Keyframes for any setting.** A ◆ beside every setting in Module, Look and Audio, and beside Opacity, adds a key at the playhead; once a setting has keys, changing it keys it where the playhead is. Numbers and colours travel between keys (linear, or eased in and out); choices and switches change at the key, and any key can be set to Hold. Drag keys along their row, right-click for options, Delete to remove; keys snap to the playhead and to each other. The inspector follows the animated values as the playhead moves.
+  - **In and out points.** Each layer has a bar: drag its ends to set when it appears and disappears, or drag it to move it. A layer outside its bar is not drawn.
+  - **The playhead.** With a track loaded it is the track's position: play, scrub from the ruler, and see the track's waveform. Without one the timeline runs on its own clock for a length you set. Zoom with Ctrl+scroll or the zoom slider; it pages along while playing.
+  - **Render follows the timeline.** *Export video from this track* plays the timeline with the track; without a track, **Render** records the timeline for its length, with or without the audio of the current source.
+  - Saved with the scene; duplicating a layer copies its keys.
+- **Signalform for EffectCraft:** Signalform's visuals as WebAssembly effect plug-ins for [EffectCraft](https://github.com/storytold/effectcraft), the open-source motion graphics app by the ArtCraft Team and the EffectCraft contributors: **CRT Screen** (an effect for any layer), and **Tunnel**, **Cells**, **Ferro** (with REACTIVE!!!), **Horizon** and **Aura** (generators, with Audio: Level, Bass, Mids, Highs, Kick and Drop sliders). Every release now includes `Signalform-for-EffectCraft-x.y.z.zip`. See [plugins/effectcraft](plugins/effectcraft/README.md).
+- **Export for EffectCraft** in the track card: Signalform analyses the whole track offline, frame by frame (much faster than playing it), and saves a script that adds a *Signalform Audio* null with keyframed Level, Bass, Mids, Highs, Kick, Snare, Hi-hat, Build and Drop sliders to an EffectCraft (or After Effects) composition and links the Signalform effects to it. The **Signalform Audio Link** panel links effects added later, or works from EffectCraft's own Convert Audio to Keyframes.
+- CI builds the plug-ins, renders each one in EffectCraft's own plug-in host, runs the export and panel scripts against a model of the scripting API, and drives the timeline in headless Chromium.
+
+### Changed
+- *File ▸ Render Track to Video…* is now *Render to Video…*, and renders the timeline when no track is loaded.
+
 ## [2.0.0] - 2026-10-18
 
 ### Added

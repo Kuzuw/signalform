@@ -5,6 +5,7 @@ import { h, uid, toast } from './ui.js';
 import { hexToRgb } from './modules/util.js';
 import { FX_DEFAULTS, shapeFrame, post, isNeutralLook } from './fx.js';
 import { fxEngine, normalizeRack, rackActive } from './rack.js';
+import { normalizeTimeline } from './timeline.js';
 
 export const BLENDS = {
   normal: { label: 'Normal', css: 'normal', canvas: 'source-over' },
@@ -31,7 +32,8 @@ export function isInk(bg) {
 export class Stage {
   constructor(el, wrap, hooks) {
     this.el = el; this.wrap = wrap; this.hooks = hooks;
-    this.scene = { name: 'Untitled', aspect: '16:9', widgets: [], groups: [], rack: [] };
+    this.scene = { name: 'Untitled', aspect: '16:9', widgets: [], groups: [], rack: [], timeline: normalizeTimeline() };
+    this.tlHidden = new Set();   // layers the timeline has switched off (outside their in and out points)
     this.rt = new Map();
     this.masterState = {}; this.lastF = null; this.lastT = 0;
     this.sel = new Set();
@@ -90,16 +92,26 @@ export class Stage {
       aspect: ASPECTS[scene.aspect] ? scene.aspect : '16:9',
       widgets: [],
       groups: (scene.groups || []).map((g) => ({ id: g.id || uid(), name: g.name || 'Group' })),
-      rack: normalizeRack(scene.rack)
+      rack: normalizeRack(scene.rack),
+      timeline: normalizeTimeline(scene.timeline)
     };
+    this.tlHidden.clear();
     this.masterState = {};
     this.fit();
     for (const w of scene.widgets || []) if (byId[w.module]) this._build(this._normalize(w));
     // drop groups that lost their members
     this.scene.groups = this.scene.groups.filter((g) => this.members(g.id).length > 0);
+    this._pruneTimeline();
     const last = this.scene.widgets[this.scene.widgets.length - 1];
     this.select(last ? last.id : null);
     this.changed(true);
+  }
+
+  // a layer is drawn when it is visible and the timeline has it switched on
+  shown(w) { return w.visible && !this.tlHidden.has(w.id); }
+  _pruneTimeline() {
+    const tl = this.scene.timeline;
+    for (const k of ['keys', 'clips']) for (const id of Object.keys(tl[k])) if (!this.get(id)) delete tl[k][id];
   }
 
   _normalize(w) {
@@ -151,6 +163,9 @@ export class Stage {
       copy.rect.x = Math.min(0.95, copy.rect.x + 0.03); copy.rect.y = Math.min(0.95, copy.rect.y + 0.03);
       const w = this._normalize(copy);
       this._build(w); fresh.push(w.id);
+      const tl = this.scene.timeline;
+      if (tl.keys[id]) tl.keys[w.id] = JSON.parse(JSON.stringify(tl.keys[id]));
+      if (tl.clips[id]) tl.clips[w.id] = { ...tl.clips[id] };
     }
     this.selectMany(fresh);
     this.changed(true);
@@ -161,8 +176,10 @@ export class Stage {
       this._destroy(id);
       this.scene.widgets = this.scene.widgets.filter((w) => w.id !== id);
       this.sel.delete(id);
+      this.tlHidden.delete(id);
     }
     this.scene.groups = this.scene.groups.filter((g) => this.members(g.id).length > 0);
+    this._pruneTimeline();
     if (!this.sel.size) { const last = this.scene.widgets[this.scene.widgets.length - 1]; if (last) this.sel.add(last.id); }
     this._paintSel(); this.hooks.onSelect();
     this.changed(true);
@@ -225,7 +242,7 @@ export class Stage {
   }
   _selBox() {
     let box = this.el.querySelector('.selbox');
-    const s = this.selection.filter((w) => w.visible);
+    const s = this.selection.filter((w) => this.shown(w));
     if (s.length < 2) { if (box) box.remove(); return; }
     if (!box) { box = h('div', { class: 'selbox' }); this.el.append(box); }
     const b = bbox(s.map((w) => w.rect));
@@ -239,7 +256,7 @@ export class Stage {
     const s = r.el.style;
     s.left = w.rect.x * 100 + '%'; s.top = w.rect.y * 100 + '%';
     s.width = w.rect.w * 100 + '%'; s.height = w.rect.h * 100 + '%';
-    s.display = w.visible ? '' : 'none';
+    s.display = this.shown(w) ? '' : 'none';
     s.mixBlendMode = BLENDS[w.blend].css;
     const rad = (w.radius / 1000) * this.px.w;
     const card = r.card.style, bg = r.bgEl.style, cv = r.canvas.style;
@@ -369,7 +386,7 @@ export class Stage {
 
   _snap(R, handle, skip) {
     const xs = [0, 0.5, 1], ys = [0, 0.5, 1];
-    for (const o of this.scene.widgets) if (o.visible && !skip.has(o.id)) { xs.push(o.rect.x, o.rect.x + o.rect.w); ys.push(o.rect.y, o.rect.y + o.rect.h); }
+    for (const o of this.scene.widgets) if (this.shown(o) && !skip.has(o.id)) { xs.push(o.rect.x, o.rect.x + o.rect.w); ys.push(o.rect.y, o.rect.y + o.rect.h); }
     const guides = [];
     const snapAxis = (lo, size, lines, isX) => {
       let best = null;
@@ -436,7 +453,7 @@ export class Stage {
     for (const w of this.scene.widgets) {
       const r = this.rt.get(w.id);
       if (!r || !r.inst || r.failed) continue;
-      if (!w.visible && !this.forceRender.has(w.id) && !this.forceRender.has('*') && !(w.group && this.forceRender.has(w.group))) continue;
+      if (!this.shown(w) && !this.forceRender.has(w.id) && !this.forceRender.has('*') && !(w.group && this.forceRender.has(w.group))) continue;
       const S = dpr * this.renderScale;
       let cw = Math.max(16, Math.round(w.rect.w * this.px.w * S)), ch = Math.max(16, Math.round(w.rect.h * this.px.h * S));
       const cap = 3840 / Math.max(cw, ch); if (cap < 1) { cw = Math.round(cw * cap); ch = Math.round(ch * cap); }
@@ -485,7 +502,7 @@ export class Stage {
     const sx = W / area.w, sy = H / area.h;
     for (const w of list) {
       const r = this.rt.get(w.id);
-      if ((!w.visible && !single) || !r || !r.inst || !r.size[0]) continue;
+      if ((!this.shown(w) && !single) || !r || !r.inst || !r.size[0]) continue;
       const x = (w.rect.x - area.x) * sx, y = (w.rect.y - area.y) * sy, cw = Math.max(1, Math.round(w.rect.w * sx)), ch = Math.max(1, Math.round(w.rect.h * sy));
       const t = this.tmp, tc = this.tmpCtx;
       if (t.width !== cw || t.height !== ch) { t.width = cw; t.height = ch; } else tc.clearRect(0, 0, cw, ch);
@@ -547,9 +564,15 @@ export class Stage {
     return {
       app: 'signalform', version: 2, name: this.scene.name, aspect: this.scene.aspect,
       groups: this.scene.groups.map((g) => ({ id: g.id, name: g.name })),
-      widgets: this.scene.widgets.map((w) => ({ module: w.module, name: w.name, rect: w.rect, opacity: w.opacity, blend: w.blend, visible: w.visible, locked: w.locked, group: w.group, bg: w.bg, radius: w.radius, feather: w.feather, rack: w.rack, fx: w.fx, params: w.params })),
-      rack: this.scene.rack
+      widgets: this.scene.widgets.map((w) => ({ id: w.id, module: w.module, name: w.name, rect: w.rect, opacity: w.opacity, blend: w.blend, visible: w.visible, locked: w.locked, group: w.group, bg: w.bg, radius: w.radius, feather: w.feather, rack: w.rack, fx: w.fx, params: w.params })),
+      rack: this.scene.rack,
+      timeline: this._timelineOut()
     };
+  }
+  _timelineOut() {
+    this._pruneTimeline();
+    const tl = this.scene.timeline;
+    return { duration: tl.duration, keys: JSON.parse(JSON.stringify(tl.keys)), clips: JSON.parse(JSON.stringify(tl.clips)) };
   }
 }
 

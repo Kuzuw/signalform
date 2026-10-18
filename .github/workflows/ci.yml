@@ -73,6 +73,13 @@ jobs:
             echo "::error title=Interface test::$(tail -n 40 out/log.txt | sed -e 's/%/%25/g' -e ':a;N;$!ba;s/\n/%0A/g')"
             exit 1
           fi
+      - name: Drive the timeline
+        run: |
+          node test/timeline.mjs out/ 2>&1 | tee out/timeline.txt || true
+          if ! grep -q "problems: none" out/timeline.txt; then
+            echo "::error title=Timeline test::$(tail -n 40 out/timeline.txt | sed -e 's/%/%25/g' -e ':a;N;$!ba;s/\n/%0A/g')"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

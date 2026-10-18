@@ -59,7 +59,7 @@ function buildMenu() {
         { label: 'Export Scene…', accelerator: 'CmdOrCtrl+Shift+E', click: () => send('menu', 'scene:export') },
         { type: 'separator' },
         { label: 'Import Track…', accelerator: 'CmdOrCtrl+I', click: () => send('menu', 'track:import') },
-        { label: 'Render Track to Video…', accelerator: 'CmdOrCtrl+R', click: () => send('menu', 'render:open') },
+        { label: 'Render to Video…', accelerator: 'CmdOrCtrl+R', click: () => send('menu', 'render:open') },
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' }
       ]
@@ -69,6 +69,7 @@ function buildMenu() {
       label: 'View',
       submenu: [
         { label: 'Perform Mode', accelerator: 'F', registerAccelerator: false, click: () => send('menu', 'perform:toggle') },
+        { label: 'Timeline', accelerator: 'CmdOrCtrl+T', click: () => send('menu', 'timeline:toggle') },
         { role: 'togglefullscreen' },
         { type: 'separator' },
         { role: 'reload' },

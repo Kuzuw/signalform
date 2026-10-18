@@ -119,7 +119,8 @@ Every value is already smoothed and normalized to about 0–1 unless noted. The 
 - **Stay fast.** Aim for 60 fps at 1080p on an integrated GPU with the defaults; put the heavy stuff behind a slider.
 - **Scale with `S`** so the module looks the same in a small card and full screen.
 - **Never throw from `render`.** A broken frame stops the whole stage.
-- Keep `id` and parameter `key`s stable once released: scenes and presets store them.
+- Keep `id` and parameter `key`s stable once released: scenes, presets and timeline keyframes store them.
+- **Every `range`, `select`, `color` and `toggle` parameter can be keyframed on the timeline** automatically (it gets a ◆ in the inspector). `render` receives the current values in `params` every frame, so read settings there rather than caching them in `create`, and make sure a setting can change from one frame to the next without a glitch.
 
 ## Writing an effect
 
@@ -134,6 +135,7 @@ Start with the fast checks, which need nothing but Node:
 ```bash
 npm test                                       # every file parses; every module, effect, preset and starter scene is well formed
 npm run test:onsets                            # beat detection on 24 synthetic mixes; fails below 80% kick or snare F1
+node --no-warnings test/effectcraft-scripts.mjs # the EffectCraft export and Audio Link panel against a model of the scripting API
 ```
 
 The rest drive the interface and the modules in headless Chromium:
@@ -145,13 +147,18 @@ npx playwright install chromium     # or set PW_CHROMIUM to a Chromium executabl
 node test/run-modules.mjs out/modules.png      # renders every module into one contact sheet
 ONLY=pulse node test/run-modules.mjs out/pulse.png
 node test/run-app.mjs out/                     # clicks through the interface, saves screenshots
+node test/timeline.mjs out/                    # keyframes, interpolation, in and out points, transport, a timeline render
 node test/run-render.mjs out/render.webm       # renders the 5-second fixture track (WebM or MP4, as the browser records)
 node test/onsets-varied.mjs 2001 40            # kick / snare / hat precision and recall on varied synthetic mixes
 node scripts/train-kick.mjs                    # refit the kick classifier (WRITE=1 saves renderer/kick-net.js)
 TARGET=snare node scripts/train-kick.mjs       # refit the snare classifier (WRITE=1 saves renderer/snare-net.js)
 ```
 
-Check the images, and make sure the interface and render runs end with `problems: none`. GitHub runs `npm test`, the onset test, the module reference check and the interface test on every pull request.
+Check the images, and make sure the interface and render runs end with `problems: none`. GitHub runs `npm test`, the onset test, the module reference check, the interface and timeline tests and the EffectCraft plug-in checks on every pull request.
+
+## Signalform for EffectCraft
+
+The EffectCraft plug-ins live in [`plugins/effectcraft`](plugins/effectcraft/README.md): one C file per effect, compiled to WebAssembly with clang (no C library, no imports). They are CPU ports of the modules and must be a pure function of the time and their parameters. `./build.sh` builds them, `node test/host.mjs` loads and renders each one the way EffectCraft does and compares it with a native build, and CI also renders them in EffectCraft's own host. If you change a module's look, consider porting the change to its plug-in too.
 
 ## Pull requests
 

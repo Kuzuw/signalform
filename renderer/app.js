@@ -10,6 +10,7 @@ import * as lib from './library.js';
 import * as D from './dialogs.js';
 import { h, icon, toast, fmtTime } from './ui.js';
 import { analysisScript } from './effectcraft.js';
+import { Timeline } from './timeline.js';
 
 installShim();
 const $ = (id) => document.getElementById(id);
@@ -20,6 +21,7 @@ const app = {
   audio: new AudioEngine(),
   stage: null,
   inspector: null,
+  timeline: null,
   recorder: null,
   outputs: null,
   devices: [],
@@ -100,6 +102,34 @@ const app = {
     return job;
   },
 
+  // Without a track: play the timeline from the start and record it for its length, in real time,
+  // with whatever the music source is.
+  async renderTimeline(opts, onProgress) {
+    const tl = app.timeline, dur = tl.duration;
+    const job = { done: false, cancelled: false };
+    const wasLoop = tl.loop;
+    tl.playing = false; tl.seek(0);
+    await app.recorder.start({ source: opts.source, height: opts.height, fps: opts.fps, withAudio: opts.audio, name: `${app.stage.scene.name || 'Timeline'} · Signalform` });
+    $('recBtn').classList.add('on');
+    let tick;
+    job.result = new Promise((resolve) => {
+      const finish = async (save) => {
+        if (job.done) return; job.done = true;
+        clearInterval(tick); tl.onEnd = null; tl.loop = wasLoop; tl.playing = false;
+        const path = await app.recorder.stop({ save });
+        $('recBtn').classList.remove('on'); $('recLabel').textContent = 'Record';
+        resolve(path);
+      };
+      job.cancel = () => { job.cancelled = true; finish(false); };
+      tl.loop = false; tl.onEnd = () => finish(true);
+      tick = setInterval(() => onProgress(Math.min(1, tl.now() / dur)), 200);
+      tl.playing = true; tl._rebase();
+    });
+    return job;
+  },
+
+  openRender() { D.renderDialog(app); },
+
   updateLiveButton() { $('outBtn').classList.toggle('on', app.outputs.anyRunning); }
 };
 window.signalform = app;
@@ -116,13 +146,14 @@ window.signalform = app;
   paintRange($('gainIn'));
 
   app.stage = new Stage($('stage'), $('stageWrap'), {
-    onSelect: () => app.inspector && app.inspector.render(),
-    onChange: (structural) => { autosave(); $('emptyState').hidden = app.stage.widgets.length > 0; if (structural && app.inspector) app.inspector.render(); },
+    onSelect: () => { if (app.inspector) app.inspector.render(); if (app.timeline) { app.timeline.selKey = null; app.timeline.refreshSoon(); } },
+    onChange: (structural) => { autosave(); $('emptyState').hidden = app.stage.widgets.length > 0; if (structural && app.inspector) app.inspector.render(); if (app.timeline) app.timeline.refreshSoon(); },
     onDropModule: (id, rect) => addModule(id, rect),
     onContext: (x, y) => openContextMenu(x, y)
   });
   setQuality(app.settings.quality || 'auto', false);
-  app.inspector = new Inspector($('inspector'), app.stage, {});
+  app.timeline = new Timeline(app, $('timeline'));
+  app.inspector = new Inspector($('inspector'), app.stage, { get timeline() { return app.timeline; } });
   app.recorder = new Recorder(app.stage, app.audio);
   app.outputs = new Outputs(app.stage);
   await app.outputs.init(app.settings.outputs);
@@ -165,7 +196,9 @@ function loop(now) {
   const dt = Math.min(0.1, Math.max(0.001, (now - lastT) / 1000)); lastT = now;
   const t = (now - t0) / 1000;
   const F = app.audio.update(dt, t);
+  app.timeline.tick();
   app.stage.render(F, dt, t);
+  app.timeline.frame();
   app.recorder.frame();
   app.outputs.frame(now);
   if ((meterTick++ & 1) === 0) updateMeters(F);
@@ -445,7 +478,7 @@ async function choose(v, dev) {
 }
 
 function wireSource() {
-  app.audio.on(() => updateSource());
+  app.audio.on(() => { updateSource(); app.timeline.refreshSoon(); });
   $('sourceCard').addEventListener('click', openSourceMenu);
   $('playBtn').addEventListener('click', () => { app.audio.togglePlay(); setTimeout(updateSource, 30); });
   $('loopBtn').addEventListener('click', () => { const m = app.audio.media; if (!m) return; m.loop = !m.loop; app.settings.loop = m.loop; app.saveSettings(); updateSource(); });
@@ -516,6 +549,7 @@ function onMenu(cmd) {
   else if (cmd === 'scene:export') window.sf.scene.export(app.stage.serialize());
   else if (cmd === 'track:import') app.pickTrack();
   else if (cmd === 'render:open') D.renderDialog(app);
+  else if (cmd === 'timeline:toggle') app.timeline.setCollapsed(!app.timeline.collapsed);
   else if (cmd === 'perform:toggle') togglePerform();
 }
 

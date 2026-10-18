@@ -5,6 +5,7 @@ import { FX_PARAMS, FX_DEFAULTS } from './fx.js';
 import { h, icon, toast } from './ui.js';
 import { hexToRgb } from './modules/util.js';
 import * as lib from './library.js';
+import { KEYABLE, getValue } from './timeline.js';
 import { EFFECTS, EFFECT_CATS, MOD_SOURCES, newItem, engineError, fxEngine, normalizeRack } from './rack.js';
 
 const SWATCHES = ['#ffffff', '#e8eeff', '#ffd166', '#ff8a3d', '#ff5c8a', '#b28dff', '#5ab8ff', '#7fe3d6', '#8dffb0'];
@@ -37,6 +38,7 @@ export class Inspector {
 
   render() {
     const st = this.stage;
+    this.kw = null;
     const keepScroll = this.el.scrollTop;
     this.el.innerHTML = '';
     const sel = st.selection;
@@ -54,6 +56,7 @@ export class Inspector {
   /* ---------- one widget: Module · Look · Audio ---------- */
   single(w) {
     const mod = byId[w.module];
+    this.kw = w;     // the widget whose settings can be keyframed (see control())
     const changed = () => this.stage.changed();
     const tab = this.tab || 'module';
     const head = h('section', { class: 'sec head' },
@@ -261,7 +264,7 @@ export class Inspector {
       h('p', { class: 'note' }, w.bg.mode === 'clear' ? 'Clear: the visual floats over the layers below it.' : w.bg.mode === 'glass' ? 'Glass: blurs whatever is behind the card.' : 'Solid: the widget is its own card.'),
       this.rangeField('Corner radius', 'radius', w.radius, 0, 60, 1, (v) => { for (const x of ws) { x.radius = v; st.applyStyle(x); } st.changed(); }, (v) => Math.round(v) + ''),
       this.rangeField('Edge feather', 'feather', w.feather || 0, 0, 120, 1, (v) => { for (const x of ws) { x.feather = v; st.applyStyle(x); } st.changed(); }, (v) => (v < 0.5 ? 'Off' : Math.round(v) + ''), false, 0),
-      this.rangeField('Opacity', 'opacity', w.opacity, 0, 1, 0.01, (v) => { for (const x of ws) { x.opacity = v; st.applyStyle(x); } st.changed(); }, (v) => Math.round(v * 100) + '%'),
+      ((f) => (ws.length === 1 ? this.kfButton(w, 'opacity', f) : f))(this.rangeField('Opacity', 'opacity', w.opacity, 0, 1, 0.01, (v) => { for (const x of ws) { x.opacity = v; st.applyStyle(x); if (ws.length === 1 && this.hooks.timeline) this.hooks.timeline.edited(x, 'opacity', v); } st.changed(); }, (v) => Math.round(v * 100) + '%')),
       this.field('Blend with layers below', 'blend', h('select', { id: 'f_blend', onchange: (e) => apply((x) => { x.blend = e.target.value; }) },
         ...Object.entries(BLENDS).map(([k, b]) => h('option', { value: k, selected: k === w.blend }, b.label)))),
       ws.length === 1 ? h('div', { class: 'row' },
@@ -270,7 +273,13 @@ export class Inspector {
   }
 
   control(T, list, p, disabled, widgetId, idp = '') {
-    const set = (v, rerender) => { T[p.key] = v; this.stage.changed(); if (rerender) this.render(); };
+    const kw = this.kw, path = kw && !p.apply && KEYABLE.has(p.type) ? (T === kw.params ? 'params.' + p.key : T === kw.fx ? 'fx.' + p.key : null) : null;
+    const el = this._control(T, list, p, disabled, widgetId, idp, path);
+    return path ? this.kfButton(kw, path, el) : el;
+  }
+  _control(T, list, p, disabled, widgetId, idp, path) {
+    const tl = this.hooks.timeline, kw = this.kw;
+    const set = (v, rerender) => { T[p.key] = v; if (path && tl) tl.edited(kw, path, v); this.stage.changed(); if (rerender) this.render(); };
     const needsRerender = list.some((q) => q.showIf && p.key in q.showIf);
     const id = 'p_' + idp + p.key;
     const def = p.default ?? FX_DEFAULTS[p.key];
@@ -282,8 +291,11 @@ export class Inspector {
     }
     if (p.type === 'select') {
       // a select with apply() is a preset: it fills in the other settings too
-      return this.field(p.label, p.key, h('select', { id, disabled, onchange: (e) => { if (p.apply) { p.apply(T, e.target.value); set(e.target.value, true); toast('Settings set for ' + e.target.selectedOptions[0].textContent); } else set(e.target.value, needsRerender); } },
-        ...p.options.map(([v, l]) => h('option', { value: v, selected: String(T[p.key]) === String(v) }, l))));
+      const sel = h('select', { id, disabled, onchange: (e) => { if (p.apply) { p.apply(T, e.target.value); set(e.target.value, true); toast('Settings set for ' + e.target.selectedOptions[0].textContent); } else set(e.target.value, needsRerender); } },
+        ...p.options.map(([v, l]) => h('option', { value: v, selected: String(T[p.key]) === String(v) }, l)));
+      const f = this.field(p.label, p.key, sel);
+      f._set = (v) => { if (sel.value === String(v)) return; sel.value = String(v); if (needsRerender) this.render(); };
+      return f;
     }
     if (p.type === 'color') {
       const cur = String(T[p.key]).toLowerCase();
@@ -291,11 +303,15 @@ export class Inspector {
       const dots = SWATCHES.map((c) => h('button', { type: 'button', class: 'dot' + (c === cur ? ' on' : ''), style: { background: c }, title: c, disabled, onclick: () => { set(c); picker.value = c; paint(c); } }));
       const custom = h('label', { class: 'dot custom' + (SWATCHES.includes(cur) ? '' : ' on'), title: 'Custom color', style: { background: SWATCHES.includes(cur) ? '' : cur } }, picker);
       const paint = (c) => { dots.forEach((d) => d.classList.toggle('on', d.title === c)); custom.classList.toggle('on', !SWATCHES.includes(c)); if (!SWATCHES.includes(c)) custom.style.background = c; };
-      return h('div', { class: 'field color' }, h('label', { for: id }, p.label), h('div', { class: 'swatches' }, ...dots, custom));
+      const f = h('div', { class: 'field color' }, h('label', { for: id }, p.label), h('div', { class: 'swatches' }, ...dots, custom));
+      f._set = (v) => { if (document.activeElement === picker) return; picker.value = v; paint(String(v).toLowerCase()); };
+      return f;
     }
     if (p.type === 'toggle') {
-      return h('div', { class: 'field inline' }, h('label', { for: id }, p.label),
-        h('label', { class: 'switch' }, h('input', { type: 'checkbox', id, checked: !!T[p.key], disabled, onchange: (e) => set(e.target.checked, needsRerender) }), h('i')));
+      const box = h('input', { type: 'checkbox', id, checked: !!T[p.key], disabled, onchange: (e) => set(e.target.checked, needsRerender) });
+      const f = h('div', { class: 'field inline' }, h('label', { for: id }, p.label), h('label', { class: 'switch' }, box, h('i')));
+      f._set = (v) => { if (box.checked === !!v) return; box.checked = !!v; if (needsRerender) this.render(); };
+      return f;
     }
     if (p.type === 'text') return this.field(p.label, p.key, h('input', { type: 'text', id, value: T[p.key] ?? '', disabled, spellcheck: 'false', oninput: (e) => set(e.target.value) }));
     if (p.type === 'action') return h('button', { class: 'btn wide', type: 'button', disabled, onclick: () => { const msg = this.stage.action(widgetId, p.key); if (typeof msg === 'string') toast(msg); } }, p.label);
@@ -329,7 +345,36 @@ export class Inspector {
     out.addEventListener('keydown', (e) => { if (e.key === 'Enter') edit(); });
     input.addEventListener('dblclick', () => { if (def == null) return; input.value = def; input.dispatchEvent(new Event('input')); });
     paint();
-    return h('div', { class: 'field', title: def != null ? 'Double-click to reset' : null }, h('label', { for: id }, label), out, input);
+    const f = h('div', { class: 'field', title: def != null ? 'Double-click to reset' : null }, h('label', { for: id }, label), out, input);
+    f._set = (v) => { if (document.activeElement === input || Number(input.value) === v) return; input.value = v; out.textContent = fmt(Number(input.value)); paint(); };
+    return f;
+  }
+
+  // The ◆ beside a setting: keyframe it at the playhead. Filled on a key, outlined between keys.
+  kfButton(w, path, el) {
+    const tl = this.hooks.timeline; if (!tl) return el;
+    const b = h('button', { type: 'button', class: 'kf', 'data-path': path, 'aria-label': 'Keyframe',
+      onclick: (e) => { e.preventDefault(); e.stopPropagation(); tl.toggleKey(w, path); } });
+    b._set = el._set;
+    el.classList.add('keyable');
+    const lab = el.querySelector('label'); if (lab) lab.prepend(b); else el.prepend(b);
+    this._mark(b, w, path, tl);
+    return el;
+  }
+  _mark(b, w, path, tl) {
+    const has = tl.hasKeys(w, path), on = has && tl.keyIndexAt(w, path, tl.now()) >= 0;
+    b.classList.toggle('has', has); b.classList.toggle('on', on);
+    b.title = !has ? 'Animate: add a keyframe at the playhead' : on ? 'Remove the keyframe at the playhead' : 'Add a keyframe at the playhead';
+    b.closest('.field')?.classList.toggle('animated', has);
+  }
+  // While the timeline plays, show the animated values and which settings sit on a key.
+  syncValues() {
+    const w = this.kw, tl = this.hooks.timeline;
+    if (!w || !tl || this.stage.selected !== w.id) return;
+    for (const b of this.el.querySelectorAll('.kf[data-path]')) {
+      this._mark(b, w, b.dataset.path, tl);
+      if (b._set && tl.hasKeys(w, b.dataset.path)) b._set(getValue(w, b.dataset.path));
+    }
   }
 
   /* ---------- layers: groups and widgets, drag to reorder ---------- */

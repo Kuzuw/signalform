@@ -13,7 +13,8 @@
 
 <p align="center">
   <b>Turn any sound into live visuals.</b> Twenty audio-reactive modules you can layer, resize and blend<br>
-  into one composition, then record it, render a track to MP4 or perform it full screen. No DAW required.
+  into one composition, animate it on a timeline, then record it, render it to MP4 or perform it full screen.<br>
+  Also available as effect plug-ins for <a href="https://github.com/storytold/effectcraft">EffectCraft</a>.
 </p>
 
 <p align="center">
@@ -37,7 +38,9 @@
 - [Quick start](#quick-start)
 - [Keyboard and mouse](#keyboard-and-mouse)
 - [Audio sources](#audio-sources)
+- [Timeline](#timeline)
 - [Recording and export](#recording-and-export)
+- [Signalform for EffectCraft](#signalform-for-effectcraft)
 - [Live Output](#live-output)
 - [FAQ](#faq)
 - [Build from source](#build-from-source)
@@ -60,7 +63,9 @@
 | **Real-life oscilloscope** | The oscilloscope simulates the beam, the phosphor and the time base, and can show the whole instrument: a dual-trace analog scope whose knobs, buttons and lamps follow its real settings. |
 | **Music-aware analysis** | Bass, mid and high levels; kick, snare and hi-hat detection on the audio thread (small trained classifiers tell kicks and snares apart from bass notes); pitch; and build-up and drop detection, shared by every module. |
 | **Any sound in** | What your PC is playing, a microphone or audio interface, a virtual cable, a track file, or the built-in demo beat. |
-| **Video out** | Render a track to MP4 with its audio, or record live takes of the whole stage, a group or a single widget. |
+| **Timeline** | Keyframe any setting with the ◆ beside it (linear, eased or held), set when each layer starts and stops, and scrub the track with the playhead. Renders follow the timeline. |
+| **Video out** | Render a track or the timeline to MP4 with its audio, or record live takes of the whole stage, a group or a single widget. |
+| **EffectCraft plug-ins** | CRT Screen, Tunnel, Cells, Ferro, Horizon and Aura as WebAssembly effect plug-ins for [EffectCraft](https://github.com/storytold/effectcraft), plus a script export that brings a track's beats, bands, builds and drops into EffectCraft or After Effects as keyframes. |
 | **Scenes and presets** | Save whole layouts as scenes (and share them as `.sfscene` files), or save module settings as presets. Eleven starter scenes are included. |
 | **Free and open source** | MIT licensed. No account, no license key, no telemetry. |
 
@@ -147,6 +152,12 @@ Every control of every module, with ranges and defaults, is listed in the **[mod
 | Resize keeping the shape / without snapping | Drag a corner with <kbd>Shift</kbd> / with <kbd>Alt</kbd> |
 | Reset a slider / type an exact value | Double-click the slider / click its number |
 | Widget menu | Right-click a widget |
+| Show or hide the timeline | <kbd>Ctrl</kbd>+<kbd>T</kbd> |
+| Playhead to the start / end | <kbd>Home</kbd> / <kbd>End</kbd> |
+| Keyframe a setting | Click the ◆ beside it |
+| Change a key's easing / delete it | Right-click the key / click it and press <kbd>Delete</kbd> |
+| Move a key or a layer bar without snapping | Drag it with <kbd>Alt</kbd> |
+| Zoom / scroll the timeline | <kbd>Ctrl</kbd>+scroll / <kbd>Shift</kbd>+scroll |
 
 ## Audio sources
 
@@ -158,11 +169,44 @@ Every control of every module, with ranges and defaults, is listed in the **[mod
 | **Track** | An audio file. Loop it, monitor it, scrub it and export a video from it. |
 | **Demo beat** | A built-in 124 BPM loop with builds and drops, for trying things out without music. |
 
+## Timeline
+
+<img src="docs/images/timeline.png" alt="The timeline under the stage: layer bars with in and out points, keyframes for Aura's opacity, hue and zoom, and the playhead" width="100%">
+
+The timeline sits under the stage (<kbd>Ctrl</kbd>+<kbd>T</kbd> shows or hides it, and its top edge drags to resize it).
+
+- **The playhead.** With a track loaded, the playhead *is* the track's position: play, pause and scrub it from the ruler, and the track's waveform is drawn along the top. Without a track, the timeline has its own clock and a length you set (30 seconds to start), and the music comes from whatever source is on, live input included.
+- **Keyframes.** Every setting a widget has, in Module, Look and Audio, plus its opacity, has a **◆** beside its name. Click it to add a key at the playhead; once a setting has keys, changing it adds or updates the key where the playhead is, the same as in a video editor. Numbers and colours travel smoothly between keys; choices and switches change at the key. Right-click a key for **Linear**, **Ease in and out** or **Hold**; drag keys along their row; click one and press <kbd>Delete</kbd> to remove it. Keys snap to the playhead and to other keys.
+- **In and out points.** Each layer has a bar. Drag its ends to set when it appears and disappears, or drag the bar to move it; double-click it to make it play the whole time. A layer outside its bar is not drawn at all, so it costs nothing.
+- **Everything is saved with the scene**, and the audio still drives every widget as usual: keyframes set *what* the visuals are, the music moves them.
+
 ## Recording and export
 
-- **Export video from this track** plays a loaded track from the start and renders the stage to an MP4 (H.264 + AAC) with the track's audio. It runs in real time, so it takes as long as the track.
+- **Export video from this track** plays a loaded track from the start and renders the stage to an MP4 (H.264 + AAC) with the track's audio, following the timeline. It runs in real time, so it takes as long as the track.
+- **Render** (in the timeline, or *File ▸ Render to Video…*, <kbd>Ctrl</kbd>+<kbd>R</kbd>) renders the timeline from the start for its length when no track is loaded, with or without the audio of the current source.
 - **Record** captures a live take of whatever is playing. The **Record Widget** dialog lets you record the whole stage, a group or one widget, at 720p, 1080p, 1440p or 4K and 30 or 60 fps, with or without audio.
 - When a take ends, you choose where to save it (your Videos folder by default). Videos are saved as MP4; the bundled ffmpeg converts them when needed.
+
+## Signalform for EffectCraft
+
+Signalform also comes as a pack of effect plug-ins for **[EffectCraft](https://github.com/storytold/effectcraft)**, the free, open-source motion graphics and compositing app by the ArtCraft Team and the EffectCraft contributors. Put Signalform's looks on layers in an EffectCraft composition, keyframe them, mix them with everything else EffectCraft does, and render.
+
+| Effect | What it does |
+|---|---|
+| **Signalform CRT Screen** | Shows any layer on a cathode-ray tube: RGB, S-Video or composite NTSC signal, scan lines that widen on bright parts, aperture grille, slot or shadow mask, curved glass, halation and a bezel. |
+| **Signalform Tunnel** | A flight down an endless tunnel of light rings, grid, panels or warp streaks. |
+| **Signalform Cells** | Frosted-glass, organic, crystal or stained-glass cells, each lit by its slice of the spectrum. |
+| **Signalform Ferro** | Black magnetic fluid that spikes, pumps and throws droplets, with the **REACTIVE!!!** switch. |
+| **Signalform Horizon** | A neon landscape rolling towards a striped setting sun. |
+| **Signalform Aura** | A breathing ring of thousands of shimmering specks. |
+
+**Install:** download `Signalform-for-EffectCraft-x.y.z.zip` from the [latest release](https://github.com/Kuzuw/signalform/releases/latest) and copy the `.wasm` files into EffectCraft's `Plug-ins` folder (`%APPDATA%\EffectCraft\Plug-ins` on Windows), or load one with *Effect ▸ Load Effect Plug-in…*.
+
+**Make them follow the music:** open the track in Signalform and click **Export for EffectCraft** in the track card. Signalform analyses the whole track offline (much faster than playing it) and saves a script; run it in EffectCraft with your composition open (*File ▸ Scripts ▸ Run Script File…*). It adds a **Signalform Audio** null layer with keyframed Level, Bass, Mids, Highs, Kick, Snare, Hi-hat, Build and Drop sliders and links every Signalform effect in the comp to them. The **Signalform Audio Link** panel in the zip links effects you add later, or works from EffectCraft's own *Convert Audio to Keyframes*. The script uses the After Effects object model, so it runs in After Effects too.
+
+The plug-ins are small C files compiled to WebAssembly against EffectCraft's [plug-in API](https://github.com/storytold/effectcraft/blob/main/docs/plugins.md); CI renders every one of them in EffectCraft's own plug-in host. Details, previews and build steps: **[plugins/effectcraft](plugins/effectcraft/README.md)**.
+
+> EffectCraft and ArtCraft are the names and trademarks of their owners. Signalform for EffectCraft is an independent plug-in pack, not made or endorsed by them.
 
 ## Live Output
 
@@ -225,7 +269,7 @@ npm test           # source and settings checks
 
 ### Tests
 
-Every push and pull request runs [`ci.yml`](.github/workflows/ci.yml): the source and settings checks (`npm test`), a check that the [module reference](docs/MODULES.md) is up to date, beat detection scored on 24 synthetic mixes (`npm run test:onsets`, kick and snare F1 must stay at 80% or more), and the whole interface clicked through in headless Chromium (`npm run test:ui`). The screenshots are kept with each run.
+Every push and pull request runs [`ci.yml`](.github/workflows/ci.yml): the source and settings checks (`npm test`), a check that the [module reference](docs/MODULES.md) is up to date, beat detection scored on 24 synthetic mixes (`npm run test:onsets`, kick and snare F1 must stay at 80% or more), the whole interface and the timeline clicked through in headless Chromium (`npm run test:ui`, `npm run test:timeline`), the EffectCraft scripts run against a model of the scripting API, and the EffectCraft plug-ins built, validated and rendered in EffectCraft's own WebAssembly host. The screenshots are kept with each run.
 
 ### Releases
 
@@ -233,7 +277,7 @@ Releases are fully automated by [`.github/workflows/build.yml`](.github/workflow
 
 1. Bump `version` in `package.json` and add an entry to [`CHANGELOG.md`](CHANGELOG.md).
 2. Push to `main`.
-3. About ten minutes later the release `v<version>` appears with the installer. The workflow creates the tag.
+3. About ten minutes later the release `v<version>` appears with the installer and the EffectCraft plug-in pack. The workflow creates the tag.
 
 Pushes that keep the same version rebuild that release's installer; documentation-only changes don't trigger a build. To sign the installer, add a code-signing certificate as the secrets `WIN_CERT_PFX_BASE64` and `WIN_CERT_PASSWORD`.
 
@@ -251,18 +295,21 @@ renderer/             the interface (plain ES modules, no build step)
   kick-net.js         the kick classifier's weights (scripts/train-kick.mjs)
   snare-net.js        the snare classifier's weights (TARGET=snare scripts/train-kick.mjs)
   stage.js            widgets, layout, layering, groups and the compositor
+  timeline.js         keyframes, in and out points, the playhead and the timeline panel
+  effectcraft.js      the track analysis as an EffectCraft / After Effects script
   fx.js               per-widget Look and Audio controls
   rack.js             the effect rack: effects and the shared GPU engine that runs them
   crt.js              the CRT screen effect: signal encode/decode, beam, mask, glass
   inspector.js        the Module / Look / Audio panel, generated from parameter schemas
   modules/            the 20 visual modules (WebGL 2 for Ferro, Tunnel, Cells, Oscilloscope and the shader looks of Aura and Fractal; Canvas 2D for the rest)
     scope-panel.js    the real-life oscilloscope's front panel
+plugins/effectcraft/  Signalform for EffectCraft: the WebAssembly effect plug-ins (C), their tests and the Audio Link panel
 docs/                 module reference and README images
 scripts/              checks (check.mjs), generators for docs/MODULES.md and the README images
 test/                 headless interface, module and render tests
 ```
 
-Each frame, `audio.js` produces one analysis frame. Every widget reshapes it through its **Audio** settings, its module draws into an offscreen canvas, the **Look** pass applies color, transform and effects, and the compositor stacks the widgets with their backgrounds and blend modes.
+Each frame, `audio.js` produces one analysis frame and `timeline.js` sets the animated settings for the playhead's time. Every widget reshapes it through its **Audio** settings, its module draws into an offscreen canvas, the **Look** pass applies color, transform and effects, and the compositor stacks the widgets with their backgrounds and blend modes.
 
 ## Roadmap
 
@@ -283,3 +330,5 @@ Please follow the [Code of Conduct](CODE_OF_CONDUCT.md), and report security iss
 ## License
 
 Signalform is free software under the [MIT License](LICENSE). The bundled [ffmpeg](https://ffmpeg.org) build (via `ffmpeg-static`) is licensed under the GPL.
+
+Signalform for EffectCraft is written for **[EffectCraft](https://github.com/storytold/effectcraft)** by the ArtCraft Team and the EffectCraft contributors (MIT or Apache-2.0), and follows its plug-in API and scripting model. Thank you for making it open and extensible.

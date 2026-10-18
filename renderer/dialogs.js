@@ -100,35 +100,37 @@ export function recordDialog(app) {
 
 /* ---------------- render a track ---------------- */
 export function renderDialog(app) {
-  const s = app.settings.render || { source: 'stage', height: 1080, fps: 60, mute: false };
+  const s = app.settings.render || { source: 'stage', height: 1080, fps: 60, mute: false, audio: true };
   const audio = app.audio;
   const hasTrack = audio.sourceType === 'file' && audio.media && isFinite(audio.media.duration);
   let job = null;
   return modal({
-    title: 'Render track to video',
+    title: hasTrack ? 'Render track to video' : 'Render timeline to video',
     onClose: () => { if (job && !job.done) job.cancel(); },
     build(body, close, foot) {
-      if (!hasTrack) {
-        body.append(h('p', {}, 'Import a track first. The render plays it from the start and records the visuals with the audio until the track ends.'));
-        foot.prepend(h('button', { class: 'btn primary', type: 'button', onclick: () => { close(); app.pickTrack(true); } }, 'Choose a track…'));
-        return;
-      }
-      const dur = audio.media.duration;
+      const dur = hasTrack ? audio.media.duration : app.timeline.duration;
       const prog = h('div', { class: 'progress' }, h('i'));
-      const status = h('p', { class: 'note' }, `“${audio.trackName}” · ${fmtTime(dur)}. The render runs in real time, so it takes as long as the track.`);
+      const status = h('p', { class: 'note' }, hasTrack
+        ? `“${audio.trackName}” · ${fmtTime(dur)}. Plays the track from the start with the timeline, and records the visuals with the audio until it ends. The render runs in real time, so it takes as long as the track.`
+        : `The timeline · ${fmtTime(dur)}. Plays the timeline from the start and records it for its length, with ${audio.sourceLabel} as the music. The render runs in real time. To render to a song instead, choose a track.`);
       body.append(status,
         h('div', { class: 'grid2' },
           h('label', { class: 'lbl' }, h('span', {}, 'Capture'), h('select', { id: 'rnSource' }, ...sourceOptions(app.stage, app.stage.get(s.source) || app.stage.group(s.source) ? s.source : 'stage'))),
           h('label', { class: 'lbl' }, h('span', {}, 'Resolution'), sel('rnHeight', RES, s.height)),
           h('label', { class: 'lbl' }, h('span', {}, 'Frame rate'), sel('rnFps', [[30, '30 fps'], [60, '60 fps']], s.fps)),
-          h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'rnMute', checked: s.mute }), 'Mute speakers while rendering')),
+          hasTrack
+            ? h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'rnMute', checked: s.mute }), 'Mute speakers while rendering')
+            : h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'rnAudio', checked: s.audio !== false }), 'Record the audio too')),
         prog);
+      if (!hasTrack) foot.prepend(h('button', { class: 'btn ghost', type: 'button', onclick: () => { close(); app.pickTrack(true); } }, 'Choose a track…'));
       const start = h('button', { class: 'btn primary', type: 'button', id: 'rnStart', onclick: async () => {
-        const opts = { source: document.getElementById('rnSource').value, height: +document.getElementById('rnHeight').value, fps: +document.getElementById('rnFps').value, mute: document.getElementById('rnMute').checked };
+        const v = (id) => document.getElementById(id);
+        const opts = { source: v('rnSource').value, height: +v('rnHeight').value, fps: +v('rnFps').value, mute: hasTrack ? v('rnMute').checked : !!s.mute, audio: hasTrack ? s.audio !== false : v('rnAudio').checked };
         app.settings.render = opts; app.saveSettings();
         start.disabled = true; body.querySelectorAll('select, input').forEach((e) => (e.disabled = true));
         document.getElementById('dlg').dataset.busy = '1';
-        job = await app.renderTrack(opts, (p) => { prog.firstChild.style.width = (p * 100).toFixed(1) + '%'; status.textContent = `Rendering… ${fmtTime(p * dur)} of ${fmtTime(dur)}`; });
+        const onProgress = (p) => { prog.firstChild.style.width = (p * 100).toFixed(1) + '%'; status.textContent = `Rendering… ${fmtTime(p * dur)} of ${fmtTime(dur)}`; };
+        job = hasTrack ? await app.renderTrack(opts, onProgress) : await app.renderTimeline(opts, onProgress);
         const path = await job.result;
         delete document.getElementById('dlg').dataset.busy;
         if (path) {

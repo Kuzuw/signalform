@@ -134,8 +134,15 @@ async function app() {
       { module: 'oscillon', rect: { x: 0.04, y: 0.08, w: 0.44, h: 0.84 }, blend: 'screen', params: { form: 'pebble' } },
       { module: 'spectre', name: 'Spectrum', rect: { x: 0.52, y: 0.08, w: 0.44, h: 0.4 }, blend: 'normal', bg: { mode: 'glass', tone: 'dark' }, radius: 22, params: {} },
       { module: 'lissajous', rect: { x: 0.52, y: 0.52, w: 0.44, h: 0.4 }, blend: 'normal', bg: { mode: 'glass', tone: 'dark' }, radius: 22, params: {} }
-    ]
+    ].map((w, i) => ({ id: 'w' + (i + 1), ...w })),
+    // a little animation, so the timeline has something to show
+    timeline: {
+      duration: 60,
+      keys: { w1: { opacity: [{ t: 0, v: 0, e: 'e' }, { t: 4, v: 0.55, e: 'l' }] }, w3: { 'fx.hue': [{ t: 0, v: 0, e: 'l' }, { t: 24, v: 60, e: 'e' }, { t: 44, v: -20, e: 'l' }] } },
+      clips: { w4: { in: 8, out: 52 } }
+    }
   }, true));
+  await page.evaluate(() => { window.signalform.timeline.open.add('w3'); window.signalform.timeline.seek(18); });
   await page.waitForTimeout(9000);
   await page.click('.widget >> nth=2', { position: { x: 60, y: 60 } });
   await page.waitForTimeout(1500);
